@@ -18,7 +18,6 @@ struct fd_list{
 int free_fd_list_closing(struct fd_list *head){
 	struct fd_list *ptr;
 	while(head){
-		printf("closing socket with file descriptor %d\n", head->fd);
 		close(head->fd);
 		ptr = head->next;
 		head->fd = -1;
@@ -94,17 +93,13 @@ int await_a_resource(int listening_socket, struct fd_list *connections, struct t
 	maxfd = listening_socket;
 	FD_SET(listening_socket, &to_read);
 	ptr = connections->next;
-	printf("file descriptors: %d", listening_socket);
 	while(ptr){
 		/* TODO: cycle detection */
-		printf(" %d", ptr->fd);
 		FD_SET(ptr->fd, &to_read);
 		if(maxfd < ptr->fd) maxfd = ptr->fd;
 		ptr = ptr->next;
 	}
-	printf("\n");
 	status = select(maxfd + 1, &to_read, 0, 0, timeout);
-	printf("select selected %d\n", status);
 	if(-1 == status){
 		FD_ZERO(&to_read);
 		return 2;
@@ -178,16 +173,13 @@ int manage_resources_forever(int listening_socket){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 		if(!await_a_resource(listening_socket, connections, &timeout, &ready_fd)){
-			printf("waited and found %d\n", ready_fd);
 			if(ready_fd == listening_socket){
 				accept_new_connection(listening_socket, connections);
 			}
 			else{
-				printf("socket with file descriptor %d is ready\n", ready_fd);
 				handle_chunk(ready_fd, connections->next);
 			}
 		}
-		else printf("waited and found nothing\n");
 	}
 	free_fd_list_closing(connections->next);
 	connections->fd = -1;

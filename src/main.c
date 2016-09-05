@@ -87,21 +87,24 @@ int get_socket(char* port_number, int *out_sockfd){
 int await_a_resource(int listening_socket, struct fd_list *connections, struct timeval *timeout, int *out_fd){
 	fd_set to_read;
 	int status;
-	int nconns;
+	int maxfd;
 	struct fd_list *ptr;
 	FD_ZERO(&to_read);
 	status = 0;
-	nconns = 0;
+	maxfd = listening_socket;
 	FD_SET(listening_socket, &to_read);
-	ptr = connections;	
-	ptr = last(ptr); /* TODO: remove this line */
-	/*
-		TODO:
-			loop over connections
-				FD_SET each of them
-				count them in nconns
-	*/
-	status = select(nconns + 1, &to_read, 0, 0, timeout);
+	ptr = connections->next;
+	printf("file descriptors: %d", listening_socket);
+	while(ptr){
+		/* TODO: cycle detection */
+		printf(" %d", ptr->fd);
+		FD_SET(ptr->fd, &to_read);
+		if(maxfd < ptr->fd) maxfd = ptr->fd;
+		ptr = ptr->next;
+	}
+	printf("\n");
+	status = select(maxfd + 1, &to_read, 0, 0, timeout);
+	printf("select selected %d\n", status);
 	if(-1 == status){
 		FD_ZERO(&to_read);
 		return 2;
@@ -115,7 +118,16 @@ int await_a_resource(int listening_socket, struct fd_list *connections, struct t
 		*out_fd = listening_socket;
 		return 0;
 	}
-	/* TODO: loop over connections and do like above */
+	ptr = connections->next;
+	while(ptr){
+		/* TODO: cycle detection */
+		if(FD_ISSET(ptr->fd, &to_read)){
+			FD_ZERO(&to_read);
+			*out_fd = ptr->fd;
+			return 0;
+		}
+		ptr = ptr->next;
+	}
 	FD_ZERO(&to_read);
 	return 3;
 }
@@ -141,41 +153,56 @@ int accept_new_connection(int server_socket, struct fd_list *connections){
 	return 0;
 }
 
+int handle_chunk(int sockfd, struct fd_list *connections){
+	char buf[256+1];
+	size_t len;
+	while(connections)
+		if(sockfd == connections->fd)
+			break;
+	if(!connections) return 1;
+	buf[256] = 0;
+	len = read(sockfd, buf, 256);
+	buf[len] = 0;
+	printf("read <<<%s>>>\n", buf);
+	return 0;
+}
+
 int manage_resources_forever(int listening_socket){
 	struct fd_list *connections;
 	struct timeval timeout;
 	int ready_fd;
-	connections = 0;
+	connections = malloc(sizeof(struct fd_list));
+	connections->fd = listening_socket;
+	connections->next = 0;
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 		if(!await_a_resource(listening_socket, connections, &timeout, &ready_fd)){
+			printf("waited and found %d\n", ready_fd);
 			if(ready_fd == listening_socket){
 				accept_new_connection(listening_socket, connections);
 			}
 			else{
+				printf("socket with file descriptor %d is ready\n", ready_fd);
+				handle_chunk(ready_fd, connections->next);
 			}
 		}
+		else printf("waited and found nothing\n");
 	}
+	free_fd_list_closing(connections->next);
+	connections->fd = -1;
+	connections->next = 0;
+	free(connections);
 	return 0;
 }
 
 int main(int argument_count, char* *arguments_vector){
 	int sockfd;
-	struct fd_list *connections;
 	sockfd = -1;
-	connections = 0;
 	if(2 != argument_count) return 1;
 	if(get_socket(arguments_vector[1], &sockfd)) return 2;
 	if(listen(sockfd, 32)) return 3;
-	connections = malloc(sizeof(struct fd_list));
-	connections->fd = sockfd;
-	connections->next = 0;
-	accept_new_connection(sockfd, connections);
-	free_fd_list_closing(connections->next);
-  connections->fd = -1;
-	connections->next = 0;
-	free(connections);
+	manage_resources_forever(sockfd);
 	if(shutdown(sockfd, SHUT_RDWR)) return 4;
 	if(close(sockfd)) return 5;
 	return 0;

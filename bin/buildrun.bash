@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
 ./build.bash
-valgrind ../build/main 8080 & (
+valgrind -v ../build/main 8080 & (
 	sleep 1; curl localhost:8080
 )

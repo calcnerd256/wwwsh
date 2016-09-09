@@ -9,11 +9,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include "./linked_list.h"
 
-struct linked_list{
-	void *data;
-	struct linked_list *next;
-};
 
 struct connection_state{
 	int fd;
@@ -24,43 +21,6 @@ struct fd_list{
 	struct fd_list *next;
 };
 
-typedef int (*visitor_t)(void*, void*, struct linked_list*);
-
-char *alloc_copy_visitor(visitor_t visitor){
-	char *result;
-	result = malloc(sizeof(visitor_t));
-	memcpy(result, &visitor, sizeof(visitor_t));
-	return result;
-}
-int free_visitor_copy(char *bytes){
-	memset(bytes, 0, sizeof(visitor_t));
-	free(bytes);
-	return 0;
-}
-int apply_visitor(char *fnptr_bytes, void* data, void* context, struct linked_list *node){
-	visitor_t visitor;
-	memcpy(&visitor, fnptr_bytes, sizeof(visitor_t));
-	return (*visitor)(data, context, node);
-}
-
-int traverse_linked_list(struct linked_list *head, visitor_t visitor, void *context){
-	int status;
-	struct linked_list *cycle_detector;
-	char counter;
-	if(!head) return 0;
-	cycle_detector = 0;
-	counter = 0;
-	while(head){
-		if(cycle_detector == head) return 0;
-		status = (*visitor)(head->data, context, head);
-		if(status) return status;
-		if(!cycle_detector) cycle_detector = head;
-		head = head->next;
-		if(counter) cycle_detector = cycle_detector->next;
-		counter = !counter;
-	}
-	return 0;
-}
 
 int visit_connection_state_print_fd(struct connection_state *state, void *context, struct linked_list *node){
 	if(!state){
@@ -77,20 +37,7 @@ int print_connection_state_list(struct linked_list *connection_list){
 	return 0;
 }
 
-int clean_and_free_list(struct linked_list *head, visitor_t cleaner, void *context){
-	int status;
-	struct linked_list *ptr;
-	status = traverse_linked_list(head, cleaner, context);
-	if(status) return status;
-	while(head){
-		head->data = 0;
-		ptr = head->next;
-		head->next = 0;
-		free(head);
-		head = ptr;
-	}
-	return 0;
-}
+
 
 int clean_connection(struct connection_state *state, void *context, struct linked_list *head){
 	close(state->fd);
@@ -110,52 +57,6 @@ int free_fd_list_closing(struct fd_list *head){
 		free(head);
 		head = ptr;
 	}
-	return 0;
-}
-
-int visit_matcher(void *data, struct linked_list *context, struct linked_list *node){
-	char *matcher;
-	struct linked_list* *result;
-	matcher = (char*)(context->data);
-	result = (struct linked_list**)(context->next->data);
-	if(!apply_visitor(matcher, data, context->next->next, node)) return 0;
-	*result = node;
-	return 1;
-}
-int first_matching(struct linked_list *head, visitor_t matcher, struct linked_list *context, struct linked_list* *out_match){
-	struct linked_list outer_context[3];
-	int result;
-	outer_context[0].data = alloc_copy_visitor(matcher);
-	outer_context[0].next = &(outer_context[1]);
-	outer_context[1].data = (void*)out_match;
-	outer_context[1].next = context;
-	result = !(traverse_linked_list(head, (visitor_t)(&visit_matcher), outer_context));
-	free_visitor_copy(outer_context[0].data);
-	return result;
-}
-
-int match_last(void *data, void *context, struct linked_list *node){
-	return !(node->next) + (int)(0 * (long)data * (long)context);
-}
-/*
-int visitor_last(void *data, struct linked_list* *context, struct linked_list *head){
-	*context = head;
-	return (int)(0 * (long)data);
-}
-*/
-struct linked_list *last_node(struct linked_list *head){
-	struct linked_list *result = 0;
-	if(first_matching(head, match_last, 0, &result)) return 0;
-	/*traverse_linked_list(head, (visitor_t)(&visitor_last), (struct linked_list*)(&result));*/
-	return result;
-}
-
-int append(struct linked_list *head, void* data){
-	head = last_node(head);
-	head->next = malloc(sizeof(struct linked_list));
-	head = head->next;
-	head->data = data;
-	head->next = 0;
 	return 0;
 }
 
@@ -239,7 +140,7 @@ int visit_fds_isset_status(struct connection_state *conn, struct linked_list *co
 	return 0;
 }
 
-int await_a_resource(int listening_socket, struct fd_list *connections, struct timeval *timeout, int *out_fd){
+int await_a_resource(int listening_socket, struct fd_list *connections, struct linked_list *connection_list, struct timeval *timeout, int *out_fd){
 	fd_set to_read;
 	int status;
 	int maxfd;
@@ -360,7 +261,7 @@ int manage_resources_forever(int listening_socket){
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
-		if(!await_a_resource(listening_socket, connections, &timeout, &ready_fd)){
+		if(!await_a_resource(listening_socket, connections, connection_list, &timeout, &ready_fd)){
 			if(ready_fd == listening_socket){
 				accept_new_connection(listening_socket, connections, connection_list);
 			}

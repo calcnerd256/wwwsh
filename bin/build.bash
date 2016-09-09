@@ -8,4 +8,5 @@ gcc \
  -Wpedantic \
  -Wextra \
  -o ../build/main \
+ ../src/linked_list.c \
  ../src/main.c

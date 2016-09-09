@@ -14,6 +14,7 @@
 
 struct connection_state{
 	int fd;
+	struct linked_list *request;
 };
 
 int visit_connection_state_print_fd(struct connection_state *state, void *context, struct linked_list *node){
@@ -157,6 +158,9 @@ int accept_new_connection(int server_socket, struct linked_list *connection_list
 	if(-1 == fd) return 1;
 	new_state = malloc(sizeof(struct connection_state));
 	new_state->fd = fd;
+	new_state->request = malloc(sizeof(struct linked_list));
+	new_state->request->data = 0;
+	new_state->request->next = 0;
 	return append(connection_list, new_state);
 }
 
@@ -166,15 +170,16 @@ int match_by_sockfd(struct connection_state *data, int *target, struct linked_li
 }
 
 int handle_chunk(int sockfd, struct linked_list *connection_list){
-	char buf[256+1];
+	char *buf;
 	size_t len;
 	struct linked_list *match_node;
 	if(first_matching(connection_list, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node)) return 1;
-	/*then do stuff with (struct connection_state*)(match_node->data)*/
+	buf = malloc(256+1);
 	buf[256] = 0;
 	len = read(sockfd, buf, 256);
 	buf[len] = 0;
-	printf("read <<<%s>>>\n", buf);
+	append(((struct connection_state*)(match_node->data))->request, (void*)buf);
+	printf("read %d bytes\n", (int)len);
 	return 0;
 }
 

@@ -16,12 +16,6 @@ struct connection_state{
 	int fd;
 };
 
-struct fd_list{
-	int fd;
-	struct fd_list *next;
-};
-
-
 int visit_connection_state_print_fd(struct connection_state *state, void *context, struct linked_list *node){
 	if(!state){
 		printf("null state\n");
@@ -37,43 +31,12 @@ int print_connection_state_list(struct linked_list *connection_list){
 	return 0;
 }
 
-
-
 int clean_connection(struct connection_state *state, void *context, struct linked_list *head){
 	close(state->fd);
 	return (int)(0 * ((long)context + (long)head));
 }
 int free_connection_list(struct linked_list *head){
 	return clean_and_free_list(head, (visitor_t)(&clean_connection), 0);
-}
-
-int free_fd_list_closing(struct fd_list *head){
-	struct fd_list *ptr;
-	while(head){
-		close(head->fd);
-		ptr = head->next;
-		head->fd = -1;
-		head->next = 0;
-		free(head);
-		head = ptr;
-	}
-	return 0;
-}
-
-struct fd_list *last(struct fd_list *head){
-	struct fd_list *ptr;
-	int counter;
-	if(!head) return head;
-	ptr = 0;
-	counter = 0;
-	while(head->next){
-		if(ptr == head) return head;
-		if(!ptr) ptr = head;
-		head = head->next;
-		if(counter) ptr = ptr->next;
-		counter = !counter;
-	}
-	return head;
 }
 
 int get_socket(char* port_number, int *out_sockfd){
@@ -140,30 +103,23 @@ int visit_fds_isset_status(struct connection_state *conn, struct linked_list *co
 	return 0;
 }
 
-int await_a_resource(int listening_socket, struct fd_list *connections, struct linked_list *connection_list, struct timeval *timeout, int *out_fd){
+int await_a_resource(int listening_socket, struct linked_list *connection_list, struct timeval *timeout, int *out_fd){
 	fd_set to_read;
 	int status;
 	int maxfd;
-	struct fd_list *ptr;
 	struct linked_list context[3];
 	FD_ZERO(&to_read);
 	status = 0;
 	maxfd = listening_socket;
 	FD_SET(listening_socket, &to_read);
-	ptr = connections->next;
+
 	context[0].data = (void*)&to_read;
 	context[0].next = &(context[1]);
 	context[1].data = (void*)&maxfd;
 	context[1].next = &(context[2]);
 	context[2].data = 0;
 	context[2].next = 0;
-	/*traverse_linked_list(connections->next, (visitor_t)(&visit_set_fds_and_max), context);*/
-	while(ptr){
-		/* TODO: cycle detection */
-		FD_SET(ptr->fd, &to_read);
-		if(maxfd < ptr->fd) maxfd = ptr->fd;
-		ptr = ptr->next;
-	}
+	traverse_linked_list(connection_list->next, (visitor_t)(&visit_set_fds_and_max), context);
 
 	status = select(maxfd + 1, &to_read, 0, 0, timeout);
 	if(-1 == status){
@@ -183,28 +139,17 @@ int await_a_resource(int listening_socket, struct fd_list *connections, struct l
 	context[1].data = (void*)out_fd;
 	context[2].data = (void*)&status;
 	status = 0;
-	/*traverse_linked_list(connections->next, (visitor_t)(&visit_fds_isset_status), context);*/
+	traverse_linked_list(connection_list->next, (visitor_t)(&visit_fds_isset_status), context);
 	if(status) return 0;
-	ptr = connections->next;
-	while(ptr){
-		/* TODO: cycle detection */
-		if(FD_ISSET(ptr->fd, &to_read)){
-			FD_ZERO(&to_read);
-			*out_fd = ptr->fd;
-			return 0;
-		}
-		ptr = ptr->next;
-	}
 
 	FD_ZERO(&to_read);
 	return 3;
 }
 
-int accept_new_connection(int server_socket, struct fd_list *connections, struct linked_list *connection_list){
+int accept_new_connection(int server_socket, struct linked_list *connection_list){
 	struct sockaddr address;
 	socklen_t length;
 	int fd;
-	struct fd_list *new_last;
 	struct connection_state *new_state;
 	memset(&address, 0, sizeof address);
 	length = 0;
@@ -212,17 +157,7 @@ int accept_new_connection(int server_socket, struct fd_list *connections, struct
 	if(-1 == fd) return 1;
 	new_state = malloc(sizeof(struct connection_state));
 	new_state->fd = fd;
-	/*return*/ append(connection_list, new_state);
-	connections = last(connections);
-	if(!connections){
-		close(fd);
-		return 1;
-	}
-	new_last = malloc(sizeof(struct fd_list));
-	new_last->fd = fd;
-	new_last->next = 0;
-	connections->next = new_last;
-	return 0;
+	return append(connection_list, new_state);
 }
 
 int match_by_sockfd(struct connection_state *data, int *target, struct linked_list *node){
@@ -230,15 +165,11 @@ int match_by_sockfd(struct connection_state *data, int *target, struct linked_li
 	return data->fd == *target;
 }
 
-int handle_chunk(int sockfd, struct fd_list *connections, struct linked_list *connection_list){
+int handle_chunk(int sockfd, struct linked_list *connection_list){
 	char buf[256+1];
 	size_t len;
 	struct linked_list *match_node;
-	/*if(*/first_matching(connection_list, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node)/*) return 1*/;/**/
-	while(connections)
-		if(sockfd == connections->fd)
-			break;
-	if(!connections) return 1;
+	if(first_matching(connection_list, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node)) return 1;
 	/*then do stuff with (struct connection_state*)(match_node->data)*/
 	buf[256] = 0;
 	len = read(sockfd, buf, 256);
@@ -248,35 +179,27 @@ int handle_chunk(int sockfd, struct fd_list *connections, struct linked_list *co
 }
 
 int manage_resources_forever(int listening_socket){
-	struct fd_list *connections;
 	struct linked_list *connection_list;
 	struct timeval timeout;
 	int ready_fd;
-	connections = malloc(sizeof(struct fd_list));
 	connection_list = malloc(sizeof(struct linked_list));
 	connection_list->data = 0;
 	connection_list->next = 0;
-	connections->fd = listening_socket;
-	connections->next = 0;
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
-		if(!await_a_resource(listening_socket, connections, connection_list, &timeout, &ready_fd)){
+		if(!await_a_resource(listening_socket, connection_list, &timeout, &ready_fd)){
 			if(ready_fd == listening_socket){
-				accept_new_connection(listening_socket, connections, connection_list);
+				accept_new_connection(listening_socket, connection_list);
 			}
 			else{
-				handle_chunk(ready_fd, connections->next, connection_list->next);
+				handle_chunk(ready_fd, connection_list->next);
 			}
 		}
 	}
-	free_fd_list_closing(connections->next);
 	free_connection_list(connection_list->next);
 	connection_list->next = 0;
 	free(connection_list);
-	connections->fd = -1;
-	connections->next = 0;
-	free(connections);
 	return 0;
 }
 

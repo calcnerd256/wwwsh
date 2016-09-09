@@ -13,9 +13,19 @@
 
 
 struct connection_state{
-	int fd;
 	struct linked_list *request;
+	int fd;
+	char done_reading;
 };
+
+int init_connection_state(struct connection_state *ptr){
+	ptr->fd = 0;
+	ptr->request = malloc(sizeof(struct linked_list));
+	ptr->request->data = 0;
+	ptr->request->next = 0;
+	ptr->done_reading = 0;
+	return 0;
+}
 
 int visit_connection_state_print_fd(struct connection_state *state, void *context, struct linked_list *node){
 	if(!state){
@@ -32,9 +42,18 @@ int print_connection_state_list(struct linked_list *connection_list){
 	return 0;
 }
 
-int clean_connection(struct connection_state *state, void *context, struct linked_list *head){
+int visit_free_string(char *buf, void *context, struct linked_list *node){
+	free(buf);
+	return (int)(0 * (long)(context) * (long)(node));
+}
+int clean_connection(struct connection_state *state, void *context, struct linked_list *node){
 	close(state->fd);
-	return (int)(0 * ((long)context + (long)head));
+	state->fd = 0;
+	clean_and_free_list(state->request->next, (visitor_t)(&visit_free_string), context);
+	state->request->next = 0;
+	state->request = 0;
+	state->done_reading = 1;
+	return (int)(0 * (long)node);
 }
 int free_connection_list(struct linked_list *head){
 	return clean_and_free_list(head, (visitor_t)(&clean_connection), 0);
@@ -82,6 +101,7 @@ int get_socket(char* port_number, int *out_sockfd){
 int visit_set_fds_and_max(struct connection_state *conn, struct linked_list *context, struct linked_list *node){
 	fd_set *to_read;
 	int *maxfd;
+	if(conn->done_reading) return 0;
 	to_read = (fd_set*)(context->data);
 	maxfd = (int*)(context->next->data);
   FD_SET(conn->fd, to_read);
@@ -157,16 +177,19 @@ int accept_new_connection(int server_socket, struct linked_list *connection_list
 	fd = accept(server_socket, &address, &length);
 	if(-1 == fd) return 1;
 	new_state = malloc(sizeof(struct connection_state));
+	init_connection_state(new_state);
 	new_state->fd = fd;
-	new_state->request = malloc(sizeof(struct linked_list));
-	new_state->request->data = 0;
-	new_state->request->next = 0;
 	return append(connection_list, new_state);
 }
 
 int match_by_sockfd(struct connection_state *data, int *target, struct linked_list *node){
 	if(node){}
 	return data->fd == *target;
+}
+
+int visit_print_string(char *buf, void *context, struct linked_list *node){
+	printf("%s", buf);
+	return (int)(0 * (long)context * (long)node);
 }
 
 int handle_chunk(int sockfd, struct linked_list *connection_list){
@@ -178,6 +201,13 @@ int handle_chunk(int sockfd, struct linked_list *connection_list){
 	buf[256] = 0;
 	len = read(sockfd, buf, 256);
 	buf[len] = 0;
+	if(!len){
+		((struct connection_state*)(match_node->data))->done_reading = 1;
+		printf("request socket with file descriptor %d closed; body follows:\n", ((struct connection_state*)(match_node->data))->fd);
+		traverse_linked_list(((struct connection_state*)(match_node->data))->request->next, (visitor_t)(&visit_print_string), 0);
+		printf("\n\nDone.\n");
+		return 0;
+	}
 	append(((struct connection_state*)(match_node->data))->request, (void*)buf);
 	printf("read %d bytes\n", (int)len);
 	return 0;

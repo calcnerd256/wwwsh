@@ -87,6 +87,7 @@ struct linked_list *last_node(struct linked_list *head){
 }
 int append(struct linked_list *head, void* data){
 	head = last_node(head);
+	if(!head) return 1;
 	head->next = malloc(sizeof(struct linked_list));
 	head = head->next;
 	head->data = data;

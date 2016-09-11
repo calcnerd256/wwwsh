@@ -9,4 +9,5 @@ gcc \
  -Wextra \
  -o ../build/main \
  ../src/linked_list.c \
+ ../src/lines.c \
  ../src/main.c

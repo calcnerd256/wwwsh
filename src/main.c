@@ -288,7 +288,13 @@ int accept_new_connection(int server_socket, struct linked_list *connection_list
 	init_connection_state(new_state);
 	new_state->fd = fd;
 	(void)allocations;
-	return append(connection_list, new_state);
+	connection_list = last_node(connection_list);
+	if(!connection_list) return 1;
+	connection_list->next = malloc(sizeof(struct linked_list));
+	connection_list = connection_list->next;
+	connection_list->data = new_state;
+	connection_list->next = 0;
+	return 0;
 }
 
 int match_by_sockfd(struct connection_state *data, int *target, struct linked_list *node){

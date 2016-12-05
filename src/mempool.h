@@ -8,5 +8,5 @@ struct mempool{
 
 int init_pool(struct mempool *pool);
 void *palloc(struct mempool *pool, size_t len);
-int visit_free(struct extent *data, void *context, struct linked_list *node);
 int free_pool(struct mempool *pool);
+int pool_pop(struct mempool *pool);

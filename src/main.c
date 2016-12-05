@@ -136,7 +136,9 @@ int print_connection_state_list(struct linked_list *connection_list){
 
 int visit_free_string(char *buf, void *context, struct linked_list *node){
 	free(buf);
-	return (int)(0 * (long)(context) * (long)(node));
+	(void)context;
+	(void)node;
+	return 0;
 }
 int clean_connection(struct connection_state *state, void *context, struct linked_list *node){
 	close(state->fd);
@@ -150,7 +152,8 @@ int clean_connection(struct connection_state *state, void *context, struct linke
 	free(state->lines);
 	state->lines = 0;
 	state->done_reading = 1;
-	return (int)(0 * (long)node);
+	(void)node;
+	return 0;
 }
 int free_connection_list(struct linked_list *head){
 	int status;
@@ -161,7 +164,6 @@ int free_connection_list(struct linked_list *head){
 		head->data = 0;
 		ptr = head->next;
 		head->next = 0;
-		free(head);
 		head = ptr;
 	}
 	return 0;
@@ -280,17 +282,20 @@ int accept_new_connection(int server_socket, struct linked_list *connection_list
 	socklen_t length;
 	int fd;
 	struct connection_state *new_state;
+	char *ptr;
 	memset(&address, 0, sizeof address);
 	length = 0;
 	fd = accept(server_socket, &address, &length);
 	if(-1 == fd) return 1;
-	new_state = malloc(sizeof(struct connection_state));
-	init_connection_state(new_state);
-	new_state->fd = fd;
-	(void)allocations;
 	connection_list = last_node(connection_list);
 	if(!connection_list) return 1;
-	connection_list->next = malloc(sizeof(struct linked_list));
+
+	ptr = palloc(allocations, sizeof(struct connection_state) + sizeof(struct linked_list));
+	new_state = (struct connection_state*)(ptr + sizeof(struct linked_list));
+	connection_list->next = (struct linked_list*)ptr;
+
+	init_connection_state(new_state);
+	new_state->fd = fd;
 	connection_list = connection_list->next;
 	connection_list->data = new_state;
 	connection_list->next = 0;

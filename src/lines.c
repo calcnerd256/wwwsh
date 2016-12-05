@@ -27,13 +27,18 @@ int append_to_ransom(struct linked_list *ransom, char *bytes, size_t len){
 int visit_clean_extent(struct extent *ptr, void *context, struct linked_list *node){
 	ptr->bytes = 0;
 	ptr->len = 0;
-	return (int)(0 * (long)context * (long)node);
+	(void)context;
+	(void)node;
+	free(ptr);
+	return 0;
 }
 int visit_clean_ransom(struct linked_list *ransom, void *context, struct linked_list *node){
 	/* the first element is always a dummy */
 	clean_and_free_list(ransom->next, (visitor_t)(&visit_clean_extent), context);
 	ransom->next = 0;
-	return (int)(0 * (long)node);
+	free(ransom);
+	(void)node;
+	return 0;
 }
 
 

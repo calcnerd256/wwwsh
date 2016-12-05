@@ -8,33 +8,20 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./lines.h"
+#include "./mempool.h"
 
 #define CHUNK_SIZE 256
-
-int visit_print_extent(struct extent *clip, void *context, struct linked_list *node){
-	size_t i;
-	if(!clip) return 1;
-	for(i = 0; i < clip->len; i++)
-		printf(context ? "%02X" : "%c", clip->bytes[i]);
-	if(context)
-		printf(" ");
-	return (int)(0 * (long)node);
-}
-int visit_print_ransom(struct linked_list *head, void *context, struct linked_list *node){
-	int status = (int)(0 * (long)node);
-	if(!head) return 1;
-	status = traverse_linked_list(head->next, (visitor_t)&visit_print_extent, context);
-	if(context)
-		printf("\n");
-	return status;
-}
 
 struct connection_state{
 	struct linked_list *request;
 	struct linked_list *lines;
 	int fd;
 	char done_reading;
+	struct linked_list *last_parsed_line;
+	char *method;
+	char *request_uri;
+	int http_maj_ver;
+	int http_min_ver;
 };
 
 int init_connection_state(struct connection_state *ptr){
@@ -46,6 +33,89 @@ int init_connection_state(struct connection_state *ptr){
 	ptr->lines->data = 0;
 	ptr->lines->next = 0;
 	ptr->done_reading = 0;
+	ptr->last_parsed_line = 0;
+	ptr->method = 0;
+	ptr->request_uri = 0;
+	ptr->http_maj_ver = -1;
+	ptr->http_min_ver = -1;
+	return 0;
+}
+
+int request_method_is_GET_p(char *line){
+	if('G' != *line) return 0;
+	if('E' != line[1]) return 0;
+	if('T' != line[2]) return 0;
+	if(' ' != line[3]) return 0;
+	return 1;
+}
+int path_is_root_p(char *suffix){
+	if('/' != *suffix) return 0;
+	if(' ' != suffix[1]) return 0;
+	return 1;
+}
+int http_maj_ver_is_one_p(char *suffix){
+	if('H' != *suffix) return 0;
+	if('T' != suffix[1]) return 0;
+	if('T' != suffix[2]) return 0;
+	if('P' != suffix[3]) return 0;
+	if('/' != suffix[4]) return 0;
+	if('1' != suffix[5]) return 0;
+	if('.' != suffix[6]) return 0;
+	return 1;
+}
+int http_min_ver_is_one_p(char *suffix){
+	if('1' != *suffix) return 0;
+	if('\r' != suffix[1]) return 0;
+	if('\n' != suffix[2]) return 0;
+	if(suffix[3]) return 0;
+	return 1;
+}
+
+int parse_request_line(struct connection_state *conn, char *line){
+	/*
+		Request-Line is RFC 2616 section 5.1
+		https://tools.ietf.org/html/rfc2616#section-5.1
+	*/
+	switch(*line){
+		case 'G':
+			if(request_method_is_GET_p(line)){
+				conn->method = "GET";
+				if(path_is_root_p(line + 4)){
+					conn->request_uri = "/";
+					if(http_maj_ver_is_one_p(line + 6)){
+						conn->http_maj_ver = 1;
+						if(http_min_ver_is_one_p(line + 13)){
+							conn->http_min_ver = 1;
+							printf("GET request on root, version 1.1\n");
+							return 0;
+						}
+						return 1;
+					}
+					return 1;
+				}
+				return 1;
+			}
+			return 1;
+			break;
+	}
+	return 1;
+}
+
+int parse_from_lines(struct connection_state *conn){
+	struct linked_list *next_line_to_parse = 0;
+	char *current_line = 0;
+	int status;
+	if(!conn->last_parsed_line) next_line_to_parse = conn->lines->next;
+	else next_line_to_parse = conn->last_parsed_line->next;
+	/* so now we start parsing from next_line_to_parse */
+	if(!next_line_to_parse) return 0;
+	if(!conn->method){
+		conn->last_parsed_line = next_line_to_parse;
+		current_line = flatten_ransom(next_line_to_parse->data);
+		status = parse_request_line(conn, current_line);
+		free(current_line);
+		if(status) return status;
+	}
 	return 0;
 }
 
@@ -83,7 +153,18 @@ int clean_connection(struct connection_state *state, void *context, struct linke
 	return (int)(0 * (long)node);
 }
 int free_connection_list(struct linked_list *head){
-	return clean_and_free_list(head, (visitor_t)(&clean_connection), 0);
+	int status;
+	struct linked_list *ptr;
+	status = traverse_linked_list(head, (visitor_t)(&clean_connection), 0);
+	if(status) return status;
+	while(head){
+		head->data = 0;
+		ptr = head->next;
+		head->next = 0;
+		free(head);
+		head = ptr;
+	}
+	return 0;
 }
 
 int get_socket(char* port_number, int *out_sockfd){
@@ -194,7 +275,7 @@ int await_a_resource(int listening_socket, struct linked_list *connection_list, 
 	return 3;
 }
 
-int accept_new_connection(int server_socket, struct linked_list *connection_list){
+int accept_new_connection(int server_socket, struct linked_list *connection_list, struct mempool *allocations){
 	struct sockaddr address;
 	socklen_t length;
 	int fd;
@@ -206,6 +287,7 @@ int accept_new_connection(int server_socket, struct linked_list *connection_list
 	new_state = malloc(sizeof(struct connection_state));
 	init_connection_state(new_state);
 	new_state->fd = fd;
+	(void)allocations;
 	return append(connection_list, new_state);
 }
 
@@ -303,33 +385,55 @@ int handle_chunk(int sockfd, struct linked_list *connection_list){
 	append(conn->request, (void*)buf);
 	printf("read %d bytes\n", (int)len);
 	if(parse_lines_from_chunk(conn->lines, buf)) return 3;
+	if(parse_from_lines(conn)){
+		printf("failed to parse HTTP request");
+		return 4;
+	}
 	return 0;
 }
 
 int manage_resources_forever(int listening_socket){
-	struct linked_list *connection_list;
+	struct linked_list connection_list;
 	struct timeval timeout;
 	int ready_fd;
-	connection_list = malloc(sizeof(struct linked_list));
-	connection_list->data = 0;
-	connection_list->next = 0;
+	struct mempool pool;
+	connection_list.data = 0;
+	connection_list.next = 0;
+	init_pool(&pool);
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
-		if(!await_a_resource(listening_socket, connection_list, &timeout, &ready_fd)){
+		if(!await_a_resource(listening_socket, &connection_list, &timeout, &ready_fd)){
 			if(ready_fd == listening_socket){
-				accept_new_connection(listening_socket, connection_list);
+				accept_new_connection(listening_socket, &connection_list, &pool);
 			}
 			else{
-				handle_chunk(ready_fd, connection_list->next);
+				handle_chunk(ready_fd, connection_list.next);
 			}
 		}
 	}
-	free_connection_list(connection_list->next);
-	connection_list->next = 0;
-	free(connection_list);
+	free_connection_list(connection_list.next);
+	connection_list.next = 0;
+	free_pool(&pool);
 	return 0;
 }
+
+/*
+int test_pools(){
+	struct mempool pool;
+	char *str;
+	if(init_pool(&pool)) return 1;
+	str = palloc(&pool, 3);
+	str[2] = 0;
+	str[0] = 'O';
+	str[1] = 'K';
+	printf("%p={allocs: %p=<%p[:%d]=%p=%p=\"%s\", %p>}\n", &pool, pool.allocs, pool.allocs->data, ((struct extent*)(pool.allocs->data))->len, ((struct extent*)(pool.allocs->data))->bytes, str, str, pool.allocs->next);
+	free_pool(&pool);
+	return 0;
+}
+*/
+
+
 
 int main(int argument_count, char* *arguments_vector){
 	int sockfd;

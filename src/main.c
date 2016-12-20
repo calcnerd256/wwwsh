@@ -15,8 +15,12 @@
 struct conn_bundle{
 	struct mempool *pool;
 	struct linked_list *chunks;
+	struct linked_list *last_chunk;
+	struct linked_list *cursor_chunk;
 	int fd;
 	char done_reading;
+	unsigned long int request_length;
+	unsigned long int cursor_position;
 };
 
 int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd){
@@ -24,6 +28,10 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 	ptr->fd = fd;
 	ptr->done_reading = 0;
 	ptr->chunks = 0;
+	ptr->request_length = 0;
+	ptr->cursor_position = 0;
+	ptr->last_chunk = 0;
+	ptr->cursor_chunk = 0;
 	return 0;
 }
 

@@ -7,6 +7,7 @@ gcc \
  -Wall \
  -Wpedantic \
  -Wextra \
+ -Werror \
  -o ../build/main \
  ../src/linked_list.c \
  ../src/mempool.c \

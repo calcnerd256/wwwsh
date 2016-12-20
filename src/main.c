@@ -12,6 +12,21 @@
 
 #define CHUNK_SIZE 256
 
+struct conn_bundle{
+	struct mempool *pool;
+	struct linked_list *chunks;
+	int fd;
+	char done_reading;
+};
+
+int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd){
+	ptr->pool = allocations;
+	ptr->fd = fd;
+	ptr->done_reading = 0;
+	ptr->chunks = 0;
+	return 0;
+}
+
 struct connection_state{
 	struct linked_list *request;
 	struct linked_list *lines;
@@ -24,12 +39,12 @@ struct connection_state{
 	int http_min_ver;
 };
 
-int init_connection_state(struct connection_state *ptr){
+int init_connection_state(struct connection_state *ptr, struct mempool *allocations){
+	ptr->request = (struct linked_list*)palloc(allocations, 2 * sizeof(struct linked_list));
+	ptr->lines = (struct linked_list*)((char*)ptr->request + sizeof(struct linked_list));
 	ptr->fd = 0;
-	ptr->request = malloc(sizeof(struct linked_list));
 	ptr->request->data = 0;
 	ptr->request->next = 0;
-	ptr->lines = malloc(sizeof(struct linked_list));
 	ptr->lines->data = 0;
 	ptr->lines->next = 0;
 	ptr->done_reading = 0;
@@ -145,11 +160,9 @@ int clean_connection(struct connection_state *state, void *context, struct linke
 	state->fd = 0;
 	clean_and_free_list(state->request->next, (visitor_t)(&visit_free_string), context);
 	state->request->next = 0;
-	free(state->request);
 	state->request = 0;
 	clean_and_free_list(state->lines->next, (visitor_t)(&visit_clean_ransom), context);
 	state->lines->next = 0;
-	free(state->lines);
 	state->lines = 0;
 	state->done_reading = 1;
 	(void)node;
@@ -206,105 +219,6 @@ int get_socket(char* port_number, int *out_sockfd){
 	freeaddrinfo(server_address);
 	server_address = 0;
 	return 0;
-}
-
-int visit_set_fds_and_max(struct connection_state *conn, struct linked_list *context, struct linked_list *node){
-	fd_set *to_read;
-	int *maxfd;
-	if(conn->done_reading) return 0;
-	to_read = (fd_set*)(context->data);
-	maxfd = (int*)(context->next->data);
-  FD_SET(conn->fd, to_read);
-	if(*maxfd < conn->fd)
-		*maxfd = conn->fd;
-	return (int)(0 * (long)node);
-}
-
-int visit_fds_isset_status(struct connection_state *conn, struct linked_list *context, struct linked_list *node){
-	fd_set *to_read;
-	int *out_fd;
-	int *found;
-	to_read = (fd_set*)(context->data);
-	out_fd = (int*)(context->next->data);
-	found = (int*)(context->next->next->data);
-	if(*found) return (int)(0 * (long)node);
-	if(!FD_ISSET(conn->fd, to_read)) return 0;
-	*found = 1;
-	*out_fd = conn->fd;
-	return 0;
-}
-
-int await_a_resource(int listening_socket, struct linked_list *connection_list, struct timeval *timeout, int *out_fd){
-	fd_set to_read;
-	int status;
-	int maxfd;
-	struct linked_list context[3];
-	FD_ZERO(&to_read);
-	status = 0;
-	maxfd = listening_socket;
-	FD_SET(listening_socket, &to_read);
-
-	context[0].data = (void*)&to_read;
-	context[0].next = &(context[1]);
-	context[1].data = (void*)&maxfd;
-	context[1].next = &(context[2]);
-	context[2].data = 0;
-	context[2].next = 0;
-	traverse_linked_list(connection_list->next, (visitor_t)(&visit_set_fds_and_max), context);
-
-	status = select(maxfd + 1, &to_read, 0, 0, timeout);
-	if(-1 == status){
-		FD_ZERO(&to_read);
-		return 2;
-	}
-	if(!status){
-		FD_ZERO(&to_read);
-		return 1;
-	}
-	if(FD_ISSET(listening_socket, &to_read)){
-		FD_ZERO(&to_read);
-		*out_fd = listening_socket;
-		return 0;
-	}
-
-	context[1].data = (void*)out_fd;
-	context[2].data = (void*)&status;
-	status = 0;
-	traverse_linked_list(connection_list->next, (visitor_t)(&visit_fds_isset_status), context);
-	if(status) return 0;
-
-	FD_ZERO(&to_read);
-	return 3;
-}
-
-int accept_new_connection(int server_socket, struct linked_list *connection_list, struct mempool *allocations){
-	struct sockaddr address;
-	socklen_t length;
-	int fd;
-	struct connection_state *new_state;
-	char *ptr;
-	memset(&address, 0, sizeof address);
-	length = 0;
-	fd = accept(server_socket, &address, &length);
-	if(-1 == fd) return 1;
-	connection_list = last_node(connection_list);
-	if(!connection_list) return 1;
-
-	ptr = palloc(allocations, sizeof(struct connection_state) + sizeof(struct linked_list));
-	new_state = (struct connection_state*)(ptr + sizeof(struct linked_list));
-	connection_list->next = (struct linked_list*)ptr;
-
-	init_connection_state(new_state);
-	new_state->fd = fd;
-	connection_list = connection_list->next;
-	connection_list->data = new_state;
-	connection_list->next = 0;
-	return 0;
-}
-
-int match_by_sockfd(struct connection_state *data, int *target, struct linked_list *node){
-	if(node){}
-	return data->fd == *target;
 }
 
 int visit_print_string(char *buf, void *context, struct linked_list *node){
@@ -368,82 +282,9 @@ int parse_lines_from_chunk(struct linked_list *lines, char *chunk){
 	return append_to_ransom(last_line, chunk, next_linebreak);
 }
 
-int handle_chunk(int sockfd, struct linked_list *connection_list){
-	char *buf;
-	size_t len;
-	struct linked_list *match_node;
-	struct connection_state *conn;
-	if(first_matching(connection_list, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node))
-		return 1;
-	buf = malloc(CHUNK_SIZE + 1);
-	buf[CHUNK_SIZE] = 0;
-	len = read(sockfd, buf, CHUNK_SIZE);
-	buf[len] = 0;
-	conn = (struct connection_state*)(match_node->data);
-	if(!conn){return 2;}
-	if(!len){
-		conn->done_reading = 1;
-		printf("request socket with file descriptor %d closed; body follows:\n", conn->fd);
-		traverse_linked_list(conn->request->next, (visitor_t)(&visit_print_string), 0);
-		printf("\n\nDone.\n");
-		printf("by line:\n");
-		traverse_linked_list(conn->lines->next, (visitor_t)&visit_print_ransom, (void*)1);
-		printf("\n\nDone.\n");
-		memset(buf, 0, CHUNK_SIZE+1);
-		free(buf);
-		return 0;
-	}
-	append(conn->request, (void*)buf);
-	printf("read %d bytes\n", (int)len);
-	if(parse_lines_from_chunk(conn->lines, buf)) return 3;
-	if(parse_from_lines(conn)){
-		printf("failed to parse HTTP request");
-		return 4;
-	}
-	return 0;
-}
+#include "./manage_resources_forever.c"
 
-int manage_resources_forever(int listening_socket){
-	struct linked_list connection_list;
-	struct timeval timeout;
-	int ready_fd;
-	struct mempool pool;
-	connection_list.data = 0;
-	connection_list.next = 0;
-	init_pool(&pool);
-	while(1){
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 0;
-		if(!await_a_resource(listening_socket, &connection_list, &timeout, &ready_fd)){
-			if(ready_fd == listening_socket){
-				accept_new_connection(listening_socket, &connection_list, &pool);
-			}
-			else{
-				handle_chunk(ready_fd, connection_list.next);
-			}
-		}
-	}
-	free_connection_list(connection_list.next);
-	connection_list.next = 0;
-	free_pool(&pool);
-	return 0;
-}
-
-/*
-int test_pools(){
-	struct mempool pool;
-	char *str;
-	if(init_pool(&pool)) return 1;
-	str = palloc(&pool, 3);
-	str[2] = 0;
-	str[0] = 'O';
-	str[1] = 'K';
-	printf("%p={allocs: %p=<%p[:%d]=%p=%p=\"%s\", %p>}\n", &pool, pool.allocs, pool.allocs->data, ((struct extent*)(pool.allocs->data))->len, ((struct extent*)(pool.allocs->data))->bytes, str, str, pool.allocs->next);
-	free_pool(&pool);
-	return 0;
-}
-*/
-
+/* #include "./test_pools.c" */
 
 
 int main(int argument_count, char* *arguments_vector){

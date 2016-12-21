@@ -43,59 +43,104 @@ int connection_bundle_sip(struct conn_bundle *conn){
 	*(conn->last_chunk ? &(conn->last_chunk->next) : &(conn->chunks)) = new_head;
 	conn->last_chunk = new_head;
 	conn->request_length += len;
-	printf("read %d more bytes (totaling %d): <%s>\n", (int)chunkptr->len, (int)conn->request_length, chunkptr->bytes);
 	if(len) return 0;
 	return connection_bundle_close(conn);
 }
 
-/*
-int connection_bundle_get_cursor(struct conn_bundle *conn, struct extent *cursor_out){
-	struct extent *current_chunk;
-	unsigned long int length_remaining = conn->request_length - conn->cursor_position;
-	struct linked_list *head = conn->chunks;
-	while(length_remaining > 0){
-		if(!head) return 1;
-		current_chunk = (struct extent*)(head->data);
-		if(length_remaining > current_chunk->len)
-			length_remaining -= current_chunk->len;
-		else{
-			cursor_out->bytes = current_chunk->bytes + current_chunk->len - length_remaining;
-			cursor_out->len = length_remaining;
-			return 0;
-		}
-		head = head->next;
-	}
-	return 1;
+int connection_bundle_overstep_cursorp(struct conn_bundle *conn){
+	if(!conn->cursor_chunk) return 1;
+	return ((struct extent*)(conn->cursor_chunk->data))->len <= conn->cursor_chunk_offset;
 }
 
-int connection_bundle_take_bytes(struct conn_bundle *conn, size_t len, struct extent *buf_out){
+int connection_bundle_reduce_cursor(struct conn_bundle *conn){
+	if(!conn->cursor_chunk) conn->cursor_chunk = conn->chunks;
+	if(!conn->cursor_chunk) return 1;
+	while(connection_bundle_overstep_cursorp(conn)){
+		if(!(conn->cursor_chunk->next)) return 2;
+		conn->cursor_chunk_offset -= ((struct extent*)(conn->cursor_chunk->data))->len;
+		conn->cursor_chunk = conn->cursor_chunk->next;
+	}
+	return 0;
+}
+
+int connection_bundle_advance_cursor(struct conn_bundle *conn, size_t delta){
+	if(connection_bundle_reduce_cursor(conn)) return 1;
+	conn->cursor_chunk_offset += delta;
+	return connection_bundle_reduce_cursor(conn);
+}
+
+int connection_bundle_take_bytes(struct conn_bundle *conn, size_t len, struct extent *result){
+	size_t l;
+	char *ptr = 0;
+	result->bytes = palloc(conn->pool, len + 1);
+	memset(result->bytes, 0, len + 1);
+	result->len = len;
+	ptr = result->bytes;
+	if(!(conn->cursor_chunk)) conn->cursor_chunk = conn->chunks;
+	while(len){
+		if(!(conn->cursor_chunk)) return 1;
+		l = ((struct extent*)(conn->cursor_chunk->data))->len;
+		if(conn->cursor_chunk_offset >= l){
+			conn->cursor_chunk_offset -= l;
+			conn->cursor_chunk = conn->cursor_chunk->next;
+			continue;
+		}
+		if(len + conn->cursor_chunk_offset > l){
+			l -= conn->cursor_chunk_offset;
+			memcpy(ptr, ((struct extent*)(conn->cursor_chunk->data))->bytes + conn->cursor_chunk_offset, l);
+			ptr += l;
+			connection_bundle_advance_cursor(conn, l);
+			len -= l;
+		}
+		else{
+			memcpy(ptr, ((struct extent*)(conn->cursor_chunk->data))->bytes + conn->cursor_chunk_offset, len);
+			ptr += len;
+			*ptr = 0;
+			connection_bundle_advance_cursor(conn, len);
+			return 0;
+		}
+	}
+	*ptr = 0;
+	return 0;
+}
+
+int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+	size_t offset = 0;
+	struct linked_list *cursor = conn->cursor_chunk;
+	size_t coff = conn->cursor_chunk_offset;
+	if(!cursor) cursor = conn->chunks;
+	if(!cursor) return -1;
+	while(1){
+		while('\r' != ((struct extent*)(cursor->data))->bytes[coff]){
+			offset++;
+			if(coff++ >= ((struct extent*)(cursor->data))->len){
+				if(!cursor->next) return -1;
+				coff -= ((struct extent*)(cursor->data))->len;
+				cursor = cursor->next;
+			}
+		}
+		if('\n' == ((struct extent*)(cursor->data))->bytes[++coff]) return offset + 2;
+		else offset++;
+	}
+}
+
+/*
+int connection_bundle_consume_line(struct conn_bundle *conn){
 	struct extent cursor;
 	char *ptr = 0;
-	if(connection_bundle_get_cursor(conn, &cursor)) return 1;
-	if(cursor.len >= len){
-		buf_out->len = len;
-		buf_out->bytes = cursor.bytes;
-		conn->cursor_position += len;
-		return 0;
-	}
-	buf_out->len = len;
-	buf_out->bytes = palloc(conn->pool, len);
-	memset(buf_out->bytes, 0, len);
-	memcpy(buf_out->bytes, cursor.bytes, cursor.len);
-	ptr = buf_out->bytes + cursor.len;
-	len -= cursor.len;
-	conn->cursor_position += cursor.len;
-	*ptr = 0;
-	return 1;
 }
 */
 
 int connection_bundle_process_step(struct conn_bundle *conn){
-	/*
 	struct extent cursor;
-	if(connection_bundle_take_bytes(conn, 19, &cursor)) return 1;
-	printf("%d bytes available in <%s>\n", (int)(cursor.len), cursor.bytes);
-	*/
+	int offset = connection_bundle_find_crlf_offset(conn);
+	if(-1 != offset){
+		if(connection_bundle_take_bytes(conn, offset, &cursor)){
+			printf("bad\n");
+			return 1;
+		}
+		printf("%d bytes available in <%s>\n", (int)(cursor.len), cursor.bytes);
+	}
 	/*
 	if(parse_lines_from_chunk(conn->lines, buf)) return 3;
 	if(parse_from_lines(conn)){
@@ -103,7 +148,6 @@ int connection_bundle_process_step(struct conn_bundle *conn){
 		return 4;
 	}
 	*/
-	(void)conn;
 	return 0;
 }
 

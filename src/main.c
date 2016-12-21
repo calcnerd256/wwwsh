@@ -18,6 +18,7 @@ struct conn_bundle{
 	struct linked_list *last_chunk;
 	struct linked_list *cursor_chunk;
 	struct linked_list *lines;
+	struct linked_list *last_line;
 	int fd;
 	char done_reading;
 	unsigned long int request_length;
@@ -36,6 +37,7 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;
 	ptr->lines = 0;
+	ptr->last_line = 0;
 	return 0;
 }
 

@@ -22,7 +22,6 @@ struct conn_bundle{
 	int fd;
 	char done_reading;
 	unsigned long int request_length;
-	unsigned long int cursor_position;
 	size_t cursor_chunk_offset;
 };
 
@@ -32,7 +31,6 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 	ptr->done_reading = 0;
 	ptr->chunks = 0;
 	ptr->request_length = 0;
-	ptr->cursor_position = 0;
 	ptr->last_chunk = 0;
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;

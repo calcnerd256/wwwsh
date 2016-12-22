@@ -182,19 +182,94 @@ int connection_bundle_consume_method(struct conn_bundle *conn){
 	return 0;
 }
 
+int connection_bundle_consume_requrl(struct conn_bundle *conn){
+	int len;
+	struct extent storage;
+	if(conn->request_url) return 0;
+	len = connection_bundle_find_byte_offset_from(conn, ' ', 0);
+	if(-1 == len) return 1;
+	if(connection_bundle_take_bytes(conn, len, &storage)) return 2;
+	conn->request_url = (struct extent*)palloc(conn->pool, sizeof(struct extent));
+	conn->request_url->bytes = storage.bytes;
+	conn->request_url->len = storage.len;
+	connection_bundle_advance_cursor(conn, 1);
+	return 0;
+}
+
+int connection_bundle_consume_http_version(struct conn_bundle *conn){
+	int len;
+	struct extent storage;
+	int maj;
+	if(-1 != conn->http_major_version) return 0;
+	len = connection_bundle_find_byte_offset_from(conn, '/', 0);
+	if(4 != len) return 1;
+	if(connection_bundle_take_bytes(conn, 5, &storage)) return 2;
+	if(strncmp(storage.bytes, "HTTP/", storage.len + 1)) return 3;
+	len = connection_bundle_find_byte_offset_from(conn, '.', 0);
+	if(-1 == len) return 4;
+	if(len >= connection_bundle_find_crlf_offset(conn)) return 5;
+	if(connection_bundle_take_bytes(conn, len, &storage)) return 6;
+	maj = atoi(storage.bytes);
+	connection_bundle_advance_cursor(conn, 1);
+	len = connection_bundle_find_crlf_offset(conn);
+	if(len < 2) return 6;
+	if(connection_bundle_take_bytes(conn, len - 2, &storage)) return 7;
+	conn->http_minor_version = atoi(storage.bytes);
+	conn->http_major_version = maj;
+	connection_bundle_advance_cursor(conn, 2);
+	return 0;
+}
+
+int connection_bundle_can_respondp(struct conn_bundle *conn){
+	if(!(conn->method)) return 0;
+	if(!(conn->request_url)) return 0;
+	if(-1 == conn->http_major_version) return 0;
+	if(-1 == conn->http_minor_version) return 0;
+	if(conn->done_writing) return 0;
+	return 1;
+}
+int connection_bundle_respond_bad_method(struct conn_bundle *conn){
+	ssize_t bytes = write(conn->fd, "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET\r\nContent-Length: 60\r\nConnection: close\r\n\r\nMethod Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n", 146);
+	if(bytes != 146) return 1;
+	conn->done_writing = 1;
+	close(conn->fd);
+	return 0;
+}
+int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
+	ssize_t bytes = write(conn->fd, "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 34\r\nConnection: close\r\n\r\nNot Found\r\nOnly / exists here.\r\n\r\n", 99);
+	if(bytes != 99) return 1;
+	conn->done_writing = 1;
+	close(conn->fd);
+	return 0;
+}
+int connection_bundle_respond_root(struct conn_bundle *conn){
+	ssize_t bytes = write(conn->fd, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 192\r\nConnection: close\r\n\r\n<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n", 276);
+	if(276 != bytes) return 1;
+	conn->done_writing = 1;
+	bytes = 0;
+	close(conn->fd);
+	return 0;
+}
+int connection_bundle_respond(struct conn_bundle *conn){
+	if(conn->done_writing) return 0;
+	if(strncmp(conn->method->bytes, "GET", conn->method->len + 1))
+		return connection_bundle_respond_bad_method(conn);
+	if(strncmp(conn->request_url->bytes, "/", conn->request_url->len + 1))
+		return connection_bundle_respond_bad_request_target(conn);
+	return connection_bundle_respond_root(conn);
+}
+
 int connection_bundle_process_step(struct conn_bundle *conn){
-	if(!(conn->method))
-		if(connection_bundle_consume_method(conn))
-			return 0;
+	/*
+		https://tools.ietf.org/html/rfc7230#section-3.1.1
+	*/
+	if(connection_bundle_consume_method(conn)) return 0;
+	if(connection_bundle_consume_requrl(conn)) return 0;
+	if(connection_bundle_consume_http_version(conn)) return 0;
+	if(connection_bundle_can_respondp(conn))
+		return connection_bundle_respond(conn);
 	while(!connection_bundle_consume_line(conn));
 	connection_bundle_reduce_cursor(conn);
-	/*
-	if(parse_lines_from_chunk(conn->lines, buf)) return 3;
-	if(parse_from_lines(conn)){
-		printf("failed to parse HTTP request");
-		return 4;
-	}
-	*/
 	return 0;
 }
 

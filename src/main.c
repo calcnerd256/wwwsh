@@ -21,10 +21,13 @@ struct conn_bundle{
 	struct linked_list *last_line;
 	struct extent *method;
 	struct extent *request_url;
-	int fd;
-	char done_reading;
 	unsigned long int request_length;
+	int fd;
 	size_t cursor_chunk_offset;
+	int http_major_version;
+	int http_minor_version;
+	char done_reading;
+	char done_writing;
 };
 
 int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd){
@@ -40,6 +43,9 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 	ptr->last_line = 0;
 	ptr->method = 0;
 	ptr->request_url = 0;
+	ptr->http_major_version = -1;
+	ptr->http_minor_version = -1;
+	ptr->done_writing = 0;
 	return 0;
 }
 

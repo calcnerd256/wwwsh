@@ -237,9 +237,86 @@ int connection_bundle_close_write(struct conn_bundle *conn){
 	return 0;
 }
 
+int connection_bundle_write_crlf(struct conn_bundle *conn){
+	return 2 != write(conn->fd, "\r\n", 2);
+}
+
+int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str){
+	ssize_t bytes;
+	bytes = write(conn->fd, str->bytes, str->len);
+	if(bytes < 0) return 1;
+	if((size_t)bytes != str->len) return 2;
+	return 0;
+}
+
+int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key, struct extent *value){
+	ssize_t bytes;
+	if(connection_bundle_write_extent(conn, key)) return 1;
+	bytes = write(conn->fd, ": ", 2);
+	if(bytes < 0) return 1;
+	if(2 != bytes) return 2;
+	if(connection_bundle_write_extent(conn, value)) return 1;
+	return connection_bundle_write_crlf(conn);
+}
+
+int connection_bundle_write_status_line(struct conn_bundle *conn, int status_code, struct extent *reason){
+	char status_code_str[3];
+	ssize_t bytes;
+	if(status_code < 0) return 1;
+	if(status_code > 999) return 1;
+	status_code_str[0] = status_code / 100 + '1' - 1;
+	status_code %= 100;
+	status_code_str[1] = status_code / 10 + '1' - 1;
+	status_code %= 10;
+	status_code_str[2] = status_code + '1' - 1;
+	bytes = write(conn->fd, "HTTP/1.1 ", 9);
+	if(9 != bytes) return 1;
+	bytes = write(conn->fd, status_code_str, 3);
+	if(3 != bytes) return 1;
+	bytes = write(conn->fd, " ", 1);
+	if(1 != bytes) return 1;
+	if(connection_bundle_write_extent(conn, reason)) return 1;
+	return connection_bundle_write_crlf(conn);
+}
+
 int connection_bundle_respond_bad_method(struct conn_bundle *conn){
-	ssize_t bytes = write(conn->fd, "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET\r\nContent-Length: 60\r\nConnection: close\r\n\r\nMethod Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n", 146);
-	if(bytes != 146) return 1;
+	ssize_t bytes;
+	struct extent reason;
+	struct extent body;
+	struct extent allow;
+	struct extent get;
+	struct extent content_length_key;
+	struct extent content_length_value;
+	struct extent connection;
+	struct extent close;
+	char content_length_str[256];
+	int status_code = 405;
+	reason.bytes = "METHOD NOT ALLOWED";
+	reason.len = 18;
+	body.bytes = "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n";
+	body.len = 60;
+	allow.bytes = "Allow";
+	allow.len = 5;
+	get.bytes = "GET";
+	get.len = 3;
+	content_length_key.bytes = "Content-Length";
+	content_length_key.len = 14;
+	snprintf(content_length_str, 255, "%d", (int)body.len);
+	content_length_str[255] = 0;
+	content_length_value.bytes = content_length_str;
+	content_length_value.len = strlen(content_length_str);
+	connection.bytes = "Connection";
+	connection.len = 10;
+	close.bytes = "close";
+	close.len = 5;
+	if(connection_bundle_write_status_line(conn, status_code, &reason)) return 1;
+	if(connection_bundle_write_header(conn, &allow, &get)) return 1;
+	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 1;
+	if(connection_bundle_write_header(conn, &connection, &close)) return 1;
+	if(connection_bundle_write_crlf(conn)) return 1;
+	bytes = write(conn->fd, body.bytes, body.len);
+	if(bytes < 0) return 1;
+	if((size_t)bytes != body.len) return 1;
 	return connection_bundle_close_write(conn);
 }
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){

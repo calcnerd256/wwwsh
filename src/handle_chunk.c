@@ -8,20 +8,8 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 }
 
 int connection_bundle_close(struct conn_bundle *conn){
-	struct linked_list *current = 0;
 	conn->done_reading = 1;
-	printf("request socket with file descriptor %d closed; body follows:\n", conn->fd);
-	current = conn->lines;
-	while(current){
-		printf("%s", ((struct extent*)(current->data))->bytes);
-		current = current->next;
-	}
-	printf("\n\nDone.\n");
-	/*
-		printf("by line:\n");
-		traverse_linked_list(conn->lines->next, (visitor_t)&visit_print_ransom, (void*)1);
-		printf("\n\nDone.\n");
-	*/
+	printf("request socket with file descriptor %d closed\n", conn->fd);
 	return 0;
 }
 
@@ -105,30 +93,56 @@ int connection_bundle_take_bytes(struct conn_bundle *conn, size_t len, struct ex
 	return 0;
 }
 
-int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
-	struct extent *current;
-	char found_cr = 0;
-	size_t offset = 0;
-	struct linked_list *cursor = conn->cursor_chunk;
-	size_t coff = conn->cursor_chunk_offset;
-	if(!cursor) cursor = conn->chunks;
+char connection_bundle_byte_at_relative_offset(struct conn_bundle *conn, int offset){
+	struct linked_list *cursor;
+	if(connection_bundle_reduce_cursor(conn)) return 0;
+	if(!conn->cursor_chunk) return 0;
+	cursor = conn->cursor_chunk;
+	offset += conn->cursor_chunk_offset;
+	if(offset < 0) return 0;
+	while(cursor){
+		if((size_t)offset < ((struct extent*)(cursor->data))->len)
+			return ((struct extent*)(cursor->data))->bytes[offset];
+		offset -= ((struct extent*)(cursor->data))->len;
+		cursor = cursor->next;
+	}
+	return 0;
+}
+
+int connection_bundle_find_byte_offset_from(struct conn_bundle *conn, char target, int initial_offset){
+	struct linked_list *cursor;
+	int result = 0;
+	if(initial_offset < 0) return -1;
+	if(connection_bundle_reduce_cursor(conn)) return -1;
+	cursor = conn->cursor_chunk;
+	initial_offset += conn->cursor_chunk_offset;
 	if(!cursor) return -1;
-	current = (struct extent*)(cursor->data);
+	while((size_t)initial_offset > ((struct extent*)(cursor->data))->len){
+		initial_offset -= ((struct extent*)(cursor->data))->len;
+		cursor = cursor->next;
+		if(!cursor) return -1;
+	}
+	while(cursor){
+		while((size_t)initial_offset < ((struct extent*)(cursor->data))->len){
+			if(((struct extent*)(cursor->data))->bytes[initial_offset] == target)
+				return result;
+			initial_offset++;
+			result++;
+		}
+		initial_offset -= ((struct extent*)(cursor->data))->len;
+		cursor = cursor->next;
+	}
+	return -1;
+}
+
+int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+	int offset = 0;
 	while(1){
-		while(coff >= current->len){
-			if(!cursor->next) return -1;
-			coff -= current->len;
-			cursor = cursor->next;
-			current = (struct extent*)(cursor->data);
-		}
-		if(found_cr){
-			found_cr = 0;
-			if('\n' == current->bytes[coff])
-				return offset + 1;
-		}
-		found_cr = '\r' == current->bytes[coff];
+		offset = connection_bundle_find_byte_offset_from(conn, '\r', offset);
+		if(-1 == offset) return -1;
+		if('\n' == connection_bundle_byte_at_relative_offset(conn, offset + 1))
+			return offset + 2;
 		offset++;
-		coff++;
 	}
 }
 
@@ -150,14 +164,30 @@ int connection_bundle_consume_line(struct conn_bundle *conn){
 	conn->last_line->data = ptr + sizeof(struct linked_list);
 	((struct extent*)(conn->last_line->data))->bytes = cursor.bytes;
 	((struct extent*)(conn->last_line->data))->len = cursor.len;
+	printf("<%s>\n", cursor.bytes);
+	return 0;
+}
+
+int connection_bundle_consume_method(struct conn_bundle *conn){
+	int len;
+	struct extent storage;
+	if(conn->method) return 0;
+	len = connection_bundle_find_byte_offset_from(conn, ' ', 0);
+	if(-1 == len) return 1;
+	if(connection_bundle_take_bytes(conn, len, &storage)) return 2;
+	conn->method = (struct extent*)palloc(conn->pool, sizeof(struct extent));
+	conn->method->bytes = storage.bytes;
+	conn->method->len = storage.len;
+	connection_bundle_advance_cursor(conn, 1);
 	return 0;
 }
 
 int connection_bundle_process_step(struct conn_bundle *conn){
-	while(!connection_bundle_consume_line(conn))
-		printf("%d-byte line: %s", (int)(((struct extent*)(conn->last_line->data))->len), ((struct extent*)(conn->last_line->data))->bytes);
+	if(!(conn->method))
+		if(connection_bundle_consume_method(conn))
+			return 0;
+	while(!connection_bundle_consume_line(conn));
 	connection_bundle_reduce_cursor(conn);
-	printf("partial line:<%s>\n", ((struct extent*)(conn->cursor_chunk->data))->bytes + conn->cursor_chunk_offset);
 	/*
 	if(parse_lines_from_chunk(conn->lines, buf)) return 3;
 	if(parse_from_lines(conn)){

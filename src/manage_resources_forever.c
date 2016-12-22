@@ -23,6 +23,7 @@ int manage_resources_forever(int listening_socket){
 				handle_chunk(ready_fd, connections);
 			}
 		}
+		traverse_linked_list(connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
 	}
 	free_pool(&pool);
 	return 0;

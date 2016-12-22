@@ -7,7 +7,7 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 	return data->fd == *target;
 }
 
-int connection_bundle_close(struct conn_bundle *conn){
+int connection_bundle_close_read(struct conn_bundle *conn){
 	conn->done_reading = 1;
 	printf("request socket with file descriptor %d closed\n", conn->fd);
 	return 0;
@@ -33,7 +33,7 @@ int connection_bundle_sip(struct conn_bundle *conn){
 	conn->last_chunk = new_head;
 	conn->request_length += len;
 	if(len) return 0;
-	return connection_bundle_close(conn);
+	return connection_bundle_close_read(conn);
 }
 
 int connection_bundle_overstep_cursorp(struct conn_bundle *conn){
@@ -259,13 +259,16 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	return connection_bundle_respond_root(conn);
 }
 
-int connection_bundle_process_step(struct conn_bundle *conn){
+int visit_connection_bundle_process_step(struct conn_bundle *conn, void* context, struct linked_list *node){
+	(void)context;
+	(void)node;
 	/*
 		https://tools.ietf.org/html/rfc7230#section-3.1.1
 	*/
 	if(connection_bundle_consume_method(conn)) return 0;
 	if(connection_bundle_consume_requrl(conn)) return 0;
 	if(connection_bundle_consume_http_version(conn)) return 0;
+
 	if(connection_bundle_can_respondp(conn))
 		return connection_bundle_respond(conn);
 	while(!connection_bundle_consume_line(conn));
@@ -279,6 +282,5 @@ int handle_chunk(int sockfd, struct linked_list *connections){
 	if(first_matching(connections, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node))
 		return 1;
 	connection = (struct conn_bundle*)(match_node->data);
-	if(connection_bundle_sip(connection)) return 2;
-	return connection_bundle_process_step(connection);
+	return connection_bundle_sip(connection);
 }

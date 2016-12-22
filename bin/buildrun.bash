@@ -6,5 +6,6 @@ PID_VALGRIND="$!"
 sleep 1
 echo "valgrind=$PID_VALGRIND"
 curl localhost:8080
+sleep 1
 kill "$PID_VALGRIND"
 sleep 1

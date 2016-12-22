@@ -5,19 +5,6 @@
 */
 
 
-/*
-int visit_set_fds_and_max(struct connection_state *conn, struct linked_list *context, struct linked_list *node){
-	fd_set *to_read;
-	int *maxfd;
-	if(conn->done_reading) return 0;
-	to_read = (fd_set*)(context->data);
-	maxfd = (int*)(context->next->data);
-  FD_SET(conn->fd, to_read);
-	if(*maxfd < conn->fd)
-		*maxfd = conn->fd;
-	return (int)(0 * (long)node);
-}
-*/
 int visit_connection_set_fds_and_max(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
 	fd_set *to_read;
 	int *maxfd;
@@ -40,21 +27,6 @@ int set_fds_and_max_from_connections(fd_set *to_read, int *maxfd, struct linked_
 	return traverse_linked_list(connections, (visitor_t)(&visit_connection_set_fds_and_max), context);
 }
 
-/*
-int visit_fds_isset_status(struct connection_state *conn, struct linked_list *context, struct linked_list *node){
-	fd_set *to_read;
-	int *out_fd;
-	int *found;
-	to_read = (fd_set*)(context->data);
-	out_fd = (int*)(context->next->data);
-	found = (int*)(context->next->next->data);
-	if(*found) return (int)(0 * (long)node);
-	if(!FD_ISSET(conn->fd, to_read)) return 0;
-	*found = 1;
-	*out_fd = conn->fd;
-	return 0;
-}
-*/
 int visit_connection_fds_isset_status(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
 	fd_set *to_read;
 	int *out_fd;

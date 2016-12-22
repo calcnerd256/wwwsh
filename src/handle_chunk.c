@@ -9,7 +9,8 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 
 int connection_bundle_close_read(struct conn_bundle *conn){
 	conn->done_reading = 1;
-	printf("request socket with file descriptor %d closed\n", conn->fd);
+	if(conn->done_writing)
+		close(conn->fd);
 	return 0;
 }
 
@@ -228,27 +229,28 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;
 	return 1;
 }
+
+int connection_bundle_close_write(struct conn_bundle *conn){
+	conn->done_writing = 1;
+	if(conn->done_reading)
+		close(conn->fd);
+	return 0;
+}
+
 int connection_bundle_respond_bad_method(struct conn_bundle *conn){
 	ssize_t bytes = write(conn->fd, "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET\r\nContent-Length: 60\r\nConnection: close\r\n\r\nMethod Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n", 146);
 	if(bytes != 146) return 1;
-	conn->done_writing = 1;
-	close(conn->fd);
-	return 0;
+	return connection_bundle_close_write(conn);
 }
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	ssize_t bytes = write(conn->fd, "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 34\r\nConnection: close\r\n\r\nNot Found\r\nOnly / exists here.\r\n\r\n", 99);
 	if(bytes != 99) return 1;
-	conn->done_writing = 1;
-	close(conn->fd);
-	return 0;
+	return connection_bundle_close_write(conn);
 }
 int connection_bundle_respond_root(struct conn_bundle *conn){
 	ssize_t bytes = write(conn->fd, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 192\r\nConnection: close\r\n\r\n<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n", 276);
 	if(276 != bytes) return 1;
-	conn->done_writing = 1;
-	bytes = 0;
-	close(conn->fd);
-	return 0;
+	return connection_bundle_close_write(conn);
 }
 int connection_bundle_respond(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;

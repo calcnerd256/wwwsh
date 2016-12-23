@@ -365,24 +365,18 @@ int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	if(point_extent_at_nice_string(&body, "Not Found\r\nOnly / exists here.\r\n\r\n")) return 2;
 	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
 }
-int connection_bundle_respond_root(struct conn_bundle *conn){
+int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body){
+	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
-	struct extent body;
-	struct extent content_type;
-	struct extent text_html;
-	struct linked_list nodes[3];
 	int status_code = 200;
-	nodes[0].data = &(nodes[1]);
-	nodes[0].next = 0;
-	nodes[1].data = &content_type;
-	nodes[1].next = &(nodes[2]);
-	nodes[2].data = &text_html;
-	nodes[2].next = 0;
 	if(point_extent_at_nice_string(&reason, "OK")) return 1;
-	if(point_extent_at_nice_string(&content_type, "Content-Type")) return 1;
-	if(point_extent_at_nice_string(&text_html, "text/html")) return 1;
+	if(!push_header_contiguous(buffer, "Content-Type", "text/html", headers)) return 1;
+	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, body);
+}
+int connection_bundle_respond_root(struct conn_bundle *conn){
+	struct extent body;
 	if(point_extent_at_nice_string(&body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n")) return 1;
-	return connection_bundle_send_response(conn, status_code, &reason, nodes, &body);
+	return connection_bundle_respond_html_ok(conn, 0, &body);
 }
 int connection_bundle_respond(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;

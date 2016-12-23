@@ -316,24 +316,47 @@ int connection_bundle_send_response(struct conn_bundle *conn, int status_code, s
 	return connection_bundle_close_write(conn);
 }
 
+struct linked_list *push_header_nice_strings(struct linked_list *top, struct linked_list *key_node, struct linked_list *value_node, struct extent *key_extent, char *key, struct extent *value_extent, char *value, struct linked_list *next){
+	top->data = key_node;
+	top->next = next;
+	key_node->data = key_extent;
+	key_node->next = value_node;
+	value_node->data = value_extent;
+	value_node->next = 0;
+	if(point_extent_at_nice_string(key_extent, key)) return 0;
+	if(point_extent_at_nice_string(value_extent, value)) return 0;
+	return top;
+}
+
+struct linked_list *push_header_contiguous(char *buffer, char *key, char *value, struct linked_list *next){
+	char *ptr;
+	struct linked_list *top;
+	struct linked_list *key_node;
+	struct linked_list *value_node;
+	struct extent *key_extent;
+	struct extent *value_extent;
+	ptr = buffer;
+	top = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	key_node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	value_node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	key_extent = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	value_extent = (struct extent*)ptr;
+	return push_header_nice_strings(top, key_node, value_node, key_extent, key, value_extent, value, next);
+}
+
 int connection_bundle_respond_bad_method(struct conn_bundle *conn){
+	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	struct extent body;
-	struct extent allow;
-	struct extent get;
-	struct linked_list nodes[3];
 	int status_code = 405;
-	nodes[0].data = &(nodes[1]);
-	nodes[0].next = 0;
-	nodes[1].data = &allow;
-	nodes[1].next = &(nodes[2]);
-	nodes[2].data = &get;
-	nodes[2].next = 0;
 	if(point_extent_at_nice_string(&reason, "METHOD NOT ALLOWED")) return 1;
-	if(point_extent_at_nice_string(&allow, "Allow")) return 1;
-	if(point_extent_at_nice_string(&get, "GET")) return 1;
+	if(!push_header_contiguous(buffer, "Allow", "GET", 0)) return 1;
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
-	return connection_bundle_send_response(conn, status_code, &reason, nodes, &body);
+	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	struct extent reason;

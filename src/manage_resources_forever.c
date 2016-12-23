@@ -5,6 +5,7 @@
 #include "./await_a_resource.c"
 #include "./accept_new_connection.c"
 #include "./handle_chunk.c"
+#include "./visit_connection_bundle_process_step.c"
 
 int manage_resources_forever(int listening_socket){
 	struct timeval timeout;

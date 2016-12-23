@@ -336,14 +336,30 @@ int connection_bundle_respond_bad_method(struct conn_bundle *conn){
 	return connection_bundle_send_response(conn, status_code, &reason, nodes, &body);
 }
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
-	ssize_t bytes = write(conn->fd, "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 34\r\nConnection: close\r\n\r\nNot Found\r\nOnly / exists here.\r\n\r\n", 99);
-	if(bytes != 99) return 1;
-	return connection_bundle_close_write(conn);
+	struct extent reason;
+	struct extent body;
+	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
+	if(point_extent_at_nice_string(&body, "Not Found\r\nOnly / exists here.\r\n\r\n")) return 2;
+	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
 }
 int connection_bundle_respond_root(struct conn_bundle *conn){
-	ssize_t bytes = write(conn->fd, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 192\r\nConnection: close\r\n\r\n<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n", 276);
-	if(276 != bytes) return 1;
-	return connection_bundle_close_write(conn);
+	struct extent reason;
+	struct extent body;
+	struct extent content_type;
+	struct extent text_html;
+	struct linked_list nodes[3];
+	int status_code = 200;
+	nodes[0].data = &(nodes[1]);
+	nodes[0].next = 0;
+	nodes[1].data = &content_type;
+	nodes[1].next = &(nodes[2]);
+	nodes[2].data = &text_html;
+	nodes[2].next = 0;
+	if(point_extent_at_nice_string(&reason, "OK")) return 1;
+	if(point_extent_at_nice_string(&content_type, "Content-Type")) return 1;
+	if(point_extent_at_nice_string(&text_html, "text/html")) return 1;
+	if(point_extent_at_nice_string(&body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n")) return 1;
+	return connection_bundle_send_response(conn, status_code, &reason, nodes, &body);
 }
 int connection_bundle_respond(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;

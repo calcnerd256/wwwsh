@@ -279,45 +279,61 @@ int connection_bundle_write_status_line(struct conn_bundle *conn, int status_cod
 	return connection_bundle_write_crlf(conn);
 }
 
+int visit_header_write(struct linked_list *header, struct conn_bundle *context, struct linked_list *node){
+	(void)node;
+	if(!header) return 1;
+	if(!header->data) return 1;
+	if(!header->next) return 1;
+	if(!header->next->data) return 1;
+	if(!context) return 1;
+	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
+}
+
+int point_extent_at_nice_string(struct extent *storage, char *bytes){
+	storage->bytes = bytes;
+	storage->len = strlen(bytes);
+	return 0;
+}
+
+int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+	struct extent connection;
+	struct extent close;
+	struct extent content_length_key;
+	struct extent content_length_value;
+	char content_length_str[256];
+	if(point_extent_at_nice_string(&connection, "Connection")) return 1;
+	if(point_extent_at_nice_string(&close, "close")) return 1;
+	if(point_extent_at_nice_string(&content_length_key, "Content-Length")) return 1;
+	snprintf(content_length_str, 255, "%d", (int)(body->len));
+	content_length_str[255] = 0;
+	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
+	if(connection_bundle_write_status_line(conn, status_code, reason)) return 1;
+	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
+	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 3;
+	if(connection_bundle_write_header(conn, &connection, &close)) return 3;
+	if(connection_bundle_write_crlf(conn)) return 4;
+	if(connection_bundle_write_extent(conn, body)) return 5;
+	return connection_bundle_close_write(conn);
+}
+
 int connection_bundle_respond_bad_method(struct conn_bundle *conn){
-	ssize_t bytes;
 	struct extent reason;
 	struct extent body;
 	struct extent allow;
 	struct extent get;
-	struct extent content_length_key;
-	struct extent content_length_value;
-	struct extent connection;
-	struct extent close;
-	char content_length_str[256];
+	struct linked_list nodes[3];
 	int status_code = 405;
-	reason.bytes = "METHOD NOT ALLOWED";
-	reason.len = 18;
-	body.bytes = "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n";
-	body.len = 60;
-	allow.bytes = "Allow";
-	allow.len = 5;
-	get.bytes = "GET";
-	get.len = 3;
-	content_length_key.bytes = "Content-Length";
-	content_length_key.len = 14;
-	snprintf(content_length_str, 255, "%d", (int)body.len);
-	content_length_str[255] = 0;
-	content_length_value.bytes = content_length_str;
-	content_length_value.len = strlen(content_length_str);
-	connection.bytes = "Connection";
-	connection.len = 10;
-	close.bytes = "close";
-	close.len = 5;
-	if(connection_bundle_write_status_line(conn, status_code, &reason)) return 1;
-	if(connection_bundle_write_header(conn, &allow, &get)) return 1;
-	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 1;
-	if(connection_bundle_write_header(conn, &connection, &close)) return 1;
-	if(connection_bundle_write_crlf(conn)) return 1;
-	bytes = write(conn->fd, body.bytes, body.len);
-	if(bytes < 0) return 1;
-	if((size_t)bytes != body.len) return 1;
-	return connection_bundle_close_write(conn);
+	nodes[0].data = &(nodes[1]);
+	nodes[0].next = 0;
+	nodes[1].data = &allow;
+	nodes[1].next = &(nodes[2]);
+	nodes[2].data = &get;
+	nodes[2].next = 0;
+	if(point_extent_at_nice_string(&reason, "METHOD NOT ALLOWED")) return 1;
+	if(point_extent_at_nice_string(&allow, "Allow")) return 1;
+	if(point_extent_at_nice_string(&get, "GET")) return 1;
+	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
+	return connection_bundle_send_response(conn, status_code, &reason, nodes, &body);
 }
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	ssize_t bytes = write(conn->fd, "HTTP/1.1 404 NOT FOUND\r\nContent-Length: 34\r\nConnection: close\r\n\r\nNot Found\r\nOnly / exists here.\r\n\r\n", 99);

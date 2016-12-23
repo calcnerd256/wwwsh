@@ -14,11 +14,18 @@ int connection_bundle_close_read(struct conn_bundle *conn){
 	return 0;
 }
 
-int connection_bundle_sip(struct conn_bundle *conn){
+int handle_chunk(int sockfd, struct linked_list *connections){
+	struct linked_list *match_node;
+	struct conn_bundle *connection;
+	struct conn_bundle *conn;
 	char *buf;
 	size_t len;
 	struct extent *chunkptr;
 	struct linked_list *new_head;
+	if(first_matching(connections, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node))
+		return 1;
+	connection = (struct conn_bundle*)(match_node->data);
+	conn = connection;
 	if(!conn) return 2;
 	buf = palloc(conn->pool, CHUNK_SIZE + 1 + sizeof(struct extent) + sizeof(struct linked_list));
 	chunkptr = (struct extent*)(buf + CHUNK_SIZE + 1);
@@ -35,13 +42,4 @@ int connection_bundle_sip(struct conn_bundle *conn){
 	conn->request_length += len;
 	if(len) return 0;
 	return connection_bundle_close_read(conn);
-}
-
-int handle_chunk(int sockfd, struct linked_list *connections){
-	struct linked_list *match_node;
-	struct conn_bundle *connection;
-	if(first_matching(connections, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node))
-		return 1;
-	connection = (struct conn_bundle*)(match_node->data);
-	return connection_bundle_sip(connection);
 }

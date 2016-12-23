@@ -7,13 +7,6 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 	return data->fd == *target;
 }
 
-int connection_bundle_close_read(struct conn_bundle *conn){
-	conn->done_reading = 1;
-	if(conn->done_writing)
-		close(conn->fd);
-	return 0;
-}
-
 int handle_chunk(int sockfd, struct linked_list *connections){
 	struct linked_list *match_node;
 	struct conn_bundle *conn;
@@ -39,5 +32,8 @@ int handle_chunk(int sockfd, struct linked_list *connections){
 	conn->last_chunk = new_head;
 	conn->request_length += len;
 	if(len) return 0;
-	return connection_bundle_close_read(conn);
+	conn->done_reading = 1;
+	if(conn->done_writing)
+		close(conn->fd);
+	return 0;
 }

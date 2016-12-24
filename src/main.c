@@ -13,7 +13,7 @@
 #define CHUNK_SIZE 256
 
 struct httpServer{
-	struct mempool *pool;
+	struct mempool *memoryPool;
 	int listeningSocket_fileDescriptor;
 };
 
@@ -65,8 +65,8 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 
 int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
-	server->pool = malloc(sizeof(struct mempool));
-	init_pool(server->pool);
+	server->memoryPool = malloc(sizeof(struct mempool));
+	init_pool(server->memoryPool);
 	server = 0;
 	return 0;
 }
@@ -94,10 +94,10 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 }
 
 int httpServer_close(struct httpServer *server){
-	if(server->pool){
-		free_pool(server->pool);
-		free(server->pool);
-		server->pool = 0;
+	if(server->memoryPool){
+		free_pool(server->memoryPool);
+		free(server->memoryPool);
+		server->memoryPool = 0;
 	}
 	if(-1 == server->listeningSocket_fileDescriptor){
 		server = 0;
@@ -134,7 +134,7 @@ int main(int argument_count, char* *arguments_vector){
 		timeout.tv_usec = 0;
 		if(!await_a_resource(server.listeningSocket_fileDescriptor, &timeout, &ready_fd, connections)){
 			if(ready_fd == server.listeningSocket_fileDescriptor){
-				accept_new_connection(server.listeningSocket_fileDescriptor, server.pool, &connections);
+				accept_new_connection(server.listeningSocket_fileDescriptor, server.memoryPool, &connections);
 			}
 			else{
 				handle_chunk(ready_fd, connections);

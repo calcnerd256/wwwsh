@@ -148,14 +148,13 @@ int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_
 	return 0;
 }
 
-int httpServer_step(struct httpServer *server){
+int httpServer_selectRead(struct httpServer *server){
 	int ready_fd;
 	struct linked_list context;
 	struct linked_list fd_cell;
 	struct conn_bundle fake_for_server;
 	struct linked_list extra_head;
 	int done;
-	int status;
 	done = 0;
 	ready_fd = -1;
 	fd_cell.next = 0;
@@ -166,25 +165,34 @@ int httpServer_step(struct httpServer *server){
 	extra_head.data = &fake_for_server;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.done_reading = 0;
-	status = traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context);
-	if(status){
-		usleep(10);
-		return 0;
-	}
+	if(traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context)) return -1;
+	return ready_fd;
+}
+
+int httpServer_stepConnections(struct httpServer *server){
+	int any = 0;
+	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
+	return any;
+}
+
+int httpServer_step(struct httpServer *server){
+	int ready_fd;
+	ready_fd = httpServer_selectRead(server);
 	if(ready_fd == -1){
-		done = 0;
-		traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &done);
-		if(done) return 0;
+		if(httpServer_stepConnections(server)) return 0;
 		usleep(10);
 		return 0;
 	}
 	if(ready_fd == server->listeningSocket_fileDescriptor){
 			accept_new_connection(server->listeningSocket_fileDescriptor, server->memoryPool, &(server->connections));
+			httpServer_stepConnections(server);
+			return 0;
 	}
 	else{
 			handle_chunk(ready_fd, server->connections);
+			httpServer_stepConnections(server);
+			return 0;
 	}
-	traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &done);
 	return 0;
 }
 

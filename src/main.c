@@ -55,7 +55,7 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 #include "./handle_chunk.c"
 #include "./visit_connection_bundle_process_step.c"
 
-int manage_resources_forever(int listening_socket){
+int manage_resources_forever(int sockfd){
 	struct timeval timeout;
 	int ready_fd;
 	struct mempool pool;
@@ -64,9 +64,9 @@ int manage_resources_forever(int listening_socket){
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
-		if(!await_a_resource(listening_socket, &timeout, &ready_fd, connections)){
-			if(ready_fd == listening_socket){
-				accept_new_connection(listening_socket, &pool, &connections);
+		if(!await_a_resource(sockfd, &timeout, &ready_fd, connections)){
+			if(ready_fd == sockfd){
+				accept_new_connection(sockfd, &pool, &connections);
 			}
 			else{
 				handle_chunk(ready_fd, connections);

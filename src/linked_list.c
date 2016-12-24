@@ -104,10 +104,3 @@ size_t list_length(struct linked_list *head){
 		return -1;
 	return result;
 }
-
-int push_without_alloc(struct linked_list* *head, struct linked_list *storage, void* data){
-	storage->data = data;
-	storage->next = *head;
-	*head = storage;
-	return 0;
-}

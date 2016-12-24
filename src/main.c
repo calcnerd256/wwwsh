@@ -56,7 +56,6 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 }
 
 #include "./get_socket.c"
-#include "./handle_chunk.c"
 #include "./visit_connection_bundle_process_step.c"
 
 /* #include "./test_pools.c" */
@@ -195,6 +194,49 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	return 0;
 }
 
+int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){
+	(void)node;
+	return data->fd == *target;
+}
+
+int httpRequestHandler_readChunk(struct conn_bundle *conn){
+	/*
+
+	find the connection attached to the socket
+	contiguously allocate the extent for the chunk, the list node pointing to it, and the buffer of its bytes
+	read the bytes into the buffer, point the extent at it, and append this to the connection's chunk list
+	if the chunk list is empty, appending is assignment of the node to the list's head
+	if the read is empty, the socket has been closed, so close the read end of the connection
+
+	*/
+
+	char *buf;
+	size_t len;
+	struct extent *chunkptr;
+	struct linked_list *new_head;
+
+	if(!conn) return 2;
+
+	buf = palloc(conn->pool, CHUNK_SIZE + 1 + sizeof(struct extent) + sizeof(struct linked_list));
+	chunkptr = (struct extent*)(buf + CHUNK_SIZE + 1);
+	new_head = (struct linked_list*)(buf + CHUNK_SIZE + 1 + sizeof(struct extent));
+	new_head->next = 0;
+	buf[CHUNK_SIZE] = 0;
+	len = read(conn->fd, buf, CHUNK_SIZE);
+	buf[len] = 0;
+	chunkptr->bytes = buf;
+	chunkptr->len = len;
+	new_head->data = chunkptr;
+	*(conn->last_chunk ? &(conn->last_chunk->next) : &(conn->chunks)) = new_head;
+	conn->last_chunk = new_head;
+	conn->request_length += len;
+
+	if(len) return 0;
+	conn->done_reading = 1;
+	if(conn->done_writing)
+		close(conn->fd);
+	return 0;
+}
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
@@ -217,7 +259,7 @@ int main(int argument_count, char* *arguments_vector){
 				match_node = 0;
 				if(!first_matching(server.connections, (visitor_t)(&match_by_sockfd), (struct linked_list *)(&ready_fd), &match_node))
 					if(match_node)
-						handle_chunk(match_node->data);
+						httpRequestHandler_readChunk(match_node->data);
 			}
 		}
 		if(!httpServer_stepConnections(&server))

@@ -352,19 +352,30 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	return connection_bundle_respond_root(conn);
 }
 
-int visit_connection_bundle_process_step(struct conn_bundle *conn, void* context, struct linked_list *node){
-	(void)context;
+int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
 	(void)node;
 	/*
 		https://tools.ietf.org/html/rfc7230#section-3.1.1
 	*/
-	if(connection_bundle_consume_method(conn)) return 0;
-	if(connection_bundle_consume_requrl(conn)) return 0;
-	if(connection_bundle_consume_http_version(conn)) return 0;
+	if(!conn) return 0;
+	if(!(conn->method)){
+		if(connection_bundle_consume_method(conn)) return 0;
+		*context = 1;
+	}
+	if(!(conn->request_url)){
+		if(connection_bundle_consume_requrl(conn)) return 0;
+		*context = 1;
+	}
+	if(-1 == conn->http_minor_version){
+		if(connection_bundle_consume_http_version(conn)) return 0;
+		*context = 1;
+	}
 
-	if(connection_bundle_can_respondp(conn))
+	if(connection_bundle_can_respondp(conn)){
+		*context = 1;
 		return connection_bundle_respond(conn);
-	while(!connection_bundle_consume_line(conn));
+	}
+	while(!connection_bundle_consume_line(conn)) *context = 1;
 	connection_bundle_reduce_cursor(conn);
 	return 0;
 }

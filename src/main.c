@@ -172,8 +172,9 @@ int httpServer_step(struct httpServer *server){
 		return 0;
 	}
 	if(ready_fd == -1){
-		/* are any ready to process_step? */
-		/* otherwise sleep */
+		done = 0;
+		traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &done);
+		if(done) return 0;
 		usleep(10);
 		return 0;
 	}
@@ -183,7 +184,7 @@ int httpServer_step(struct httpServer *server){
 	else{
 			handle_chunk(ready_fd, server->connections);
 	}
-	traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
+	traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &done);
 	return 0;
 }
 

@@ -12,6 +12,10 @@
 
 #define CHUNK_SIZE 256
 
+struct httpServer{
+	int listeningSocket_fileDescriptor;
+};
+
 struct conn_bundle{
 	struct mempool *pool;
 	struct linked_list *chunks;
@@ -58,15 +62,33 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 /* #include "./test_pools.c" */
 
 
+int httpServer_init(struct httpServer *server){
+	server->listeningSocket_fileDescriptor = -1;
+	return 0;
+}
+
+int httpServer_listen(struct httpServer *server, char* port_number, int backlog){
+	int sockfd = -1;
+	if(get_socket(port_number, &sockfd)) return 1;
+	server->listeningSocket_fileDescriptor = sockfd;
+	if(listen(sockfd, backlog)) return 2;
+	sockfd = 0;
+	server = 0;
+	port_number = 0;
+	return 0;
+}
+
 int main(int argument_count, char* *arguments_vector){
+	struct httpServer server;
 	struct timeval timeout;
 	int ready_fd;
 	struct mempool pool;
 	struct linked_list *connections = 0;
-	int sockfd = -1;
+	int sockfd;
 	if(2 != argument_count) return 1;
-	if(get_socket(arguments_vector[1], &sockfd)) return 2;
-	if(listen(sockfd, 32)) return 3;
+	if(httpServer_init(&server)) return 1;
+	if(httpServer_listen(&server, arguments_vector[1], 32)) return 2;
+	sockfd = server.listeningSocket_fileDescriptor;
 
 	init_pool(&pool);
 	while(1){

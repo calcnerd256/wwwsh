@@ -118,10 +118,25 @@ int httpServer_close(struct httpServer *server){
 	return 0;
 }
 
-int main(int argument_count, char* *arguments_vector){
-	struct httpServer server;
+int httpServer_step(struct httpServer *server){
 	struct timeval timeout;
 	int ready_fd;
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+	if(!await_a_resource(server->listeningSocket_fileDescriptor, &timeout, &ready_fd, server->connections)){
+		if(ready_fd == server->listeningSocket_fileDescriptor){
+			accept_new_connection(server->listeningSocket_fileDescriptor, server->memoryPool, &(server->connections));
+		}
+		else{
+			handle_chunk(ready_fd, server->connections);
+		}
+	}
+	traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
+	return 0;
+}
+
+int main(int argument_count, char* *arguments_vector){
+	struct httpServer server;
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 1;
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
@@ -130,19 +145,7 @@ int main(int argument_count, char* *arguments_vector){
 		return 2;
 	}
 
-	while(1){
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 0;
-		if(!await_a_resource(server.listeningSocket_fileDescriptor, &timeout, &ready_fd, server.connections)){
-			if(ready_fd == server.listeningSocket_fileDescriptor){
-				accept_new_connection(server.listeningSocket_fileDescriptor, server.memoryPool, &(server.connections));
-			}
-			else{
-				handle_chunk(ready_fd, server.connections);
-			}
-		}
-		traverse_linked_list(server.connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
-	}
+	while(!httpServer_step(&server));
 
 	if(httpServer_close(&server)){
 		server.listeningSocket_fileDescriptor = -1;

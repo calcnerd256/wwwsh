@@ -175,29 +175,9 @@ int httpServer_stepConnections(struct httpServer *server){
 	return any;
 }
 
-int httpServer_step(struct httpServer *server){
-	int ready_fd;
-	ready_fd = httpServer_selectRead(server);
-	if(ready_fd == -1){
-		if(httpServer_stepConnections(server)) return 0;
-		usleep(10);
-		return 0;
-	}
-	if(ready_fd == server->listeningSocket_fileDescriptor){
-			accept_new_connection(server->listeningSocket_fileDescriptor, server->memoryPool, &(server->connections));
-			httpServer_stepConnections(server);
-			return 0;
-	}
-	else{
-			handle_chunk(ready_fd, server->connections);
-			httpServer_stepConnections(server);
-			return 0;
-	}
-	return 0;
-}
-
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
+	int ready_fd;
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 1;
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
@@ -206,7 +186,23 @@ int main(int argument_count, char* *arguments_vector){
 		return 2;
 	}
 
-	while(!httpServer_step(&server));
+	while(1){
+		ready_fd = httpServer_selectRead(&server);
+		if(ready_fd == -1){
+			if(httpServer_stepConnections(&server)) return 0;
+			usleep(10);
+		}
+		else{
+			if(ready_fd == server.listeningSocket_fileDescriptor){
+				accept_new_connection(server.listeningSocket_fileDescriptor, server.memoryPool, &(server.connections));
+				httpServer_stepConnections(&server);
+			}
+			else{
+				handle_chunk(ready_fd, server.connections);
+				httpServer_stepConnections(&server);
+			}
+		}
+	}
 
 	if(httpServer_close(&server)){
 		server.listeningSocket_fileDescriptor = -1;

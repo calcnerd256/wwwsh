@@ -21,17 +21,12 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 
 */
 
-int handle_chunk(int sockfd, struct linked_list *connections){
-	struct linked_list *match_node;
-	struct conn_bundle *conn;
+int handle_chunk(struct conn_bundle *conn){
 	char *buf;
 	size_t len;
 	struct extent *chunkptr;
 	struct linked_list *new_head;
 
-	if(first_matching(connections, (visitor_t)(&match_by_sockfd), (struct linked_list*)(&sockfd), &match_node))
-		return 1;
-	conn = (struct conn_bundle*)(match_node->data);
 	if(!conn) return 2;
 
 	buf = palloc(conn->pool, CHUNK_SIZE + 1 + sizeof(struct extent) + sizeof(struct linked_list));

@@ -199,6 +199,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	int ready_fd;
+	struct linked_list *match_node;
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 1;
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
@@ -212,7 +213,12 @@ int main(int argument_count, char* *arguments_vector){
 		if(-1 != ready_fd){
 			if(ready_fd == server.listeningSocket_fileDescriptor)
 				httpServer_acceptNewConnection(&server);
-			else handle_chunk(ready_fd, server.connections);
+			else{
+				match_node = 0;
+				if(!first_matching(server.connections, (visitor_t)(&match_by_sockfd), (struct linked_list *)(&ready_fd), &match_node))
+					if(match_node)
+						handle_chunk(match_node->data);
+			}
 		}
 		if(!httpServer_stepConnections(&server))
 			if(ready_fd == -1)

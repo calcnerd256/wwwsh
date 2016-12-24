@@ -2,7 +2,10 @@
 
 /* included in main.c */
 
-int accept_new_connection(int server_socket, struct mempool *allocations, struct linked_list* *head){
+int httpServer_acceptNewConnection(struct httpServer *server){
+	int server_socket = server->listeningSocket_fileDescriptor;
+	struct mempool *allocations = server->memoryPool;
+	struct linked_list* *head = &(server->connections);
 	struct sockaddr address;
 	socklen_t length;
 	int fd;
@@ -18,8 +21,4 @@ int accept_new_connection(int server_socket, struct mempool *allocations, struct
 	push_without_alloc(head, (struct linked_list*)ptr, ptr + sizeof(struct linked_list));
 	init_connection((struct conn_bundle*)((*head)->data), allocations, fd);
 	return 0;
-}
-
-int httpServer_acceptNewConnection(struct httpServer *server){
-	return accept_new_connection(server->listeningSocket_fileDescriptor, server->memoryPool, &(server->connections));
 }

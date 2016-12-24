@@ -13,6 +13,7 @@
 #define CHUNK_SIZE 256
 
 struct httpServer{
+	struct mempool *pool;
 	int listeningSocket_fileDescriptor;
 };
 
@@ -64,17 +65,54 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 
 int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
+	server->pool = malloc(sizeof(struct mempool));
+	init_pool(server->pool);
+	server = 0;
 	return 0;
 }
 
 int httpServer_listen(struct httpServer *server, char* port_number, int backlog){
 	int sockfd = -1;
-	if(get_socket(port_number, &sockfd)) return 1;
-	server->listeningSocket_fileDescriptor = sockfd;
-	if(listen(sockfd, backlog)) return 2;
-	sockfd = 0;
-	server = 0;
+	if(get_socket(port_number, &sockfd)){
+		server = 0;
+		port_number = 0;
+		backlog = 0;
+		sockfd = 0;
+		return 1;
+	}
 	port_number = 0;
+	server->listeningSocket_fileDescriptor = sockfd;
+	server = 0;
+	if(listen(sockfd, backlog)){
+		backlog = 0;
+		sockfd = 0;
+		return 2;
+	}
+	sockfd = 0;
+	backlog = 0;
+	return 0;
+}
+
+int httpServer_close(struct httpServer *server){
+	if(server->pool){
+		free_pool(server->pool);
+		free(server->pool);
+		server->pool = 0;
+	}
+	if(-1 == server->listeningSocket_fileDescriptor){
+		server = 0;
+		return 0;
+	}
+	if(shutdown(server->listeningSocket_fileDescriptor, SHUT_RDWR)){
+		server = 0;
+		return 1;
+	}
+	if(close(server->listeningSocket_fileDescriptor)){
+		server = 0;
+		return 2;
+	}
+	server->listeningSocket_fileDescriptor = -1;
+	server = 0;
 	return 0;
 }
 
@@ -82,21 +120,21 @@ int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	struct timeval timeout;
 	int ready_fd;
-	struct mempool pool;
 	struct linked_list *connections = 0;
-	int sockfd;
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 1;
-	if(httpServer_listen(&server, arguments_vector[1], 32)) return 2;
-	sockfd = server.listeningSocket_fileDescriptor;
+	if(httpServer_listen(&server, arguments_vector[1], 32)){
+		server.listeningSocket_fileDescriptor = -1;
+		httpServer_close(&server);
+		return 2;
+	}
 
-	init_pool(&pool);
 	while(1){
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
-		if(!await_a_resource(sockfd, &timeout, &ready_fd, connections)){
-			if(ready_fd == sockfd){
-				accept_new_connection(sockfd, &pool, &connections);
+		if(!await_a_resource(server.listeningSocket_fileDescriptor, &timeout, &ready_fd, connections)){
+			if(ready_fd == server.listeningSocket_fileDescriptor){
+				accept_new_connection(server.listeningSocket_fileDescriptor, server.pool, &connections);
 			}
 			else{
 				handle_chunk(ready_fd, connections);
@@ -104,9 +142,10 @@ int main(int argument_count, char* *arguments_vector){
 		}
 		traverse_linked_list(connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
 	}
-	free_pool(&pool);
 
-	if(shutdown(sockfd, SHUT_RDWR)) return 4;
-	if(close(sockfd)) return 5;
+	if(httpServer_close(&server)){
+		server.listeningSocket_fileDescriptor = -1;
+		return 4;
+	}
 	return 0;
 }

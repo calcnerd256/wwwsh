@@ -340,7 +340,7 @@ int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_li
 }
 int connection_bundle_respond_root(struct conn_bundle *conn){
 	struct extent body;
-	if(point_extent_at_nice_string(&body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n  I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n")) return 1;
+	if(point_extent_at_nice_string(&body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n")) return 1;
 	return connection_bundle_respond_html_ok(conn, 0, &body);
 }
 int connection_bundle_respond(struct conn_bundle *conn){

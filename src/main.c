@@ -55,11 +55,19 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 #include "./handle_chunk.c"
 #include "./visit_connection_bundle_process_step.c"
 
-int manage_resources_forever(int sockfd){
+/* #include "./test_pools.c" */
+
+
+int main(int argument_count, char* *arguments_vector){
 	struct timeval timeout;
 	int ready_fd;
 	struct mempool pool;
 	struct linked_list *connections = 0;
+	int sockfd = -1;
+	if(2 != argument_count) return 1;
+	if(get_socket(arguments_vector[1], &sockfd)) return 2;
+	if(listen(sockfd, 32)) return 3;
+
 	init_pool(&pool);
 	while(1){
 		timeout.tv_sec = 1;
@@ -75,20 +83,6 @@ int manage_resources_forever(int sockfd){
 		traverse_linked_list(connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
 	}
 	free_pool(&pool);
-	return 0;
-}
-
-/* #include "./test_pools.c" */
-
-
-int main(int argument_count, char* *arguments_vector){
-	int sockfd;
-	sockfd = -1;
-	if(2 != argument_count) return 1;
-	if(get_socket(arguments_vector[1], &sockfd)) return 2;
-	if(listen(sockfd, 32)) return 3;
-
-	manage_resources_forever(sockfd);
 
 	if(shutdown(sockfd, SHUT_RDWR)) return 4;
 	if(close(sockfd)) return 5;

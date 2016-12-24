@@ -188,20 +188,14 @@ int main(int argument_count, char* *arguments_vector){
 
 	while(1){
 		ready_fd = httpServer_selectRead(&server);
-		if(ready_fd == -1){
-			if(httpServer_stepConnections(&server)) return 0;
-			usleep(10);
+		if(-1 != ready_fd){
+			if(ready_fd == server.listeningSocket_fileDescriptor)
+				httpServer_acceptNewConnection(&server);
+			else handle_chunk(ready_fd, server.connections);
 		}
-		else{
-			if(ready_fd == server.listeningSocket_fileDescriptor){
-				accept_new_connection(server.listeningSocket_fileDescriptor, server.memoryPool, &(server.connections));
-				httpServer_stepConnections(&server);
-			}
-			else{
-				handle_chunk(ready_fd, server.connections);
-				httpServer_stepConnections(&server);
-			}
-		}
+		if(!httpServer_stepConnections(&server))
+			if(ready_fd == -1)
+				usleep(10);
 	}
 
 	if(httpServer_close(&server)){

@@ -27,6 +27,7 @@ struct conn_bundle{
 	struct linked_list *last_line;
 	struct extent *method;
 	struct extent *request_url;
+	struct httpServer *server;
 	unsigned long int request_length;
 	int fd;
 	size_t cursor_chunk_offset;
@@ -36,8 +37,8 @@ struct conn_bundle{
 	char done_writing;
 };
 
-int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd){
-	ptr->pool = allocations;
+int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
+	ptr->pool = server->memoryPool;
 	ptr->fd = fd;
 	ptr->done_reading = 0;
 	ptr->chunks = 0;
@@ -52,6 +53,7 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 	ptr->http_major_version = -1;
 	ptr->http_minor_version = -1;
 	ptr->done_writing = 0;
+	ptr->server = server;
 	return 0;
 }
 
@@ -190,7 +192,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	new_head->next = server->connections;
 	server->connections = new_head;
 	new_head->data = ptr + sizeof(struct linked_list);
-	init_connection((struct conn_bundle*)(new_head->data), server->memoryPool, fd);
+	init_connection((struct conn_bundle*)(new_head->data), server, fd);
 	return 0;
 }
 

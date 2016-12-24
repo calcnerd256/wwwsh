@@ -3,7 +3,6 @@
 /* included in main.c */
 
 int httpServer_acceptNewConnection(struct httpServer *server){
-	int server_socket = server->listeningSocket_fileDescriptor;
 	struct mempool *allocations = server->memoryPool;
 	struct linked_list* *head = &(server->connections);
 	struct sockaddr address;
@@ -14,7 +13,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	if(!head) return 1;
 	memset(&address, 0, sizeof(struct sockaddr));
 	length = 0;
-	fd = accept(server_socket, &address, &length);
+	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
 	if(-1 == fd) return 1;
 
 	ptr = palloc(allocations, sizeof(struct conn_bundle) + sizeof(struct linked_list));

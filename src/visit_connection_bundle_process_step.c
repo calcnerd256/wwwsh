@@ -1,5 +1,7 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+/* included in main.c */
+
 int connection_bundle_overstep_cursorp(struct conn_bundle *conn){
 	if(!conn->cursor_chunk) return 1;
 	return ((struct extent*)(conn->cursor_chunk->data))->len <= conn->cursor_chunk_offset;

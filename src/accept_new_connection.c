@@ -1,6 +1,6 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-/* included in manage_resources_forever.c */
+/* included in main.c */
 
 int push_without_alloc(struct linked_list* *head, struct linked_list *storage, void* data){
 	storage->data = data;

@@ -50,7 +50,33 @@ int init_connection(struct conn_bundle *ptr, struct mempool *allocations, int fd
 }
 
 #include "./get_socket.c"
-#include "./manage_resources_forever.c"
+#include "./await_a_resource.c"
+#include "./accept_new_connection.c"
+#include "./handle_chunk.c"
+#include "./visit_connection_bundle_process_step.c"
+
+int manage_resources_forever(int listening_socket){
+	struct timeval timeout;
+	int ready_fd;
+	struct mempool pool;
+	struct linked_list *connections = 0;
+	init_pool(&pool);
+	while(1){
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+		if(!await_a_resource(listening_socket, &timeout, &ready_fd, connections)){
+			if(ready_fd == listening_socket){
+				accept_new_connection(listening_socket, &pool, &connections);
+			}
+			else{
+				handle_chunk(ready_fd, connections);
+			}
+		}
+		traverse_linked_list(connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
+	}
+	free_pool(&pool);
+	return 0;
+}
 
 /* #include "./test_pools.c" */
 
@@ -61,7 +87,9 @@ int main(int argument_count, char* *arguments_vector){
 	if(2 != argument_count) return 1;
 	if(get_socket(arguments_vector[1], &sockfd)) return 2;
 	if(listen(sockfd, 32)) return 3;
+
 	manage_resources_forever(sockfd);
+
 	if(shutdown(sockfd, SHUT_RDWR)) return 4;
 	if(close(sockfd)) return 5;
 	return 0;

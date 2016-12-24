@@ -118,18 +118,71 @@ int httpServer_close(struct httpServer *server){
 	return 0;
 }
 
-int httpServer_step(struct httpServer *server){
+int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
+	int *done;
+	int *fd;
 	struct timeval timeout;
-	int ready_fd;
-	timeout.tv_sec = 1;
+	fd_set to_read;
+	int status;
+	(void)node;
+	if(!context) return 1;
+	if(!context->next) return 1;
+	done = (int *)(context->data);
+	if(!done) return 3;
+	if(*done) return 0;
+	fd = (int *)(context->next->data);
+	if(!fd) return 3;
+	if(!conn) return 2;
+	if(conn->done_reading) return 0;
+	if(-1 == conn->fd) return 2;
+	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
-	if(!await_a_resource(server->listeningSocket_fileDescriptor, &timeout, &ready_fd, server->connections)){
-		if(ready_fd == server->listeningSocket_fileDescriptor){
+	FD_ZERO(&to_read);
+	FD_SET(conn->fd, &to_read);
+	status = select(conn->fd + 1, &to_read, 0, 0, &timeout);
+	if(-1 == status) return 4;
+	if(!status) return 0;
+	if(FD_ISSET(conn->fd, &to_read)){
+		*fd = conn->fd;
+		*done = 1;
+	}
+	return 0;
+}
+
+int httpServer_step(struct httpServer *server){
+	int ready_fd;
+	struct linked_list context;
+	struct linked_list fd_cell;
+	struct conn_bundle fake_for_server;
+	struct linked_list extra_head;
+	int done;
+	int status;
+	done = 0;
+	ready_fd = -1;
+	fd_cell.next = 0;
+	fd_cell.data = &ready_fd;
+	context.next = &fd_cell;
+	context.data = &done;
+	extra_head.next = server->connections;
+	extra_head.data = &fake_for_server;
+	fake_for_server.fd = server->listeningSocket_fileDescriptor;
+	fake_for_server.done_reading = 0;
+	status = traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context);
+	if(status){
+		usleep(10);
+		return 0;
+	}
+	if(ready_fd == -1){
+		/* are any ready to process_step? */
+		/* otherwise sleep */
+		usleep(10);
+		return 0;
+	}
+	if(ready_fd == server->listeningSocket_fileDescriptor){
 			accept_new_connection(server->listeningSocket_fileDescriptor, server->memoryPool, &(server->connections));
-		}
-		else{
+	}
+	else{
 			handle_chunk(ready_fd, server->connections);
-		}
 	}
 	traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), 0);
 	return 0;

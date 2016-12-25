@@ -19,6 +19,61 @@ struct httpServer{
 	struct linked_list *staticResources;
 };
 
+struct chunkStream{
+	struct mempool *pool;
+	struct linked_list *chunks;
+	struct linked_list *last_chunk;
+	struct linked_list *cursor_chunk;
+	size_t cursor_chunk_offset;
+};
+
+int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){
+	ptr->pool = pool;
+	ptr->chunks = 0;
+	ptr->last_chunk = 0;
+	ptr->cursor_chunk = 0;
+	ptr->cursor_chunk_offset = 0;
+	return 0;
+}
+
+int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
+	char *bufptr;
+	struct linked_list *new_head;
+	struct extent *chunk;
+	if(!len){
+		stream = 0;
+		bytes = 0;
+		len = 0;
+		bufptr = 0;
+		new_head = 0;
+		chunk = 0;
+		return 0;
+	}
+	bufptr = palloc(stream->pool, len + 1 + sizeof(struct extent) + sizeof(struct linked_list));
+	new_head = (struct linked_list*)bufptr;
+	bufptr += sizeof(struct linked_list);
+	chunk = (struct extent*)bufptr;
+	bufptr += sizeof(struct extent);
+	memcpy(bufptr, bytes, len);
+	bytes = 0;
+	bufptr += len;
+	*bufptr = 0;
+	bufptr = 0;
+	new_head->next = 0;
+	chunk->len = len;
+	len = 0;
+	chunk->bytes = bytes;
+	new_head->data = chunk;
+	chunk = 0;
+	if(!stream->last_chunk) stream->last_chunk = stream->chunks;
+	if(!stream->last_chunk) stream->chunks = new_head;
+	else stream->last_chunk->next = new_head;
+	stream->last_chunk = new_head;
+	stream = 0;
+	new_head = 0;
+	return 0;
+}
+
 struct staticGetResource{
 	struct extent *url;
 	struct extent *body;
@@ -27,6 +82,7 @@ struct staticGetResource{
 
 struct conn_bundle{
 	struct mempool *pool;
+	struct chunkStream *chunk_stream;
 	struct linked_list *chunks;
 	struct linked_list *last_chunk;
 	struct linked_list *cursor_chunk;
@@ -62,6 +118,8 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->http_minor_version = -1;
 	ptr->done_writing = 0;
 	ptr->server = server;
+	ptr->chunk_stream = palloc(ptr->pool, sizeof(struct chunkStream));
+	chunkStream_init(ptr->chunk_stream, ptr->pool);
 	return 0;
 }
 
@@ -270,6 +328,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	buf[CHUNK_SIZE] = 0;
 	len = read(conn->fd, buf, CHUNK_SIZE);
 	buf[len] = 0;
+	chunkStream_append(conn->chunk_stream, buf, len);
 	chunkptr->bytes = buf;
 	chunkptr->len = len;
 	new_head->data = chunkptr;

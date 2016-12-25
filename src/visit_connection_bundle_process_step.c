@@ -77,25 +77,31 @@ char connection_bundle_byte_at_relative_offset(struct conn_bundle *conn, int off
 
 int connection_bundle_find_byte_offset_from(struct conn_bundle *conn, char target, int initial_offset){
 	struct linked_list *cursor;
+	struct extent *current = 0;
 	int result = 0;
 	if(initial_offset < 0) return -1;
 	if(connection_bundle_reduce_cursor(conn)) return -1;
 	cursor = conn->cursor_chunk;
 	initial_offset += conn->cursor_chunk_offset;
 	if(!cursor) return -1;
-	while((size_t)initial_offset > ((struct extent*)(cursor->data))->len){
-		initial_offset -= ((struct extent*)(cursor->data))->len;
+	current = (struct extent*)(cursor->data);
+	while((size_t)initial_offset > current->len){
+		initial_offset -= current->len;
 		cursor = cursor->next;
 		if(!cursor) return -1;
+		current = (struct extent*)(cursor->data);
 	}
 	while(cursor){
-		while((size_t)initial_offset < ((struct extent*)(cursor->data))->len){
-			if(((struct extent*)(cursor->data))->bytes[initial_offset] == target)
+		current = (struct extent*)(cursor->data);
+		while((size_t)initial_offset < current->len){
+			if(current->bytes[initial_offset] == target)
 				return result;
 			initial_offset++;
 			result++;
+			current = (struct extent*)(cursor->data);
 		}
-		initial_offset -= ((struct extent*)(cursor->data))->len;
+		current = (struct extent*)(cursor->data);
+		initial_offset -= current->len;
 		cursor = cursor->next;
 	}
 	return -1;

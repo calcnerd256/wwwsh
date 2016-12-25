@@ -321,7 +321,7 @@ int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	struct extent reason;
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
-	if(point_extent_at_nice_string(&body, "Not Found\r\nOnly / exists here.\r\n\r\n")) return 2;
+	if(point_extent_at_nice_string(&body, "Not Found.\r\n\r\n")) return 2;
 	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
 }
 int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body){
@@ -332,15 +332,29 @@ int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_li
 	if(!push_header_contiguous(buffer, "Content-Type", "text/html", headers)) return 1;
 	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, body);
 }
+
+int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node){
+	(void)node;
+	if(!resource) return 0;
+	if(!url) return 0;
+	if(!(resource->url)) return 0;
+	if(resource->url->len != url->len) return 0;
+	return !strncmp(resource->url->bytes, url->bytes, url->len + 1);
+}
+
 int connection_bundle_respond(struct conn_bundle *conn){
 	struct staticGetResource *resource;
 	struct extent reason;
+	struct linked_list *match_node = 0;
 	if(conn->done_writing) return 0;
-	resource = conn->server->staticResources->data;
-	if(strncmp(conn->request_url->bytes, resource->url->bytes, conn->request_url->len + 1))
-		resource = 0;
+
+	resource = 0;
+	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_resource_url), (struct linked_list*)(conn->request_url), &match_node))
+		if(match_node)
+			resource = match_node->data;
 	if(!resource)
 		return connection_bundle_respond_bad_request_target(conn);
+
 	if(strncmp(conn->method->bytes, "GET", conn->method->len + 1))
 		return connection_bundle_respond_bad_method(conn);
 	point_extent_at_nice_string(&reason, "OK");

@@ -16,6 +16,13 @@ struct httpServer{
 	struct mempool *memoryPool;
 	int listeningSocket_fileDescriptor;
 	struct linked_list *connections;
+	struct linked_list *staticResources;
+};
+
+struct staticGetResource{
+	struct extent *url;
+	struct extent *body;
+	struct linked_list *headers;
 };
 
 struct conn_bundle{
@@ -58,17 +65,63 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 }
 
 #include "./get_socket.c"
+
+int point_extent_at_nice_string(struct extent *storage, char *bytes){
+	storage->bytes = bytes;
+	storage->len = strlen(bytes);
+	return 0;
+}
+
+
 #include "./visit_connection_bundle_process_step.c"
 
 /* #include "./test_pools.c" */
 
 
 int httpServer_init(struct httpServer *server){
+	char *ptr;
+	struct staticGetResource *root;
+	struct linked_list *node;
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
 	init_pool(server->memoryPool);
 	server->connections = 0;
+	ptr = 0;
+	server->staticResources = 0;
+
+	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent));
+	server->staticResources = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	root = (struct staticGetResource*)ptr;
+	ptr += sizeof(struct staticGetResource);
+	root->url = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	root->body = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	root->headers = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	node->next = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	node->data = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	node->next->data = (struct extent*)ptr;
+	ptr = 0;
+
+	server->staticResources->data = root;
+	server->staticResources->next = 0;
 	server = 0;
+
+	point_extent_at_nice_string(root->url, "/");
+	point_extent_at_nice_string(root->body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n");
+	root->headers->data = node;
+	root->headers->next = 0;
+	root = 0;
+	point_extent_at_nice_string(node->data, "Content-Type");
+	point_extent_at_nice_string(node->next->data, "text/html");
+	node->next->next = 0;
+	node = 0;
 	return 0;
 }
 
@@ -100,6 +153,7 @@ int httpServer_close(struct httpServer *server){
 		free(server->memoryPool);
 		server->memoryPool = 0;
 	}
+	server->staticResources = 0;
 	if(-1 == server->listeningSocket_fileDescriptor){
 		server = 0;
 		return 0;

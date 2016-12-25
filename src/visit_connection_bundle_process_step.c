@@ -254,12 +254,6 @@ int visit_header_write(struct linked_list *header, struct conn_bundle *context, 
 	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
 
-int point_extent_at_nice_string(struct extent *storage, char *bytes){
-	storage->bytes = bytes;
-	storage->len = strlen(bytes);
-	return 0;
-}
-
 int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent connection;
 	struct extent close;
@@ -338,18 +332,19 @@ int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_li
 	if(!push_header_contiguous(buffer, "Content-Type", "text/html", headers)) return 1;
 	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, body);
 }
-int connection_bundle_respond_root(struct conn_bundle *conn){
-	struct extent body;
-	if(point_extent_at_nice_string(&body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n")) return 1;
-	return connection_bundle_respond_html_ok(conn, 0, &body);
-}
 int connection_bundle_respond(struct conn_bundle *conn){
+	struct staticGetResource *resource;
+	struct extent reason;
 	if(conn->done_writing) return 0;
+	resource = conn->server->staticResources->data;
+	if(strncmp(conn->request_url->bytes, resource->url->bytes, conn->request_url->len + 1))
+		resource = 0;
+	if(!resource)
+		return connection_bundle_respond_bad_request_target(conn);
 	if(strncmp(conn->method->bytes, "GET", conn->method->len + 1))
 		return connection_bundle_respond_bad_method(conn);
-	if(strncmp(conn->request_url->bytes, "/", conn->request_url->len + 1))
-		return connection_bundle_respond_bad_request_target(conn);
-	return connection_bundle_respond_root(conn);
+	point_extent_at_nice_string(&reason, "OK");
+	return connection_bundle_send_response(conn, 200, &reason, resource->headers, resource->body);
 }
 
 int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){

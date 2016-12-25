@@ -77,7 +77,9 @@ int first_matching(struct linked_list *head, visitor_t matcher, struct linked_li
 	return result;
 }
 int match_last(void *data, void *context, struct linked_list *node){
-	return !(node->next) + (int)(0 * (long)data * (long)context);
+	(void)data;
+	(void)context;
+	return !(node->next);
 }
 struct linked_list *last_node(struct linked_list *head){
 	struct linked_list *result = 0;

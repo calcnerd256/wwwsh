@@ -19,3 +19,5 @@ char *flatten_ransom(struct linked_list *ransom);
 int visit_print_ransom(struct linked_list *head, void *context, struct linked_list *node);
 
 int split_extent_on_byte(struct extent *inp, char b, struct extent *l, struct extent *r);
+
+int point_extent_at_nice_string(struct extent *storage, char *bytes);

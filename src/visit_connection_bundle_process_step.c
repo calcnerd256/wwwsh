@@ -195,11 +195,27 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 	return 1;
 }
 
-int connection_bundle_close_write(struct conn_bundle *conn){
+int connection_bundle_free(struct conn_bundle *conn){
+	if(conn->fd == -1) return 0;
+	close(conn->fd);
+	if(conn->pool){
+		free_pool(conn->pool);
+		conn->pool = 0;
+	}
+	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
-	if(conn->done_reading)
-		close(conn->fd);
+	conn->done_reading = 1;
+	conn->fd = -1;
+	conn->http_major_version = -1;
+	conn->http_minor_version = -1;
 	return 0;
+}
+
+int connection_bundle_close_write(struct conn_bundle *conn){
+	if(conn->done_writing) return 0;
+	conn->done_writing = 1;
+	if(!conn->done_reading) return 0;
+	return connection_bundle_free(conn);
 }
 
 int connection_bundle_write_crlf(struct conn_bundle *conn){

@@ -45,7 +45,8 @@ struct conn_bundle{
 };
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
-	ptr->pool = server->memoryPool;
+	ptr->pool = palloc(server->memoryPool, sizeof(struct mempool));
+	init_pool(ptr->pool);
 	ptr->fd = fd;
 	ptr->done_reading = 0;
 	ptr->chunks = 0;
@@ -65,18 +66,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 }
 
 #include "./get_socket.c"
-
-int point_extent_at_nice_string(struct extent *storage, char *bytes){
-	storage->bytes = bytes;
-	storage->len = strlen(bytes);
-	return 0;
-}
-
-
 #include "./visit_connection_bundle_process_step.c"
-
-/* #include "./test_pools.c" */
-
 
 int httpServer_init(struct httpServer *server){
 	char *ptr;
@@ -290,7 +280,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	if(len) return 0;
 	conn->done_reading = 1;
 	if(conn->done_writing)
-		close(conn->fd);
+		return connection_bundle_free(conn);
 	return 0;
 }
 

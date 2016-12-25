@@ -120,12 +120,8 @@ int split_extent_on_byte(struct extent *inp, char b, struct extent *l, struct ex
 	return 1;
 }
 
-/*
-int copy_ransom(struct linked_list *ransom, struct linked_list *out, struct mempool *pool){
+int point_extent_at_nice_string(struct extent *storage, char *bytes){
+	storage->bytes = bytes;
+	storage->len = strlen(bytes);
+	return 0;
 }
-*/
-
-/*
-int split_ransom_on_byte(struct linked_list *ransom, char b, struct linked_list *l, struct linked_list *r){
-}
-*/

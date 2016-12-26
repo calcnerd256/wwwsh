@@ -55,6 +55,7 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	chunk = (struct extent*)bufptr;
 	bufptr += sizeof(struct extent);
 	memcpy(bufptr, bytes, len);
+	bytes = bufptr;
 	bufptr += len;
 	*bufptr = 0;
 	bufptr = 0;
@@ -304,12 +305,11 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 }
 
 int httpRequestHandler_readChunk(struct conn_bundle *conn){
-	char *buf;
+	char buf[CHUNK_SIZE + 1];
 	size_t len;
 
 	if(!conn) return 2;
 
-	buf = palloc(conn->pool, CHUNK_SIZE + 1);
 	buf[CHUNK_SIZE] = 0;
 	len = read(conn->fd, buf, CHUNK_SIZE);
 	buf[len] = 0;

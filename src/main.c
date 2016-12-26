@@ -75,6 +75,23 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	return 0;
 }
 
+int chunkStream_overstepCursorp(struct chunkStream *stream){
+	if(!stream->cursor_chunk) return 1;
+	return ((struct extent*)(stream->cursor_chunk->data))->len <= stream->cursor_chunk_offset;
+}
+int chunkStream_reduceCursor(struct chunkStream *stream){
+	if(!stream) return 1;
+	if(!(stream->cursor_chunk))
+		stream->cursor_chunk = stream->chunks;
+	if(!(stream->cursor_chunk)) return 1;
+	while(chunkStream_overstepCursorp(stream)){
+		if(!(stream->cursor_chunk->next)) return 2;
+		stream->cursor_chunk_offset -= ((struct extent*)(stream->cursor_chunk->data))->len;
+		stream->cursor_chunk = stream->cursor_chunk->next;
+	}
+	return 0;
+}
+
 struct staticGetResource{
 	struct extent *url;
 	struct extent *body;

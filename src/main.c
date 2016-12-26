@@ -91,6 +91,51 @@ int chunkStream_reduceCursor(struct chunkStream *stream){
 	}
 	return 0;
 }
+int chunkStream_seekForward(struct chunkStream *stream, size_t offset){
+	if(chunkStream_reduceCursor(stream)) return 1;
+	stream->cursor_chunk_offset += offset;
+	return chunkStream_reduceCursor(stream);
+}
+int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent *result){
+	char *ptr;
+	size_t length_remaining;
+	struct extent *current;
+	ptr = palloc(stream->pool, len + 1);
+	memset(ptr, 0, len + 1);
+	result->bytes = ptr;
+	result->len = len;
+	if(!(stream->cursor_chunk)) stream->cursor_chunk = stream->chunks;
+	chunkStream_reduceCursor(stream);
+	current = (struct extent*)(stream->cursor_chunk->data);
+	length_remaining = current->len - stream->cursor_chunk_offset;
+	if(len <= length_remaining){
+		if(len)
+			memcpy(ptr, current->bytes + stream->cursor_chunk_offset, len);
+		ptr += len;
+		*ptr = 0;
+		return chunkStream_seekForward(stream, len);
+	}
+	if(length_remaining)
+		memcpy(ptr, current->bytes + stream->cursor_chunk_offset, length_remaining);
+	ptr += length_remaining;
+	len -= length_remaining;
+	if(chunkStream_seekForward(stream, length_remaining)) return 1;
+	current = (struct extent*)(stream->cursor_chunk->data);
+	while(len > current->len){
+		if(current->len)
+			memcpy(ptr, current->bytes, current->len);
+		ptr += current->len;
+		len -= current->len;
+		if(chunkStream_seekForward(stream, length_remaining)) return 2;
+		current = (struct extent*)(stream->cursor_chunk->data);
+	}
+	if(len)
+		memcpy(ptr, current->bytes, len);
+	ptr += len;
+	*ptr = 0;
+	if(chunkStream_seekForward(stream, len)) return 3;
+	return 0;
+}
 
 struct staticGetResource{
 	struct extent *url;

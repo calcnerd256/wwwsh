@@ -2,12 +2,6 @@
 
 /* included in main.c */
 
-int connection_bundle_overstep_cursorp(struct conn_bundle *conn){
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
-	return chunkStream_overstepCursorp(conn->chunk_stream);
-}
-
 int connection_bundle_reduce_cursor(struct conn_bundle *conn){
 	int result;
 	if(!conn) return 1;
@@ -20,44 +14,24 @@ int connection_bundle_reduce_cursor(struct conn_bundle *conn){
 }
 
 int connection_bundle_advance_cursor(struct conn_bundle *conn, size_t delta){
-	if(connection_bundle_reduce_cursor(conn)) return 1;
-	conn->cursor_chunk_offset += delta;
-	return connection_bundle_reduce_cursor(conn);
+	int result;
+	if(!conn) return 1;
+	if(!(conn->chunk_stream)) return 2;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	result = chunkStream_seekForward(conn->chunk_stream, delta);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
+	return result;
 }
 
 int connection_bundle_take_bytes(struct conn_bundle *conn, size_t len, struct extent *result){
-	size_t l;
-	char *ptr = 0;
-	result->bytes = palloc(conn->pool, len + 1);
-	memset(result->bytes, 0, len + 1);
-	result->len = len;
-	ptr = result->bytes;
-	if(!(conn->cursor_chunk)) conn->cursor_chunk = conn->chunks;
-	while(len){
-		if(!(conn->cursor_chunk)) return 1;
-		l = ((struct extent*)(conn->cursor_chunk->data))->len;
-		if(conn->cursor_chunk_offset >= l){
-			conn->cursor_chunk_offset -= l;
-			conn->cursor_chunk = conn->cursor_chunk->next;
-			continue;
-		}
-		if(len + conn->cursor_chunk_offset > l){
-			l -= conn->cursor_chunk_offset;
-			memcpy(ptr, ((struct extent*)(conn->cursor_chunk->data))->bytes + conn->cursor_chunk_offset, l);
-			ptr += l;
-			connection_bundle_advance_cursor(conn, l);
-			len -= l;
-		}
-		else{
-			memcpy(ptr, ((struct extent*)(conn->cursor_chunk->data))->bytes + conn->cursor_chunk_offset, len);
-			ptr += len;
-			*ptr = 0;
-			connection_bundle_advance_cursor(conn, len);
-			return 0;
-		}
-	}
-	*ptr = 0;
-	return 0;
+	int status;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+	status = chunkStream_takeBytes(conn->chunk_stream, len, result);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
+	return status;
 }
 
 char connection_bundle_byte_at_relative_offset(struct conn_bundle *conn, int offset){

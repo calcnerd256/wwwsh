@@ -44,36 +44,28 @@ char connection_bundle_byte_at_relative_offset(struct conn_bundle *conn, int off
 	return result;
 }
 
-int connection_bundle_find_byte_offset_from(struct conn_bundle *conn, char target, int initial_offset){
-	struct linked_list *cursor;
-	struct extent *current = 0;
+int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset){
+	struct chunkStream cursor;
 	int result = 0;
-	if(initial_offset < 0) return -1;
-	if(connection_bundle_reduce_cursor(conn)) return -1;
-	cursor = conn->cursor_chunk;
-	initial_offset += conn->cursor_chunk_offset;
-	if(!cursor) return -1;
-	current = (struct extent*)(cursor->data);
-	while((size_t)initial_offset > current->len){
-		initial_offset -= current->len;
-		cursor = cursor->next;
-		if(!cursor) return -1;
-		current = (struct extent*)(cursor->data);
-	}
-	while(cursor){
-		current = (struct extent*)(cursor->data);
-		while((size_t)initial_offset < current->len){
-			if(current->bytes[initial_offset] == target)
-				return result;
-			initial_offset++;
-			result++;
-			current = (struct extent*)(cursor->data);
-		}
-		current = (struct extent*)(cursor->data);
-		initial_offset -= current->len;
-		cursor = cursor->next;
+	if(!stream) return -1;
+	if(chunkStream_reduceCursor(stream)) return -1;
+	cursor.pool = stream->pool;
+	cursor.chunks = stream->chunks;
+	cursor.last_chunk = stream->last_chunk;
+	cursor.cursor_chunk = stream->cursor_chunk;
+	cursor.cursor_chunk_offset = stream->cursor_chunk_offset;
+	if(chunkStream_seekForward(&cursor, initial_offset)) return -1;
+	while(1){
+		if(target == chunkStream_byteAtRelativeOffset(&cursor, 0)) return result;
+		if(chunkStream_seekForward(&cursor, 1)) return -1;
+		result++;
 	}
 	return -1;
+}
+
+int connection_bundle_find_byte_offset_from(struct conn_bundle *conn, char target, int initial_offset){
+	if(!conn) return -1;
+	return chunkStream_findByteOffsetFrom(conn->chunk_stream, target, initial_offset);
 }
 
 

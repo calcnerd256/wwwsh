@@ -112,3 +112,18 @@ int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent 
 	if(chunkStream_seekForward(stream, len)) return 3;
 	return 0;
 }
+char chunkStream_byteAtRelativeOffset(struct chunkStream *stream, int offset){
+	struct linked_list *cursor;
+	if(chunkStream_reduceCursor(stream)) return 0;
+	if(!(stream->cursor_chunk)) return 0;
+	cursor = stream->cursor_chunk;
+	offset += stream->cursor_chunk_offset;
+	if(offset < 0) return 0;
+	while(cursor){
+		if((size_t)offset < ((struct extent*)(cursor->data))->len)
+			return ((struct extent*)(cursor->data))->bytes[offset];
+		offset -= ((struct extent*)(cursor->data))->len;
+		cursor = cursor->next;
+	}
+	return 0;
+}

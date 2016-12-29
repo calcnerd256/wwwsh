@@ -27,7 +27,6 @@ int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;
 	dequoid_init(&(ptr->chunk_list));
-	ptr->chunks = ptr->chunk_list.head;
 	ptr->last_chunk = ptr->chunk_list.tail;
 	return 0;
 }
@@ -61,11 +60,9 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	chunk->bytes = bytes;
 	bytes = 0;
 	new_head->data = chunk;
-	stream->chunk_list.head = stream->chunks;
 	stream->chunk_list.tail = stream->last_chunk;
 	dequoid_append(&(stream->chunk_list), chunk, new_head);
 	stream->last_chunk = stream->chunk_list.tail;
-	stream->chunks = stream->chunk_list.head;
 	chunk = 0;
 	stream = 0;
 	new_head = 0;
@@ -79,7 +76,7 @@ int chunkStream_overstepCursorp(struct chunkStream *stream){
 int chunkStream_reduceCursor(struct chunkStream *stream){
 	if(!stream) return 1;
 	if(!(stream->cursor_chunk))
-		stream->cursor_chunk = stream->chunks;
+		stream->cursor_chunk = stream->chunk_list.head;
 	if(!(stream->cursor_chunk)) return 1;
 	while(chunkStream_overstepCursorp(stream)){
 		if(!(stream->cursor_chunk->next)) return 2;
@@ -101,7 +98,7 @@ int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent 
 	memset(ptr, 0, len + 1);
 	result->bytes = ptr;
 	result->len = len;
-	if(!(stream->cursor_chunk)) stream->cursor_chunk = stream->chunks;
+	if(!(stream->cursor_chunk)) stream->cursor_chunk = stream->chunk_list.head;
 	chunkStream_reduceCursor(stream);
 	current = (struct extent*)(stream->cursor_chunk->data);
 	length_remaining = current->len - stream->cursor_chunk_offset;
@@ -154,7 +151,8 @@ int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int 
 	if(!stream) return -1;
 	if(chunkStream_reduceCursor(stream)) return -1;
 	cursor.pool = stream->pool;
-	cursor.chunks = stream->chunks;
+	cursor.chunk_list.head = stream->chunk_list.head;
+	cursor.chunk_list.tail = stream->chunk_list.tail;
 	cursor.last_chunk = stream->last_chunk;
 	cursor.cursor_chunk = stream->cursor_chunk;
 	cursor.cursor_chunk_offset = stream->cursor_chunk_offset;

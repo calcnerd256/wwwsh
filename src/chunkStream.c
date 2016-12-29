@@ -24,10 +24,11 @@ int dequoid_append(struct dequoid *list, void *data, struct linked_list *node){
 
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){
 	ptr->pool = pool;
+	pool = 0;
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;
 	dequoid_init(&(ptr->chunk_list));
-	ptr->last_chunk = ptr->chunk_list.tail;
+	ptr = 0;
 	return 0;
 }
 
@@ -59,10 +60,7 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	len = 0;
 	chunk->bytes = bytes;
 	bytes = 0;
-	new_head->data = chunk;
-	stream->chunk_list.tail = stream->last_chunk;
 	dequoid_append(&(stream->chunk_list), chunk, new_head);
-	stream->last_chunk = stream->chunk_list.tail;
 	chunk = 0;
 	stream = 0;
 	new_head = 0;
@@ -153,7 +151,6 @@ int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int 
 	cursor.pool = stream->pool;
 	cursor.chunk_list.head = stream->chunk_list.head;
 	cursor.chunk_list.tail = stream->chunk_list.tail;
-	cursor.last_chunk = stream->last_chunk;
 	cursor.cursor_chunk = stream->cursor_chunk;
 	cursor.cursor_chunk_offset = stream->cursor_chunk_offset;
 	if(chunkStream_seekForward(&cursor, initial_offset)) return -1;

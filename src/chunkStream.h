@@ -12,7 +12,6 @@ struct dequoid{
 struct chunkStream{
 	struct dequoid chunk_list;
 	struct mempool *pool;
-	struct linked_list *last_chunk;
 	struct linked_list *cursor_chunk;
 	size_t cursor_chunk_offset;
 };

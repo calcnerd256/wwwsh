@@ -7,6 +7,7 @@ int connection_bundle_advance_cursor(struct conn_bundle *conn, size_t delta){
 	if(!conn) return 1;
 	if(!(conn->chunk_stream)) return 2;
 	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	result = chunkStream_seekForward(conn->chunk_stream, delta);
 	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
 	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
@@ -101,7 +102,12 @@ int connection_bundle_consume_method(struct conn_bundle *conn){
 	conn->method = (struct extent*)palloc(conn->pool, sizeof(struct extent));
 	conn->method->bytes = storage.bytes;
 	conn->method->len = storage.len;
-	connection_bundle_advance_cursor(conn, 1);
+	if(!(conn->chunk_stream)) return 0;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+	chunkStream_seekForward(conn->chunk_stream, 1);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 
@@ -115,7 +121,12 @@ int connection_bundle_consume_requrl(struct conn_bundle *conn){
 	conn->request_url = (struct extent*)palloc(conn->pool, sizeof(struct extent));
 	conn->request_url->bytes = storage.bytes;
 	conn->request_url->len = storage.len;
-	connection_bundle_advance_cursor(conn, 1);
+	if(!(conn->chunk_stream)) return 0;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+	chunkStream_seekForward(conn->chunk_stream, 1);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 

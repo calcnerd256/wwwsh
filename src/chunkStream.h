@@ -20,3 +20,4 @@ int chunkStream_reduceCursor(struct chunkStream *stream);
 int chunkStream_seekForward(struct chunkStream *stream, size_t offset);
 int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent *result);
 char chunkStream_byteAtRelativeOffset(struct chunkStream *stream, int offset);
+int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset);

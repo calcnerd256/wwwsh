@@ -127,3 +127,21 @@ char chunkStream_byteAtRelativeOffset(struct chunkStream *stream, int offset){
 	}
 	return 0;
 }
+int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset){
+	struct chunkStream cursor;
+	int result = 0;
+	if(!stream) return -1;
+	if(chunkStream_reduceCursor(stream)) return -1;
+	cursor.pool = stream->pool;
+	cursor.chunks = stream->chunks;
+	cursor.last_chunk = stream->last_chunk;
+	cursor.cursor_chunk = stream->cursor_chunk;
+	cursor.cursor_chunk_offset = stream->cursor_chunk_offset;
+	if(chunkStream_seekForward(&cursor, initial_offset)) return -1;
+	while(1){
+		if(target == chunkStream_byteAtRelativeOffset(&cursor, 0)) return result;
+		if(chunkStream_seekForward(&cursor, 1)) return -1;
+		result++;
+	}
+	return -1;
+}

@@ -2,35 +2,11 @@
 
 /* included in main.c */
 
-int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset){
-	struct chunkStream cursor;
-	int result = 0;
-	if(!stream) return -1;
-	if(chunkStream_reduceCursor(stream)) return -1;
-	cursor.pool = stream->pool;
-	cursor.chunks = stream->chunks;
-	cursor.last_chunk = stream->last_chunk;
-	cursor.cursor_chunk = stream->cursor_chunk;
-	cursor.cursor_chunk_offset = stream->cursor_chunk_offset;
-	if(chunkStream_seekForward(&cursor, initial_offset)) return -1;
-	while(1){
-		if(target == chunkStream_byteAtRelativeOffset(&cursor, 0)) return result;
-		if(chunkStream_seekForward(&cursor, 1)) return -1;
-		result++;
-	}
-	return -1;
-}
-
-int connection_bundle_find_byte_offset_from(struct conn_bundle *conn, char target, int initial_offset){
-	if(!conn) return -1;
-	return chunkStream_findByteOffsetFrom(conn->chunk_stream, target, initial_offset);
-}
-
-
 int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
 	int offset = 0;
 	while(1){
-		offset = connection_bundle_find_byte_offset_from(conn, '\r', offset);
+		if(!conn) return -1;
+		offset = chunkStream_findByteOffsetFrom(conn->chunk_stream, '\r', offset);
 		if(-1 == offset) return -1;
 		if(!(conn->chunk_stream)) return -1;
 		conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
@@ -73,8 +49,9 @@ int connection_bundle_consume_line(struct conn_bundle *conn){
 int connection_bundle_consume_method(struct conn_bundle *conn){
 	int len;
 	struct extent storage;
+	if(!conn) return 1;
 	if(conn->method) return 0;
-	len = connection_bundle_find_byte_offset_from(conn, ' ', 0);
+	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
 	if(-1 == len) return 1;
 	if(!(conn->chunk_stream)) return 2;
 	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
@@ -97,8 +74,9 @@ int connection_bundle_consume_method(struct conn_bundle *conn){
 int connection_bundle_consume_requrl(struct conn_bundle *conn){
 	int len;
 	struct extent storage;
+	if(!conn) return 1;
 	if(conn->request_url) return 0;
-	len = connection_bundle_find_byte_offset_from(conn, ' ', 0);
+	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
 	if(-1 == len) return 1;
 	if(!(conn->chunk_stream)) return 2;
 	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
@@ -122,8 +100,9 @@ int connection_bundle_consume_http_version(struct conn_bundle *conn){
 	int len;
 	struct extent storage;
 	int maj;
+	if(!conn) return 1;
 	if(-1 != conn->http_major_version) return 0;
-	len = connection_bundle_find_byte_offset_from(conn, '/', 0);
+	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '/', 0);
 	if(4 != len) return 1;
 	if(!(conn->chunk_stream)) return 2;
 	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
@@ -132,7 +111,7 @@ int connection_bundle_consume_http_version(struct conn_bundle *conn){
 	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
 	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	if(strncmp(storage.bytes, "HTTP/", storage.len + 1)) return 3;
-	len = connection_bundle_find_byte_offset_from(conn, '.', 0);
+	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '.', 0);
 	if(-1 == len) return 4;
 	if(len >= connection_bundle_find_crlf_offset(conn)) return 5;
 	if(!(conn->chunk_stream)) return 6;

@@ -16,24 +16,11 @@ int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
 
 int connection_bundle_consume_line(struct conn_bundle *conn){
 	struct extent cursor;
-	char *ptr = 0;
 	int offset = connection_bundle_find_crlf_offset(conn);
 	if(-1 == offset) return 1;
-	if(!(conn->last_line)) conn->last_line = conn->lines;
 	if(chunkStream_takeBytes(conn->chunk_stream, offset, &cursor)) return 2;
-	ptr = palloc(conn->pool, sizeof(struct linked_list) + sizeof(struct extent));
-	if(!(conn->lines))
-		conn->last_line = conn->lines = (struct linked_list*)ptr;
-	else{
-		conn->last_line->next = (struct linked_list*)ptr;
-		conn->last_line = conn->last_line->next;
-	}
-	conn->last_line->next = 0;
-	conn->last_line->data = ptr + sizeof(struct linked_list);
-	((struct extent*)(conn->last_line->data))->bytes = cursor.bytes;
-	((struct extent*)(conn->last_line->data))->len = cursor.len;
 	printf("<%s>\n", cursor.bytes);
-	return 0;
+	return chunkStream_append(conn->body, cursor.bytes, cursor.len);
 }
 
 int connection_bundle_consume_method(struct conn_bundle *conn){
@@ -304,7 +291,7 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 
 	if(connection_bundle_can_respondp(conn)){
 		*context = 1;
-		return connection_bundle_respond(conn);
+		connection_bundle_respond(conn);
 	}
 	while(!connection_bundle_consume_line(conn)) *context = 1;
 	chunkStream_reduceCursor(conn->chunk_stream);

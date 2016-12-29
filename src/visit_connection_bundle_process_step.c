@@ -2,18 +2,6 @@
 
 /* included in main.c */
 
-int connection_bundle_advance_cursor(struct conn_bundle *conn, size_t delta){
-	int result;
-	if(!conn) return 1;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
-	result = chunkStream_seekForward(conn->chunk_stream, delta);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
-	return result;
-}
-
 int connection_bundle_take_bytes(struct conn_bundle *conn, size_t len, struct extent *result){
 	int status;
 	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
@@ -144,13 +132,26 @@ int connection_bundle_consume_http_version(struct conn_bundle *conn){
 	if(len >= connection_bundle_find_crlf_offset(conn)) return 5;
 	if(connection_bundle_take_bytes(conn, len, &storage)) return 6;
 	maj = atoi(storage.bytes);
-	connection_bundle_advance_cursor(conn, 1);
+
+	if(conn->chunk_stream){
+		conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+		conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+		chunkStream_seekForward(conn->chunk_stream, 1);
+		conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+		conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
+	}
+
 	len = connection_bundle_find_crlf_offset(conn);
 	if(len < 2) return 6;
 	if(connection_bundle_take_bytes(conn, len - 2, &storage)) return 7;
 	conn->http_minor_version = atoi(storage.bytes);
 	conn->http_major_version = maj;
-	connection_bundle_advance_cursor(conn, 2);
+	if(!(conn->chunk_stream)) return 0;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+	chunkStream_seekForward(conn->chunk_stream, 2);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 

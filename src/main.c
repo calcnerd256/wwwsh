@@ -26,7 +26,6 @@ struct staticGetResource{
 struct conn_bundle{
 	struct mempool *pool;
 	struct chunkStream *chunk_stream;
-	struct linked_list *last_chunk;
 	struct linked_list *cursor_chunk;
 	struct linked_list *lines;
 	struct linked_list *last_line;
@@ -48,7 +47,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->fd = fd;
 	ptr->done_reading = 0;
 	ptr->request_length = 0;
-	ptr->last_chunk = 0;
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;
 	ptr->lines = 0;
@@ -254,7 +252,6 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	len = read(conn->fd, buf, CHUNK_SIZE);
 	buf[len] = 0;
 	chunkStream_append(conn->chunk_stream, buf, len);
-	conn->last_chunk = conn->chunk_stream->last_chunk;
 
 	if(len) return 0;
 	conn->done_reading = 1;

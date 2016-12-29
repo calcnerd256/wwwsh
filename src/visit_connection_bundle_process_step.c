@@ -4,17 +4,12 @@
 
 int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
 	int offset = 0;
+	if(!conn) return -1;
 	while(1){
-		if(!conn) return -1;
 		offset = chunkStream_findByteOffsetFrom(conn->chunk_stream, '\r', offset);
 		if(-1 == offset) return -1;
-		if(!(conn->chunk_stream)) return -1;
-		conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-		conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 		if('\n' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, offset + 1))
 			return offset + 2;
-		conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-		conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 		offset++;
 	}
 }
@@ -25,14 +20,9 @@ int connection_bundle_consume_line(struct conn_bundle *conn){
 	int offset = connection_bundle_find_crlf_offset(conn);
 	if(-1 == offset) return 1;
 	if(!(conn->last_line)) conn->last_line = conn->lines;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, offset, &cursor)) return 2;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	ptr = palloc(conn->pool, sizeof(struct linked_list) + sizeof(struct extent));
-	if(!conn->lines)
+	if(!(conn->lines))
 		conn->last_line = conn->lines = (struct linked_list*)ptr;
 	else{
 		conn->last_line->next = (struct linked_list*)ptr;
@@ -53,21 +43,11 @@ int connection_bundle_consume_method(struct conn_bundle *conn){
 	if(conn->method) return 0;
 	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
 	if(-1 == len) return 1;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 2;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	conn->method = (struct extent*)palloc(conn->pool, sizeof(struct extent));
 	conn->method->bytes = storage.bytes;
 	conn->method->len = storage.len;
-	if(!(conn->chunk_stream)) return 0;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	chunkStream_seekForward(conn->chunk_stream, 1);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 
@@ -78,21 +58,11 @@ int connection_bundle_consume_requrl(struct conn_bundle *conn){
 	if(conn->request_url) return 0;
 	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
 	if(-1 == len) return 1;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 2;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	conn->request_url = (struct extent*)palloc(conn->pool, sizeof(struct extent));
 	conn->request_url->bytes = storage.bytes;
 	conn->request_url->len = storage.len;
-	if(!(conn->chunk_stream)) return 0;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	chunkStream_seekForward(conn->chunk_stream, 1);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 
@@ -104,48 +74,21 @@ int connection_bundle_consume_http_version(struct conn_bundle *conn){
 	if(-1 != conn->http_major_version) return 0;
 	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '/', 0);
 	if(4 != len) return 1;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, 5, &storage)) return 2;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	if(strncmp(storage.bytes, "HTTP/", storage.len + 1)) return 3;
 	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '.', 0);
 	if(-1 == len) return 4;
 	if(len >= connection_bundle_find_crlf_offset(conn)) return 5;
-	if(!(conn->chunk_stream)) return 6;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 6;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	maj = atoi(storage.bytes);
 
-	if(conn->chunk_stream){
-		conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-		conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
-		chunkStream_seekForward(conn->chunk_stream, 1);
-		conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-		conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
-	}
-
+	chunkStream_seekForward(conn->chunk_stream, 1);
 	len = connection_bundle_find_crlf_offset(conn);
 	if(len < 2) return 6;
-	if(!(conn->chunk_stream)) return 7;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	if(chunkStream_takeBytes(conn->chunk_stream, len - 2, &storage)) return 7;
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	conn->http_minor_version = atoi(storage.bytes);
 	conn->http_major_version = maj;
-	if(!(conn->chunk_stream)) return 0;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	chunkStream_seekForward(conn->chunk_stream, 2);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }
 
@@ -177,7 +120,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 int connection_bundle_close_write(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
-	if(!conn->done_reading) return 0;
+	if(!(conn->done_reading)) return 0;
 	return connection_bundle_free(conn);
 }
 
@@ -226,9 +169,9 @@ int connection_bundle_write_status_line(struct conn_bundle *conn, int status_cod
 int visit_header_write(struct linked_list *header, struct conn_bundle *context, struct linked_list *node){
 	(void)node;
 	if(!header) return 1;
-	if(!header->data) return 1;
-	if(!header->next) return 1;
-	if(!header->next->data) return 1;
+	if(!(header->data)) return 1;
+	if(!(header->next)) return 1;
+	if(!(header->next->data)) return 1;
 	if(!context) return 1;
 	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
@@ -364,11 +307,6 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		return connection_bundle_respond(conn);
 	}
 	while(!connection_bundle_consume_line(conn)) *context = 1;
-	if(!(conn->chunk_stream)) return 0;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
 	chunkStream_reduceCursor(conn->chunk_stream);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }

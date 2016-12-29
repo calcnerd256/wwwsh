@@ -3,12 +3,32 @@
 #include <string.h>
 #include "./chunkStream.h"
 
+int dequoid_init(struct dequoid *list){
+	list->head = 0;
+	list->tail = 0;
+	return 0;
+}
+int dequoid_append(struct dequoid *list, void *data, struct linked_list *node){
+	node->next = 0;
+	node->data = data;
+	if(!(list->tail)) list->tail = list->head;
+	if(!(list->tail)){
+		list->head = node;
+		list->tail = list->head;
+	}
+	else
+		list->tail->next = node;
+	list->tail = node;
+	return 0;
+}
+
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){
 	ptr->pool = pool;
-	ptr->chunks = 0;
-	ptr->last_chunk = 0;
 	ptr->cursor_chunk = 0;
 	ptr->cursor_chunk_offset = 0;
+	dequoid_init(&(ptr->chunk_list));
+	ptr->chunks = ptr->chunk_list.head;
+	ptr->last_chunk = ptr->chunk_list.tail;
 	return 0;
 }
 
@@ -41,11 +61,12 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	chunk->bytes = bytes;
 	bytes = 0;
 	new_head->data = chunk;
+	stream->chunk_list.head = stream->chunks;
+	stream->chunk_list.tail = stream->last_chunk;
+	dequoid_append(&(stream->chunk_list), chunk, new_head);
+	stream->last_chunk = stream->chunk_list.tail;
+	stream->chunks = stream->chunk_list.head;
 	chunk = 0;
-	if(!stream->last_chunk) stream->last_chunk = stream->chunks;
-	if(!stream->last_chunk) stream->chunks = new_head;
-	else stream->last_chunk->next = new_head;
-	stream->last_chunk = new_head;
 	stream = 0;
 	new_head = 0;
 	return 0;

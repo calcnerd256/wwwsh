@@ -4,14 +4,21 @@
 
 #define CHUNK_SIZE 256
 
+struct dequoid{
+	struct linked_list *head;
+	struct linked_list *tail;
+};
 
 struct chunkStream{
+	struct dequoid chunk_list;
 	struct mempool *pool;
 	struct linked_list *chunks;
 	struct linked_list *last_chunk;
 	struct linked_list *cursor_chunk;
 	size_t cursor_chunk_offset;
 };
+
+int dequoid_init(struct dequoid *list);
 
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool);
 int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len);

@@ -14,6 +14,61 @@ int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
 	}
 }
 
+int connection_bundle_consume_header(struct conn_bundle *conn){
+	int colon = 0;
+	int to_crlf = 0;
+	struct extent key;
+	struct extent value;
+	struct linked_list *node;
+	char *ptr = 0;
+	if(!conn) return 1;
+	if(conn->done_reading_headers) return 0;
+	if('\r' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, 0)){
+		if('\n' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, 1))
+			return 1;
+		conn->done_reading_headers = 1;
+		chunkStream_seekForward(conn->chunk_stream, 2);
+		return 0;
+	}
+	colon = chunkStream_findByteOffsetFrom(conn->chunk_stream, ':', 0);
+	if(-1 == colon) return 1;
+	if(' ' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, colon + 1))
+		return 1;
+	to_crlf = chunkStream_findByteOffsetFrom(conn->chunk_stream, '\r', colon + 2);
+	if('\n' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, colon + to_crlf + 3))
+		return 1;
+	if(chunkStream_takeBytes(conn->chunk_stream, colon, &key)) return 2;
+	chunkStream_seekForward(conn->chunk_stream, 2);
+	if(chunkStream_takeBytes(conn->chunk_stream, to_crlf, &value)) return 2;
+	chunkStream_seekForward(conn->chunk_stream, 2);
+	ptr = palloc(conn->pool, 3 * sizeof(struct linked_list) + 2 * sizeof(struct extent));
+	if(!(conn->last_header)) conn->last_header = conn->headers;
+	if(conn->last_header){
+		conn->last_header->next = (struct linked_list*)ptr;
+		conn->last_header = conn->last_header->next;
+	}
+	else{
+		conn->headers = (struct linked_list*)ptr;
+		conn->last_header = conn->headers;
+	}
+	ptr += sizeof(struct linked_list);
+	conn->last_header->next = 0;
+	node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	node->next = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	node->data = ptr;
+	ptr += sizeof(struct extent);
+	node->next->data = ptr;
+	ptr = 0;
+	conn->last_header->data = node;
+	node->next->next = 0;
+	memcpy(node->data, &key, sizeof(struct extent));
+	memcpy(node->next->data, &value, sizeof(struct extent));
+	node = 0;
+	return 0;
+}
+
 int connection_bundle_consume_line(struct conn_bundle *conn){
 	struct extent cursor;
 	int offset = connection_bundle_find_crlf_offset(conn);
@@ -293,6 +348,11 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		*context = 1;
 		connection_bundle_respond(conn);
 	}
+	while(!(conn->done_reading_headers))
+		if(!connection_bundle_consume_header(conn))
+			*context = 1;
+		else
+			return 0;
 	while(!connection_bundle_consume_line(conn)) *context = 1;
 	chunkStream_reduceCursor(conn->chunk_stream);
 	return 0;

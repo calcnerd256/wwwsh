@@ -30,12 +30,15 @@ struct conn_bundle{
 	struct extent *method;
 	struct extent *request_url;
 	struct httpServer *server;
+	struct linked_list *headers;
+	struct linked_list *last_header;
 	unsigned long int request_length;
 	int fd;
 	int http_major_version;
 	int http_minor_version;
 	char done_reading;
 	char done_writing;
+	char done_reading_headers;
 };
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
@@ -60,6 +63,9 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	p = 0;
 	chunkStream_init(ptr->chunk_stream, ptr->pool);
 	chunkStream_init(ptr->body, ptr->pool);
+	ptr->done_reading_headers = 0;
+	ptr->headers = 0;
+	ptr->last_header = 0;
 	ptr = 0;
 	return 0;
 }

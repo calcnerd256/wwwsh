@@ -2,17 +2,6 @@
 
 /* included in main.c */
 
-int connection_bundle_reduce_cursor(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	if(!(conn->chunk_stream)) return 2;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	result = chunkStream_reduceCursor(conn->chunk_stream);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
-	return result;
-}
-
 int connection_bundle_advance_cursor(struct conn_bundle *conn, size_t delta){
 	int result;
 	if(!conn) return 1;
@@ -369,6 +358,11 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		return connection_bundle_respond(conn);
 	}
 	while(!connection_bundle_consume_line(conn)) *context = 1;
-	connection_bundle_reduce_cursor(conn);
+	if(!(conn->chunk_stream)) return 0;
+	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+	chunkStream_reduceCursor(conn->chunk_stream);
+	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 	return 0;
 }

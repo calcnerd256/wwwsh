@@ -2,16 +2,6 @@
 
 /* included in main.c */
 
-char connection_bundle_byte_at_relative_offset(struct conn_bundle *conn, int offset){
-	char result = 0;
-	conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
-	conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
-	result = chunkStream_byteAtRelativeOffset(conn->chunk_stream, offset);
-	conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
-	conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
-	return result;
-}
-
 int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset){
 	struct chunkStream cursor;
 	int result = 0;
@@ -42,8 +32,13 @@ int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
 	while(1){
 		offset = connection_bundle_find_byte_offset_from(conn, '\r', offset);
 		if(-1 == offset) return -1;
-		if('\n' == connection_bundle_byte_at_relative_offset(conn, offset + 1))
+		if(!(conn->chunk_stream)) return -1;
+		conn->chunk_stream->cursor_chunk_offset = conn->cursor_chunk_offset;
+		conn->chunk_stream->cursor_chunk = conn->cursor_chunk;
+		if('\n' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, offset + 1))
 			return offset + 2;
+		conn->cursor_chunk = conn->chunk_stream->cursor_chunk;
+		conn->cursor_chunk_offset = conn->chunk_stream->cursor_chunk_offset;
 		offset++;
 	}
 }

@@ -42,17 +42,9 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	if(chunkStream_takeBytes(conn->chunk_stream, to_crlf, &value)) return 2;
 	chunkStream_seekForward(conn->chunk_stream, 2);
 	ptr = palloc(conn->pool, 3 * sizeof(struct linked_list) + 2 * sizeof(struct extent));
-	if(!(conn->last_header)) conn->last_header = conn->headers;
-	if(conn->last_header){
-		conn->last_header->next = (struct linked_list*)ptr;
-		conn->last_header = conn->last_header->next;
-	}
-	else{
-		conn->headers = (struct linked_list*)ptr;
-		conn->last_header = conn->headers;
-	}
+	node = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
-	conn->last_header->next = 0;
+	dequoid_append(conn->request_headers, (struct linked_list*)ptr, node);
 	node = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	node->next = (struct linked_list*)ptr;
@@ -61,7 +53,6 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	ptr += sizeof(struct extent);
 	node->next->data = ptr;
 	ptr = 0;
-	conn->last_header->data = node;
 	node->next->next = 0;
 	memcpy(node->data, &key, sizeof(struct extent));
 	memcpy(node->next->data, &value, sizeof(struct extent));

@@ -39,6 +39,7 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	char *ptr = 0;
 	if(!conn) return 1;
 	if(conn->done_reading_headers) return 0;
+	if(chunkStream_reduceCursor(conn->chunk_stream)) return 1;
 	if('\r' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, 0)){
 		if('\n' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, 1))
 			return 1;
@@ -181,6 +182,8 @@ int connection_bundle_print_body(struct conn_bundle *conn){
 int connection_bundle_free(struct conn_bundle *conn){
 	if(conn->fd == -1) return 0;
 	close(conn->fd);
+	conn->fd = -1;
+
 	if(conn->pool){
 
 		connection_bundle_consume_last_line(conn);
@@ -191,7 +194,6 @@ int connection_bundle_free(struct conn_bundle *conn){
 	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
 	conn->done_reading = 1;
-	conn->fd = -1;
 	conn->http_major_version = -1;
 	conn->http_minor_version = -1;
 	return 0;
@@ -389,9 +391,12 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	while(!(conn->done_reading_headers))
 		if(!connection_bundle_consume_header(conn))
 			*context = 1;
+		else return 0;
 	while(!connection_bundle_consume_line(conn)) *context = 1;
-	if(conn->done_reading)
+	if(conn->done_reading){
 		connection_bundle_consume_last_line(conn);
+		*context = 1;
+	}
 	chunkStream_reduceCursor(conn->chunk_stream);
 	return 0;
 }

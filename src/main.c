@@ -25,12 +25,12 @@ struct staticGetResource{
 
 struct conn_bundle{
 	struct mempool *pool;
+	struct httpServer *server;
 	struct chunkStream *chunk_stream;
-	struct chunkStream *body;
 	struct extent *method;
 	struct extent *request_url;
-	struct httpServer *server;
 	struct dequoid *request_headers;
+	struct chunkStream *body;
 	unsigned long int request_length;
 	int fd;
 	int http_major_version;

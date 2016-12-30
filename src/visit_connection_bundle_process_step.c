@@ -44,8 +44,6 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 			return 1;
 		conn->done_reading_headers = 1;
 		chunkStream_seekForward(conn->chunk_stream, 2);
-		connection_bundle_print_headers(conn);
-		printf("end of headers\n");
 		return 0;
 	}
 	colon = chunkStream_findByteOffsetFrom(conn->chunk_stream, ':', 0);
@@ -186,9 +184,6 @@ int connection_bundle_free(struct conn_bundle *conn){
 	if(conn->pool){
 
 		connection_bundle_consume_last_line(conn);
-		printf("body:\n");
-		connection_bundle_print_body(conn);
-		printf("end body\n");
 
 		free_pool(conn->pool);
 		conn->pool = 0;

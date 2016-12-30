@@ -17,6 +17,7 @@ struct chunkStream{
 };
 
 int dequoid_init(struct dequoid *list);
+int dequoid_append(struct dequoid *list, void *data, struct linked_list *node);
 
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool);
 int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len);

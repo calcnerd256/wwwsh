@@ -51,15 +51,13 @@ int chunkStream_append(struct chunkStream *stream, char *bytes, size_t len){
 	chunk = (struct extent*)bufptr;
 	bufptr += sizeof(struct extent);
 	memcpy(bufptr, bytes, len);
-	bytes = bufptr;
+	bytes = 0;
+	chunk->bytes = bufptr;
 	bufptr += len;
 	*bufptr = 0;
 	bufptr = 0;
-	new_head->next = 0;
 	chunk->len = len;
 	len = 0;
-	chunk->bytes = bytes;
-	bytes = 0;
 	dequoid_append(&(stream->chunk_list), chunk, new_head);
 	chunk = 0;
 	stream = 0;

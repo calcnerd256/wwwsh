@@ -408,12 +408,10 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	int result;
 	(void)node;
 	if(!conn) return 0;
-	conn->input.requestUrl = conn->request_url;
 	conn->input.httpMinorVersion = conn->http_minor_version;
 	conn->input.pool = conn->pool;
 	conn->input.httpMajorVersion = conn->http_major_version;
 	result = requestInput_processStep(&(conn->input));
-	conn->request_url = conn->input.requestUrl;
 	conn->http_major_version = conn->input.httpMajorVersion;
 	conn->http_minor_version = conn->input.httpMinorVersion;
 	if(result){

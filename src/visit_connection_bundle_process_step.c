@@ -32,18 +32,6 @@ int requestInput_printHeaders(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
-	if(!conn) return -1;
-	conn->input.chunks = conn->chunk_stream;
-	return requestInput_findCrlfOffset(&(conn->input));
-}
-
-int connection_bundle_print_headers(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.headers = conn->request_headers;
-	return requestInput_printHeaders(&(conn->input));
-}
-
 int requestInput_consumeHeader(struct requestInput *req){
 	int colon = 0;
 	int toCrlf = 0;
@@ -91,18 +79,6 @@ int requestInput_consumeHeader(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_consume_header(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.headersDone = conn->done_reading_headers;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.pool = conn->pool;
-	conn->input.headers = conn->request_headers;
-	result = requestInput_consumeHeader(&(conn->input));
-	conn->done_reading_headers = conn->input.headersDone;
-	return result;
-}
-
 int requestInput_consumeLine(struct requestInput *req){
 	struct extent cursor;
 	int offset = 0;
@@ -111,13 +87,6 @@ int requestInput_consumeLine(struct requestInput *req){
 	if(-1 == offset) return 1;
 	if(chunkStream_takeBytes(req->chunks, offset, &cursor)) return 2;
 	return chunkStream_append(req->body, cursor.bytes, cursor.len);
-}
-
-int connection_bundle_consume_line(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.body = conn->body;
-	return requestInput_consumeLine(&(conn->input));
 }
 
 int requestInput_consumeLastLine(struct requestInput *req){
@@ -136,6 +105,37 @@ int requestInput_consumeLastLine(struct requestInput *req){
 	return chunkStream_append(req->body, cursor.bytes, cursor.len);
 }
 
+int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+	if(!conn) return -1;
+	conn->input.chunks = conn->chunk_stream;
+	return requestInput_findCrlfOffset(&(conn->input));
+}
+
+int connection_bundle_print_headers(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.headers = conn->request_headers;
+	return requestInput_printHeaders(&(conn->input));
+}
+
+int connection_bundle_consume_header(struct conn_bundle *conn){
+	int result;
+	if(!conn) return 1;
+	conn->input.headersDone = conn->done_reading_headers;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.pool = conn->pool;
+	conn->input.headers = conn->request_headers;
+	result = requestInput_consumeHeader(&(conn->input));
+	conn->done_reading_headers = conn->input.headersDone;
+	return result;
+}
+
+int connection_bundle_consume_line(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.body = conn->body;
+	return requestInput_consumeLine(&(conn->input));
+}
+
 int connection_bundle_consume_last_line(struct conn_bundle *conn){
 	if(!conn) return 1;
 	conn->input.chunks = conn->chunk_stream;
@@ -143,60 +143,93 @@ int connection_bundle_consume_last_line(struct conn_bundle *conn){
 	return requestInput_consumeLastLine(&(conn->input));
 }
 
-int connection_bundle_consume_method(struct conn_bundle *conn){
+int requestInput_consumeMethod(struct requestInput *req){
 	int len;
 	struct extent storage;
-	if(!conn) return 1;
-	if(conn->method) return 0;
-	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
+	if(!req) return 1;
+	if(req->method) return 0;
+	len = chunkStream_findByteOffsetFrom(req->chunks, ' ', 0);
 	if(-1 == len) return 1;
-	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 2;
-	conn->method = (struct extent*)palloc(conn->pool, sizeof(struct extent));
-	conn->method->bytes = storage.bytes;
-	conn->method->len = storage.len;
-	chunkStream_seekForward(conn->chunk_stream, 1);
+	if(chunkStream_takeBytes(req->chunks, len, &storage)) return 2;
+	req->method = (struct extent*)palloc(req->pool, sizeof(struct extent));
+	req->method->bytes = storage.bytes;
+	req->method->len = storage.len;
+	chunkStream_seekForward(req->chunks, 1);
+	return 0;
+}
+
+int connection_bundle_consume_method(struct conn_bundle *conn){
+	int result;
+	if(!conn) return 1;
+	conn->input.method = conn->method;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.pool = conn->pool;
+	result = requestInput_consumeMethod(&(conn->input));
+	conn->method = conn->input.method;
+	return result;
+}
+
+int requestInput_consumeRequestUrl(struct requestInput *req){
+	int len;
+	struct extent storage;
+	if(!req) return 1;
+	if(req->requestUrl) return 0;
+	len = chunkStream_findByteOffsetFrom(req->chunks, ' ', 0);
+	if(-1 == len) return 1;
+	if(chunkStream_takeBytes(req->chunks, len, &storage)) return 2;
+	req->requestUrl = (struct extent*)palloc(req->pool, sizeof(struct extent));
+	req->requestUrl->bytes = storage.bytes;
+	req->requestUrl->len = storage.len;
+	chunkStream_seekForward(req->chunks, 1);
 	return 0;
 }
 
 int connection_bundle_consume_requrl(struct conn_bundle *conn){
+	int result;
+	if(!conn) return 1;
+	conn->input.requestUrl = conn->request_url;
+	conn->input.pool = conn->pool;
+	result = requestInput_consumeRequestUrl(&(conn->input));
+	conn->request_url = conn->input.requestUrl;
+	return result;
+}
+
+int requestInput_consumeHttpVersion(struct requestInput *req){
 	int len;
 	struct extent storage;
-	if(!conn) return 1;
-	if(conn->request_url) return 0;
-	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, ' ', 0);
-	if(-1 == len) return 1;
-	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 2;
-	conn->request_url = (struct extent*)palloc(conn->pool, sizeof(struct extent));
-	conn->request_url->bytes = storage.bytes;
-	conn->request_url->len = storage.len;
-	chunkStream_seekForward(conn->chunk_stream, 1);
+	int ver;
+	if(!req) return 1;
+	if(-1 != req->httpMajorVersion) return 0;
+	len = chunkStream_findByteOffsetFrom(req->chunks, '/', 0);
+	if(4 != len) return 1;
+	if(chunkStream_takeBytes(req->chunks, 5, &storage)) return 2;
+	if(strncmp(storage.bytes, "HTTP/", storage.len + 1)) return 3;
+	len = chunkStream_findByteOffsetFrom(req->chunks, '.', 0);
+	if(-1 == len) return 4;
+	if(len >= requestInput_findCrlfOffset(req)) return 5;
+	if(chunkStream_takeBytes(req->chunks, len, &storage)) return 6;
+	ver = atoi(storage.bytes);
+
+	chunkStream_seekForward(req->chunks, 1);
+	len = requestInput_findCrlfOffset(req);
+	if(len < 2) return 7;
+	if(chunkStream_takeBytes(req->chunks, len - 2, &storage)) return 8;
+	req->httpMinorVersion = atoi(storage.bytes);
+	req->httpMajorVersion = ver;
+	chunkStream_seekForward(req->chunks, 2);
 	return 0;
 }
 
 int connection_bundle_consume_http_version(struct conn_bundle *conn){
-	int len;
-	struct extent storage;
-	int maj;
+	int result;
 	if(!conn) return 1;
-	if(-1 != conn->http_major_version) return 0;
-	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '/', 0);
-	if(4 != len) return 1;
-	if(chunkStream_takeBytes(conn->chunk_stream, 5, &storage)) return 2;
-	if(strncmp(storage.bytes, "HTTP/", storage.len + 1)) return 3;
-	len = chunkStream_findByteOffsetFrom(conn->chunk_stream, '.', 0);
-	if(-1 == len) return 4;
-	if(len >= connection_bundle_find_crlf_offset(conn)) return 5;
-	if(chunkStream_takeBytes(conn->chunk_stream, len, &storage)) return 6;
-	maj = atoi(storage.bytes);
-
-	chunkStream_seekForward(conn->chunk_stream, 1);
-	len = connection_bundle_find_crlf_offset(conn);
-	if(len < 2) return 6;
-	if(chunkStream_takeBytes(conn->chunk_stream, len - 2, &storage)) return 7;
-	conn->http_minor_version = atoi(storage.bytes);
-	conn->http_major_version = maj;
-	chunkStream_seekForward(conn->chunk_stream, 2);
-	return 0;
+	conn->input.httpMajorVersion = conn->http_major_version;
+	conn->input.httpMinorVersion = conn->http_minor_version;
+	conn->input.chunks = conn->chunk_stream;
+	result = requestInput_consumeHttpVersion(&(conn->input));
+	conn->http_major_version = conn->input.httpMajorVersion;
+	conn->http_minor_version = conn->input.httpMinorVersion;
+	return result;
 }
 
 int connection_bundle_can_respondp(struct conn_bundle *conn){

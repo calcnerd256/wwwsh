@@ -105,44 +105,6 @@ int requestInput_consumeLastLine(struct requestInput *req){
 	return chunkStream_append(req->body, cursor.bytes, cursor.len);
 }
 
-int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
-	if(!conn) return -1;
-	conn->input.chunks = conn->chunk_stream;
-	return requestInput_findCrlfOffset(&(conn->input));
-}
-
-int connection_bundle_print_headers(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.headers = conn->request_headers;
-	return requestInput_printHeaders(&(conn->input));
-}
-
-int connection_bundle_consume_header(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.headersDone = conn->done_reading_headers;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.pool = conn->pool;
-	conn->input.headers = conn->request_headers;
-	result = requestInput_consumeHeader(&(conn->input));
-	conn->done_reading_headers = conn->input.headersDone;
-	return result;
-}
-
-int connection_bundle_consume_line(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.body = conn->body;
-	return requestInput_consumeLine(&(conn->input));
-}
-
-int connection_bundle_consume_last_line(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.body = conn->body;
-	return requestInput_consumeLastLine(&(conn->input));
-}
-
 int requestInput_consumeMethod(struct requestInput *req){
 	int len;
 	struct extent storage;
@@ -158,17 +120,6 @@ int requestInput_consumeMethod(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_consume_method(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.method = conn->method;
-	conn->input.chunks = conn->chunk_stream;
-	conn->input.pool = conn->pool;
-	result = requestInput_consumeMethod(&(conn->input));
-	conn->method = conn->input.method;
-	return result;
-}
-
 int requestInput_consumeRequestUrl(struct requestInput *req){
 	int len;
 	struct extent storage;
@@ -182,16 +133,6 @@ int requestInput_consumeRequestUrl(struct requestInput *req){
 	req->requestUrl->len = storage.len;
 	chunkStream_seekForward(req->chunks, 1);
 	return 0;
-}
-
-int connection_bundle_consume_requrl(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.requestUrl = conn->request_url;
-	conn->input.pool = conn->pool;
-	result = requestInput_consumeRequestUrl(&(conn->input));
-	conn->request_url = conn->input.requestUrl;
-	return result;
 }
 
 int requestInput_consumeHttpVersion(struct requestInput *req){
@@ -220,16 +161,51 @@ int requestInput_consumeHttpVersion(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_consume_http_version(struct conn_bundle *conn){
+int requestInput_processStep(struct requestInput *req){
+	/*
+		https://tools.ietf.org/html/rfc7230#section-3.1.1
+	*/
+	int status = 0;
+	if(!req) return 0;
+	if(!(req->method)){
+		if(requestInput_consumeMethod(req)) return 2;
+		status = 1;
+	}
+	if(!(req->requestUrl)){
+		if(requestInput_consumeRequestUrl(req)) return status ? status : 2;
+		status = 1;
+	}
+	if(-1 == req->httpMinorVersion){
+		if(requestInput_consumeHttpVersion(req)) return status ? status : 2;
+		status = 1;
+	}
+	return status;
+}
+
+int connection_bundle_consume_header(struct conn_bundle *conn){
 	int result;
 	if(!conn) return 1;
-	conn->input.httpMajorVersion = conn->http_major_version;
-	conn->input.httpMinorVersion = conn->http_minor_version;
+	conn->input.headersDone = conn->done_reading_headers;
 	conn->input.chunks = conn->chunk_stream;
-	result = requestInput_consumeHttpVersion(&(conn->input));
-	conn->http_major_version = conn->input.httpMajorVersion;
-	conn->http_minor_version = conn->input.httpMinorVersion;
+	conn->input.pool = conn->pool;
+	conn->input.headers = conn->request_headers;
+	result = requestInput_consumeHeader(&(conn->input));
+	conn->done_reading_headers = conn->input.headersDone;
 	return result;
+}
+
+int connection_bundle_consume_line(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.body = conn->body;
+	return requestInput_consumeLine(&(conn->input));
+}
+
+int connection_bundle_consume_last_line(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.body = conn->body;
+	return requestInput_consumeLastLine(&(conn->input));
 }
 
 int connection_bundle_can_respondp(struct conn_bundle *conn){
@@ -441,22 +417,24 @@ int connection_bundle_respond(struct conn_bundle *conn){
 }
 
 int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
+	int result;
 	(void)node;
-	/*
-		https://tools.ietf.org/html/rfc7230#section-3.1.1
-	*/
 	if(!conn) return 0;
-	if(!(conn->method)){
-		if(connection_bundle_consume_method(conn)) return 0;
-		*context = 1;
-	}
-	if(!(conn->request_url)){
-		if(connection_bundle_consume_requrl(conn)) return 0;
-		*context = 1;
-	}
-	if(-1 == conn->http_minor_version){
-		if(connection_bundle_consume_http_version(conn)) return 0;
-		*context = 1;
+	conn->input.method = conn->method;
+	conn->input.requestUrl = conn->request_url;
+	conn->input.httpMinorVersion = conn->http_minor_version;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.pool = conn->pool;
+	conn->input.httpMajorVersion = conn->http_major_version;
+	result = requestInput_processStep(&(conn->input));
+	conn->method = conn->input.method;
+	conn->request_url = conn->input.requestUrl;
+	conn->http_major_version = conn->input.httpMajorVersion;
+	conn->http_minor_version = conn->input.httpMinorVersion;
+	if(result){
+		if(result == 1)
+			*context = 1;
+		return 0;
 	}
 
 	if(connection_bundle_can_respondp(conn)){

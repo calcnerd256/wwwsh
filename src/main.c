@@ -43,7 +43,6 @@ struct conn_bundle{
 	struct mempool *pool;
 	struct httpServer *server;
 	int fd;
-	char done_reading;
 	char done_writing;
 };
 
@@ -53,7 +52,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	init_pool(ptr->pool);
 	ptr->fd = fd;
 	fd = 0;
-	ptr->done_reading = 0;
+	ptr->input.done = 0;
 	ptr->input.httpMajorVersion = -1;
 	ptr->input.httpMinorVersion = -1;
 	ptr->done_writing = 0;
@@ -75,7 +74,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->input.requestUrl = 0;
 	ptr->input.length = 0;
 	ptr->input.fd = ptr->fd;
-	ptr->input.done = ptr->done_reading;
+	ptr->input.done = ptr->input.done;
 	ptr = 0;
 	return 0;
 }
@@ -191,7 +190,7 @@ int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_
 	fd = (int *)(context->next->data);
 	if(!fd) return 3;
 	if(!conn) return 2;
-	if(conn->done_reading) return 0;
+	if(conn->input.done) return 0;
 	if(-1 == conn->fd) return 2;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
@@ -223,7 +222,7 @@ int httpServer_selectRead(struct httpServer *server){
 	extra_head.next = server->connections;
 	extra_head.data = &fake_for_server;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
-	fake_for_server.done_reading = 0;
+	fake_for_server.input.done = 0;
 	if(traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context)) return -1;
 	return ready_fd;
 }
@@ -272,7 +271,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	chunkStream_append(conn->input.chunks, buf, len);
 
 	if(len) return 0;
-	conn->done_reading = 1;
+	conn->input.done = 1;
 	if(conn->done_writing)
 		return connection_bundle_free(conn);
 	return 0;

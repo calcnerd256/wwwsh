@@ -221,7 +221,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 	}
 	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
-	conn->done_reading = 1;
+	conn->input.done = 1;
 	conn->input.httpMajorVersion = -1;
 	conn->input.httpMinorVersion = -1;
 	return 0;
@@ -230,7 +230,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 int connection_bundle_close_write(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
-	if(!(conn->done_reading)) return 0;
+	if(!(conn->input.done)) return 0;
 	return connection_bundle_free(conn);
 }
 
@@ -417,7 +417,7 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	}
 	while(!requestInput_consumeLine(&(conn->input)))
 		*context = 1;
-	if(conn->done_reading){
+	if(conn->input.done){
 		requestInput_consumeLastLine(&(conn->input));
 		*context = 1;
 	}

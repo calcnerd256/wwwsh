@@ -2,32 +2,46 @@
 
 /* included in main.c */
 
-int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+int requestInput_findCrlfOffset(struct requestInput *req){
 	int offset = 0;
-	if(!conn) return -1;
+	if(!req) return -1;
 	while(1){
-		offset = chunkStream_findByteOffsetFrom(conn->chunk_stream, '\r', offset);
+		offset = chunkStream_findByteOffsetFrom(req->chunks, '\r', offset);
 		if(-1 == offset) return -1;
-		if('\n' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, offset + 1))
+		if('\n' == chunkStream_byteAtRelativeOffset(req->chunks, offset + 1))
 			return offset + 2;
 		offset++;
 	}
 }
 
-int connection_bundle_print_headers(struct conn_bundle *conn){
+int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+	if(!conn) return -1;
+	conn->input.chunks = conn->chunk_stream;
+	return requestInput_findCrlfOffset(&(conn->input));
+}
+
+int requestInput_printHeaders(struct requestInput *req){
 	struct linked_list *node;
 	struct linked_list *head;
 	struct extent *key;
 	struct extent *value;
-	node = conn->request_headers->head;
+	if(!req) return 1;
+	if(!(req->headers)) return 1;
+	node = req->headers->head;
 	while(node){
 		head = (struct linked_list*)(node->data);
+		node = node->next;
 		key = (struct extent*)(head->data);
 		value = (struct extent*)(head->next->data);
 		printf("key=<%s> value=<%s>\n", key->bytes, value->bytes);
-		node = node->next;
 	}
 	return 0;
+}
+
+int connection_bundle_print_headers(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.headers = conn->request_headers;
+	return requestInput_printHeaders(&(conn->input));
 }
 
 int connection_bundle_consume_header(struct conn_bundle *conn){

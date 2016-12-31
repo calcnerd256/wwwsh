@@ -23,7 +23,23 @@ struct staticGetResource{
 	struct linked_list *headers;
 };
 
+struct requestInput{
+	struct mempool *pool;
+	struct chunkStream *chunks;
+	struct extent *method;
+	struct extent *requestUrl;
+	struct dequoid *headers;
+	struct chunkStream *body;
+	unsigned long int length;
+	int fd;
+	int httpMajorVersion;
+	int httpMinorVersion;
+	char done;
+	char headersDone;
+};
+
 struct conn_bundle{
+	struct requestInput input;
 	struct mempool *pool;
 	struct httpServer *server;
 	struct chunkStream *chunk_stream;
@@ -66,6 +82,18 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	chunkStream_init(ptr->body, ptr->pool);
 	ptr->done_reading_headers = 0;
 	dequoid_init(ptr->request_headers);
+	ptr->input.pool = ptr->pool;
+	ptr->input.chunks = ptr->chunk_stream;
+	ptr->input.method = ptr->method;
+	ptr->input.requestUrl = ptr->request_url;
+	ptr->input.headers = ptr->request_headers;
+	ptr->input.body = ptr->body;
+	ptr->input.length = ptr->request_length;
+	ptr->input.fd = ptr->fd;
+	ptr->input.httpMajorVersion = ptr->http_major_version;
+	ptr->input.httpMinorVersion = ptr->http_minor_version;
+	ptr->input.done = ptr->done_reading;
+	ptr->input.headersDone = ptr->done_reading_headers;
 	ptr = 0;
 	return 0;
 }

@@ -14,12 +14,6 @@ int requestInput_findCrlfOffset(struct requestInput *req){
 	}
 }
 
-int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
-	if(!conn) return -1;
-	conn->input.chunks = conn->chunk_stream;
-	return requestInput_findCrlfOffset(&(conn->input));
-}
-
 int requestInput_printHeaders(struct requestInput *req){
 	struct linked_list *node;
 	struct linked_list *head;
@@ -38,44 +32,50 @@ int requestInput_printHeaders(struct requestInput *req){
 	return 0;
 }
 
+int connection_bundle_find_crlf_offset(struct conn_bundle *conn){
+	if(!conn) return -1;
+	conn->input.chunks = conn->chunk_stream;
+	return requestInput_findCrlfOffset(&(conn->input));
+}
+
 int connection_bundle_print_headers(struct conn_bundle *conn){
 	if(!conn) return 1;
 	conn->input.headers = conn->request_headers;
 	return requestInput_printHeaders(&(conn->input));
 }
 
-int connection_bundle_consume_header(struct conn_bundle *conn){
+int requestInput_consumeHeader(struct requestInput *req){
 	int colon = 0;
-	int to_crlf = 0;
+	int toCrlf = 0;
 	struct extent key;
 	struct extent value;
 	struct linked_list *node;
 	char *ptr = 0;
-	if(!conn) return 1;
-	if(conn->done_reading_headers) return 0;
-	if(chunkStream_reduceCursor(conn->chunk_stream)) return 1;
-	if('\r' == chunkStream_byteAtRelativeOffset(conn->chunk_stream, 0)){
-		if('\n' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, 1))
+	if(!req) return 1;
+	if(req->headersDone) return 0;
+	if(chunkStream_reduceCursor(req->chunks)) return 1;
+	if('\r' == chunkStream_byteAtRelativeOffset(req->chunks, 0)){
+		if('\n' != chunkStream_byteAtRelativeOffset(req->chunks, 1))
 			return 1;
-		conn->done_reading_headers = 1;
-		chunkStream_seekForward(conn->chunk_stream, 2);
+		req->headersDone = 1;
+		chunkStream_seekForward(req->chunks, 2);
 		return 0;
 	}
-	colon = chunkStream_findByteOffsetFrom(conn->chunk_stream, ':', 0);
+	colon = chunkStream_findByteOffsetFrom(req->chunks, ':', 0);
 	if(-1 == colon) return 1;
-	if(' ' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, colon + 1))
+	if(' ' != chunkStream_byteAtRelativeOffset(req->chunks, colon + 1))
 		return 1;
-	to_crlf = chunkStream_findByteOffsetFrom(conn->chunk_stream, '\r', colon + 2);
-	if('\n' != chunkStream_byteAtRelativeOffset(conn->chunk_stream, colon + to_crlf + 3))
+	toCrlf = chunkStream_findByteOffsetFrom(req->chunks, '\r', colon + 2);
+	if('\n' != chunkStream_byteAtRelativeOffset(req->chunks, colon + toCrlf + 3))
 		return 1;
-	if(chunkStream_takeBytes(conn->chunk_stream, colon, &key)) return 2;
-	chunkStream_seekForward(conn->chunk_stream, 2);
-	if(chunkStream_takeBytes(conn->chunk_stream, to_crlf, &value)) return 2;
-	chunkStream_seekForward(conn->chunk_stream, 2);
-	ptr = palloc(conn->pool, 3 * sizeof(struct linked_list) + 2 * sizeof(struct extent));
+	if(chunkStream_takeBytes(req->chunks, colon, &key)) return 2;
+	chunkStream_seekForward(req->chunks, 2);
+	if(chunkStream_takeBytes(req->chunks, toCrlf, &value)) return 2;
+	chunkStream_seekForward(req->chunks, 2);
+	ptr = palloc(req->pool, 3 * sizeof(struct linked_list) + 2 * sizeof(struct extent));
 	node = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
-	dequoid_append(conn->request_headers, (struct linked_list*)ptr, node);
+	dequoid_append(req->headers, (struct linked_list*)ptr, node);
 	node = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	node->next = (struct linked_list*)ptr;
@@ -91,28 +91,56 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	return 0;
 }
 
-int connection_bundle_consume_line(struct conn_bundle *conn){
-	struct extent cursor;
-	int offset = connection_bundle_find_crlf_offset(conn);
-	if(-1 == offset) return 1;
-	if(chunkStream_takeBytes(conn->chunk_stream, offset, &cursor)) return 2;
-	return chunkStream_append(conn->body, cursor.bytes, cursor.len);
+int connection_bundle_consume_header(struct conn_bundle *conn){
+	int result;
+	if(!conn) return 1;
+	conn->input.headersDone = conn->done_reading_headers;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.pool = conn->pool;
+	conn->input.headers = conn->request_headers;
+	result = requestInput_consumeHeader(&(conn->input));
+	conn->done_reading_headers = conn->input.headersDone;
+	return result;
 }
 
-int connection_bundle_consume_last_line(struct conn_bundle *conn){
+int requestInput_consumeLine(struct requestInput *req){
+	struct extent cursor;
+	int offset = 0;
+	if(!req) return 1;
+	offset = requestInput_findCrlfOffset(req);
+	if(-1 == offset) return 1;
+	if(chunkStream_takeBytes(req->chunks, offset, &cursor)) return 2;
+	return chunkStream_append(req->body, cursor.bytes, cursor.len);
+}
+
+int connection_bundle_consume_line(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.body = conn->body;
+	return requestInput_consumeLine(&(conn->input));
+}
+
+int requestInput_consumeLastLine(struct requestInput *req){
 	int len;
 	struct linked_list *current;
 	struct extent cursor;
-	len = ((struct extent*)(conn->chunk_stream->cursor_chunk->data))->len;
-	len -= conn->chunk_stream->cursor_chunk_offset;
-	current = conn->chunk_stream->cursor_chunk->next;
+	len = ((struct extent*)(req->chunks->cursor_chunk->data))->len;
+	len -= req->chunks->cursor_chunk_offset;
+	current = req->chunks->cursor_chunk->next;
 	while(current){
 		len += ((struct extent*)(current->data))->len;
 		current = current->next;
 	}
 	if(!len) return 0;
-	chunkStream_takeBytes(conn->chunk_stream, len, &cursor);
-	return chunkStream_append(conn->body, cursor.bytes, cursor.len);
+	chunkStream_takeBytes(req->chunks, len, &cursor);
+	return chunkStream_append(req->body, cursor.bytes, cursor.len);
+}
+
+int connection_bundle_consume_last_line(struct conn_bundle *conn){
+	if(!conn) return 1;
+	conn->input.chunks = conn->chunk_stream;
+	conn->input.body = conn->body;
+	return requestInput_consumeLastLine(&(conn->input));
 }
 
 int connection_bundle_consume_method(struct conn_bundle *conn){

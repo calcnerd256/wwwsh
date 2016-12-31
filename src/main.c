@@ -42,7 +42,6 @@ struct conn_bundle{
 	struct requestInput input;
 	struct mempool *pool;
 	struct httpServer *server;
-	struct dequoid *request_headers;
 	unsigned long int request_length;
 	int fd;
 	int http_major_version;
@@ -70,16 +69,15 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	p += sizeof(struct chunkStream);
 	ptr->input.body = (struct chunkStream*)p;
 	p += sizeof(struct chunkStream);
-	ptr->request_headers = (struct dequoid*)p;
+	ptr->input.headers = (struct dequoid*)p;
 	p = 0;
 	chunkStream_init(ptr->input.chunks, ptr->pool);
 	chunkStream_init(ptr->input.body, ptr->pool);
 	ptr->done_reading_headers = 0;
-	dequoid_init(ptr->request_headers);
+	dequoid_init(ptr->input.headers);
 	ptr->input.pool = ptr->pool;
 	ptr->input.method = 0;
 	ptr->input.requestUrl = 0;
-	ptr->input.headers = ptr->request_headers;
 	ptr->input.length = ptr->request_length;
 	ptr->input.fd = ptr->fd;
 	ptr->input.httpMajorVersion = ptr->http_major_version;

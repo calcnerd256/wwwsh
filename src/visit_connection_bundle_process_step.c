@@ -203,7 +203,6 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	if(!conn) return 1;
 	conn->input.headersDone = conn->done_reading_headers;
 	conn->input.pool = conn->pool;
-	conn->input.headers = conn->request_headers;
 	result = requestInput_consumeHeader(&(conn->input));
 	conn->done_reading_headers = conn->input.headersDone;
 	return result;

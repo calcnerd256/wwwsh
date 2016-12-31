@@ -42,7 +42,6 @@ struct conn_bundle{
 	struct requestInput input;
 	struct mempool *pool;
 	struct httpServer *server;
-	struct extent *method;
 	struct extent *request_url;
 	struct dequoid *request_headers;
 	unsigned long int request_length;
@@ -62,7 +61,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	fd = 0;
 	ptr->done_reading = 0;
 	ptr->request_length = 0;
-	ptr->method = 0;
 	ptr->request_url = 0;
 	ptr->http_major_version = -1;
 	ptr->http_minor_version = -1;
@@ -81,7 +79,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->done_reading_headers = 0;
 	dequoid_init(ptr->request_headers);
 	ptr->input.pool = ptr->pool;
-	ptr->input.method = ptr->method;
+	ptr->input.method = 0;
 	ptr->input.requestUrl = ptr->request_url;
 	ptr->input.headers = ptr->request_headers;
 	ptr->input.length = ptr->request_length;

@@ -210,10 +210,10 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 }
 
 int connection_bundle_can_respondp(struct conn_bundle *conn){
-	if(!(conn->method)) return 0;
-	if(!(conn->request_url)) return 0;
-	if(-1 == conn->http_major_version) return 0;
-	if(-1 == conn->http_minor_version) return 0;
+	if(!(conn->input.method)) return 0;
+	if(!(conn->input.requestUrl)) return 0;
+	if(-1 == conn->input.httpMajorVersion) return 0;
+	if(-1 == conn->input.httpMinorVersion) return 0;
 	if(conn->done_writing) return 0;
 	return 1;
 }
@@ -392,13 +392,13 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;
 
 	resource = 0;
-	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_resource_url), (struct linked_list*)(conn->request_url), &match_node))
+	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_resource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
 		if(match_node)
 			resource = match_node->data;
 	if(!resource)
 		return connection_bundle_respond_bad_request_target(conn);
 
-	if(strncmp(conn->method->bytes, "GET", conn->method->len + 1))
+	if(strncmp(conn->input.method->bytes, "GET", conn->input.method->len + 1))
 		return connection_bundle_respond_bad_method(conn);
 	point_extent_at_nice_string(&reason, "OK");
 	return connection_bundle_send_response(conn, 200, &reason, resource->headers, resource->body);
@@ -408,13 +408,11 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	int result;
 	(void)node;
 	if(!conn) return 0;
-	conn->input.method = conn->method;
 	conn->input.requestUrl = conn->request_url;
 	conn->input.httpMinorVersion = conn->http_minor_version;
 	conn->input.pool = conn->pool;
 	conn->input.httpMajorVersion = conn->http_major_version;
 	result = requestInput_processStep(&(conn->input));
-	conn->method = conn->input.method;
 	conn->request_url = conn->input.requestUrl;
 	conn->http_major_version = conn->input.httpMajorVersion;
 	conn->http_minor_version = conn->input.httpMinorVersion;

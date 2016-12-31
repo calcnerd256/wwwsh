@@ -42,10 +42,7 @@ struct conn_bundle{
 	struct requestInput input;
 	struct mempool *pool;
 	struct httpServer *server;
-	unsigned long int request_length;
 	int fd;
-	int http_major_version;
-	int http_minor_version;
 	char done_reading;
 	char done_writing;
 	char done_reading_headers;
@@ -58,9 +55,8 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->fd = fd;
 	fd = 0;
 	ptr->done_reading = 0;
-	ptr->request_length = 0;
-	ptr->http_major_version = -1;
-	ptr->http_minor_version = -1;
+	ptr->input.httpMajorVersion = -1;
+	ptr->input.httpMinorVersion = -1;
 	ptr->done_writing = 0;
 	ptr->server = server;
 	server = 0;
@@ -78,10 +74,8 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->input.pool = ptr->pool;
 	ptr->input.method = 0;
 	ptr->input.requestUrl = 0;
-	ptr->input.length = ptr->request_length;
+	ptr->input.length = 0;
 	ptr->input.fd = ptr->fd;
-	ptr->input.httpMajorVersion = ptr->http_major_version;
-	ptr->input.httpMinorVersion = ptr->http_minor_version;
 	ptr->input.done = ptr->done_reading;
 	ptr->input.headersDone = ptr->done_reading_headers;
 	ptr = 0;

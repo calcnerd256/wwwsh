@@ -232,8 +232,8 @@ int connection_bundle_free(struct conn_bundle *conn){
 	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
 	conn->done_reading = 1;
-	conn->http_major_version = -1;
-	conn->http_minor_version = -1;
+	conn->input.httpMajorVersion = -1;
+	conn->input.httpMinorVersion = -1;
 	return 0;
 }
 
@@ -407,12 +407,8 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	int result;
 	(void)node;
 	if(!conn) return 0;
-	conn->input.httpMinorVersion = conn->http_minor_version;
 	conn->input.pool = conn->pool;
-	conn->input.httpMajorVersion = conn->http_major_version;
 	result = requestInput_processStep(&(conn->input));
-	conn->http_major_version = conn->input.httpMajorVersion;
-	conn->http_minor_version = conn->input.httpMinorVersion;
 	if(result){
 		if(result == 1)
 			*context = 1;

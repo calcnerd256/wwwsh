@@ -182,38 +182,6 @@ int requestInput_processStep(struct requestInput *req){
 	return status;
 }
 
-int connection_bundle_consume_header(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.headersDone = conn->done_reading_headers;
-	conn->input.pool = conn->pool;
-	conn->input.headers = conn->request_headers;
-	result = requestInput_consumeHeader(&(conn->input));
-	conn->done_reading_headers = conn->input.headersDone;
-	return result;
-}
-
-int connection_bundle_consume_line(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.body = conn->body;
-	return requestInput_consumeLine(&(conn->input));
-}
-
-int connection_bundle_consume_last_line(struct conn_bundle *conn){
-	if(!conn) return 1;
-	conn->input.body = conn->body;
-	return requestInput_consumeLastLine(&(conn->input));
-}
-
-int connection_bundle_can_respondp(struct conn_bundle *conn){
-	if(!(conn->method)) return 0;
-	if(!(conn->request_url)) return 0;
-	if(-1 == conn->http_major_version) return 0;
-	if(-1 == conn->http_minor_version) return 0;
-	if(conn->done_writing) return 0;
-	return 1;
-}
-
 int requestInput_printBody(struct requestInput *req){
 	struct linked_list *node;
 	struct extent *current;
@@ -230,9 +198,24 @@ int requestInput_printBody(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_print_body(struct conn_bundle *conn){
+int connection_bundle_consume_header(struct conn_bundle *conn){
+	int result;
 	if(!conn) return 1;
-	return requestInput_printBody(&(conn->input));
+	conn->input.headersDone = conn->done_reading_headers;
+	conn->input.pool = conn->pool;
+	conn->input.headers = conn->request_headers;
+	result = requestInput_consumeHeader(&(conn->input));
+	conn->done_reading_headers = conn->input.headersDone;
+	return result;
+}
+
+int connection_bundle_can_respondp(struct conn_bundle *conn){
+	if(!(conn->method)) return 0;
+	if(!(conn->request_url)) return 0;
+	if(-1 == conn->http_major_version) return 0;
+	if(-1 == conn->http_minor_version) return 0;
+	if(conn->done_writing) return 0;
+	return 1;
 }
 
 int connection_bundle_free(struct conn_bundle *conn){
@@ -242,7 +225,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 
 	if(conn->pool){
 
-		connection_bundle_consume_last_line(conn);
+		requestInput_consumeLastLine(&(conn->input));
 
 		free_pool(conn->pool);
 		conn->pool = 0;
@@ -449,9 +432,10 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		if(!connection_bundle_consume_header(conn))
 			*context = 1;
 		else return 0;
-	while(!connection_bundle_consume_line(conn)) *context = 1;
+	while(!requestInput_consumeLine(&(conn->input)))
+		*context = 1;
 	if(conn->done_reading){
-		connection_bundle_consume_last_line(conn);
+		requestInput_consumeLastLine(&(conn->input));
 		*context = 1;
 	}
 	chunkStream_reduceCursor(conn->input.chunks);

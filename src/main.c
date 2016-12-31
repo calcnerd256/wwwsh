@@ -45,7 +45,6 @@ struct conn_bundle{
 	struct extent *method;
 	struct extent *request_url;
 	struct dequoid *request_headers;
-	struct chunkStream *body;
 	unsigned long int request_length;
 	int fd;
 	int http_major_version;
@@ -74,7 +73,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->input.chunks = (struct chunkStream*)p;
 	p += sizeof(struct chunkStream);
 	ptr->input.body = (struct chunkStream*)p;
-	ptr->body = ptr->input.body;
 	p += sizeof(struct chunkStream);
 	ptr->request_headers = (struct dequoid*)p;
 	p = 0;

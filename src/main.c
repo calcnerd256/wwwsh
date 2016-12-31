@@ -45,7 +45,6 @@ struct conn_bundle{
 	int fd;
 	char done_reading;
 	char done_writing;
-	char done_reading_headers;
 };
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
@@ -69,7 +68,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	p = 0;
 	chunkStream_init(ptr->input.chunks, ptr->pool);
 	chunkStream_init(ptr->input.body, ptr->pool);
-	ptr->done_reading_headers = 0;
+	ptr->input.headersDone = 0;
 	dequoid_init(ptr->input.headers);
 	ptr->input.pool = ptr->pool;
 	ptr->input.method = 0;
@@ -77,7 +76,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->input.length = 0;
 	ptr->input.fd = ptr->fd;
 	ptr->input.done = ptr->done_reading;
-	ptr->input.headersDone = ptr->done_reading_headers;
 	ptr = 0;
 	return 0;
 }

@@ -198,16 +198,6 @@ int requestInput_printBody(struct requestInput *req){
 	return 0;
 }
 
-int connection_bundle_consume_header(struct conn_bundle *conn){
-	int result;
-	if(!conn) return 1;
-	conn->input.headersDone = conn->done_reading_headers;
-	conn->input.pool = conn->pool;
-	result = requestInput_consumeHeader(&(conn->input));
-	conn->done_reading_headers = conn->input.headersDone;
-	return result;
-}
-
 int connection_bundle_can_respondp(struct conn_bundle *conn){
 	if(!(conn->input.method)) return 0;
 	if(!(conn->input.requestUrl)) return 0;
@@ -419,10 +409,12 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		*context = 1;
 		connection_bundle_respond(conn);
 	}
-	while(!(conn->done_reading_headers))
-		if(!connection_bundle_consume_header(conn))
+	while(!(conn->input.headersDone)){
+		conn->input.pool = conn->pool;
+		if(!requestInput_consumeHeader(&(conn->input)))
 			*context = 1;
 		else return 0;
+	}
 	while(!requestInput_consumeLine(&(conn->input)))
 		*context = 1;
 	if(conn->done_reading){

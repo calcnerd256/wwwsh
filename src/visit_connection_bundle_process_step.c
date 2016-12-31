@@ -186,7 +186,6 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 	int result;
 	if(!conn) return 1;
 	conn->input.headersDone = conn->done_reading_headers;
-	conn->input.chunks = conn->chunk_stream;
 	conn->input.pool = conn->pool;
 	conn->input.headers = conn->request_headers;
 	result = requestInput_consumeHeader(&(conn->input));
@@ -196,14 +195,12 @@ int connection_bundle_consume_header(struct conn_bundle *conn){
 
 int connection_bundle_consume_line(struct conn_bundle *conn){
 	if(!conn) return 1;
-	conn->input.chunks = conn->chunk_stream;
 	conn->input.body = conn->body;
 	return requestInput_consumeLine(&(conn->input));
 }
 
 int connection_bundle_consume_last_line(struct conn_bundle *conn){
 	if(!conn) return 1;
-	conn->input.chunks = conn->chunk_stream;
 	conn->input.body = conn->body;
 	return requestInput_consumeLastLine(&(conn->input));
 }
@@ -217,17 +214,25 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 	return 1;
 }
 
-int connection_bundle_print_body(struct conn_bundle *conn){
+int requestInput_printBody(struct requestInput *req){
 	struct linked_list *node;
-	node = conn->body->chunk_list.head;
+	struct extent *current;
+	if(!req) return 1;
+	node = req->body->chunk_list.head;
 	while(node){
-		printf("%p\t%s", node->data, ((struct extent*)(node->data))->bytes);
+		current = (struct extent*)(node->data);
+		printf("%p\t%s", node->data, current->bytes);
 		if(!(node->next))
-			if('\n' != ((struct extent*)(node->data))->bytes[((struct extent*)(node->data))->len - 1])
+			if('\n' != current->bytes[current->len - 1])
 				printf("\n");
 		node = node->next;
 	}
 	return 0;
+}
+
+int connection_bundle_print_body(struct conn_bundle *conn){
+	if(!conn) return 1;
+	return requestInput_printBody(&(conn->input));
 }
 
 int connection_bundle_free(struct conn_bundle *conn){
@@ -423,7 +428,6 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	conn->input.method = conn->method;
 	conn->input.requestUrl = conn->request_url;
 	conn->input.httpMinorVersion = conn->http_minor_version;
-	conn->input.chunks = conn->chunk_stream;
 	conn->input.pool = conn->pool;
 	conn->input.httpMajorVersion = conn->http_major_version;
 	result = requestInput_processStep(&(conn->input));
@@ -450,6 +454,6 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 		connection_bundle_consume_last_line(conn);
 		*context = 1;
 	}
-	chunkStream_reduceCursor(conn->chunk_stream);
+	chunkStream_reduceCursor(conn->input.chunks);
 	return 0;
 }

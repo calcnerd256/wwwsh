@@ -42,7 +42,6 @@ struct conn_bundle{
 	struct requestInput input;
 	struct mempool *pool;
 	struct httpServer *server;
-	struct chunkStream *chunk_stream;
 	struct extent *method;
 	struct extent *request_url;
 	struct dequoid *request_headers;
@@ -72,22 +71,21 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->server = server;
 	server = 0;
 	p = palloc(ptr->pool, 2 * sizeof(struct chunkStream) + sizeof(struct dequoid));
-	ptr->chunk_stream = (struct chunkStream*)p;
+	ptr->input.chunks = (struct chunkStream*)p;
 	p += sizeof(struct chunkStream);
-	ptr->body = (struct chunkStream*)p;
+	ptr->input.body = (struct chunkStream*)p;
+	ptr->body = ptr->input.body;
 	p += sizeof(struct chunkStream);
 	ptr->request_headers = (struct dequoid*)p;
 	p = 0;
-	chunkStream_init(ptr->chunk_stream, ptr->pool);
-	chunkStream_init(ptr->body, ptr->pool);
+	chunkStream_init(ptr->input.chunks, ptr->pool);
+	chunkStream_init(ptr->input.body, ptr->pool);
 	ptr->done_reading_headers = 0;
 	dequoid_init(ptr->request_headers);
 	ptr->input.pool = ptr->pool;
-	ptr->input.chunks = ptr->chunk_stream;
 	ptr->input.method = ptr->method;
 	ptr->input.requestUrl = ptr->request_url;
 	ptr->input.headers = ptr->request_headers;
-	ptr->input.body = ptr->body;
 	ptr->input.length = ptr->request_length;
 	ptr->input.fd = ptr->fd;
 	ptr->input.httpMajorVersion = ptr->http_major_version;
@@ -287,7 +285,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	buf[CHUNK_SIZE] = 0;
 	len = read(conn->fd, buf, CHUNK_SIZE);
 	buf[len] = 0;
-	chunkStream_append(conn->chunk_stream, buf, len);
+	chunkStream_append(conn->input.chunks, buf, len);
 
 	if(len) return 0;
 	conn->done_reading = 1;

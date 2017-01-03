@@ -29,6 +29,13 @@ struct conn_bundle{
 	char done_writing;
 };
 
+struct httpResource{
+	int (*urlMatchesp)(struct httpResource*, struct extent*);
+	int (*respond)(struct httpResource*, struct conn_bundle*);
+	void *context;
+};
+
+
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	memset(&(ptr->allocations), 0, sizeof(struct mempool));
 	init_pool(&(ptr->allocations));
@@ -49,6 +56,7 @@ int httpServer_init(struct httpServer *server){
 	char *ptr;
 	struct staticGetResource *root;
 	struct linked_list *node;
+	struct httpResource *rootResource;
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
 	init_pool(server->memoryPool);
@@ -56,7 +64,7 @@ int httpServer_init(struct httpServer *server){
 	ptr = 0;
 	server->staticResources = 0;
 
-	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent));
+	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
 	server->staticResources = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	root = (struct staticGetResource*)ptr;
@@ -74,7 +82,12 @@ int httpServer_init(struct httpServer *server){
 	node->data = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
 	node->next->data = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	rootResource = (struct httpResource*)ptr;
 	ptr = 0;
+
+	rootResource->context = root;
+	rootResource->urlMatchesp = &staticGetResource_urlMatchesp;
 
 	server->staticResources->data = root;
 	server->staticResources->next = 0;

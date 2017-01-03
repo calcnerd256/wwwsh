@@ -178,6 +178,48 @@ int match_resource_url(struct staticGetResource *resource, struct extent *url, s
 	return !strncmp(resource->url->bytes, url->bytes, url->len + 1);
 }
 
+int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url){
+	if(!resource) return 0;
+	if(!(resource->context)) return 0;
+	if(!url) return 0;
+	return match_resource_url(resource->context, url, 0);
+}
+
+int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){
+	(void)node;
+	node = 0;
+	if(!url) return 0;
+	if(!resource) return 0;
+	if(!(resource->urlMatchesp)) return 0;
+	return (*(resource->urlMatchesp))(resource, url);
+}
+
+int staticGetResource_respond(struct httpResource *resource, struct conn_bundle *connection){
+	struct extent reason;
+	struct staticGetResource *response;
+	if(!resource) return 1;
+	if(!connection) return 1;
+	response = (struct staticGetResource*)(resource->context);
+	if(!response) return 1;
+	if(!(connection->input.method))
+		return connection_bundle_respond_bad_method(connection);
+	if(3 != connection->input.method->len)
+		return connection_bundle_respond_bad_method(connection);
+	if(!(connection->input.method->bytes))
+		return connection_bundle_respond_bad_method(connection);
+	if(strncmp(connection->input.method->bytes, "GET", connection->input.method->len + 1))
+		return connection_bundle_respond_bad_method(connection);
+	point_extent_at_nice_string(&reason, "OK");
+	return connection_bundle_send_response(connection, 200, &reason, response->headers, response->body);
+}
+
+int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection){
+	if(!connection) return 1;
+	if(!resource) return 1;
+	if(!(resource->respond)) return 1;
+	return (*(resource->respond))(resource, connection);
+}
+
 int connection_bundle_respond(struct conn_bundle *conn){
 	struct staticGetResource *resource;
 	struct extent reason;

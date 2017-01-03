@@ -31,34 +31,6 @@ struct conn_bundle{
 	char done_writing;
 };
 
-int requestInput_init(struct requestInput *req, struct mempool *pool){
-	char *p = 0;
-	if(!req) return 1;
-	req->done = 0;
-	req->httpMajorVersion = -1;
-	req->httpMinorVersion = -1;
-	req->pool = pool;
-	p = palloc(req->pool, 2 * sizeof(struct chunkStream) + sizeof(struct dequoid));
-	req->chunks = (struct chunkStream*)p;
-	p += sizeof(struct chunkStream);
-	req->body = (struct chunkStream*)p;
-	p += sizeof(struct chunkStream);
-	req->headers = (struct dequoid*)p;
-	chunkStream_init(req->chunks, req->pool);
-	chunkStream_init(req->body, req->pool);
-	req->headersDone = 0;
-	dequoid_init(req->headers);
-	req->method = 0;
-	req->requestUrl = 0;
-	req->length = 0;
-	req->fd = -1;
-	req->done = 0;
-	p = 0;
-	pool = 0;
-	req = 0;
-	return 0;
-}
-
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	ptr->pool = palloc(server->memoryPool, sizeof(struct mempool));
 	init_pool(ptr->pool);

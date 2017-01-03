@@ -88,8 +88,9 @@ int httpServer_init(struct httpServer *server){
 
 	rootResource->context = root;
 	rootResource->urlMatchesp = &staticGetResource_urlMatchesp;
+	rootResource->respond = &staticGetResource_respond;
 
-	server->staticResources->data = root;
+	server->staticResources->data = rootResource;
 	server->staticResources->next = 0;
 	server = 0;
 

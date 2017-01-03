@@ -221,22 +221,17 @@ int httpResource_respond(struct httpResource *resource, struct conn_bundle *conn
 }
 
 int connection_bundle_respond(struct conn_bundle *conn){
-	struct staticGetResource *resource;
-	struct extent reason;
+	struct httpResource *resource;
 	struct linked_list *match_node = 0;
 	if(conn->done_writing) return 0;
 
 	resource = 0;
-	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_resource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
+	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_httpResource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
 		if(match_node)
 			resource = match_node->data;
 	if(!resource)
 		return connection_bundle_respond_bad_request_target(conn);
-
-	if(strncmp(conn->input.method->bytes, "GET", conn->input.method->len + 1))
-		return connection_bundle_respond_bad_method(conn);
-	point_extent_at_nice_string(&reason, "OK");
-	return connection_bundle_send_response(conn, 200, &reason, resource->headers, resource->body);
+	return httpResource_respond(resource, conn);
 }
 
 int connection_bundle_process_steppedp(struct conn_bundle *conn){

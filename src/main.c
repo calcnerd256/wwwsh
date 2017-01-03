@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./chunkStream.h"
+#include "./requestInput.h"
 
 struct httpServer{
 	struct mempool *memoryPool;
@@ -21,21 +21,6 @@ struct staticGetResource{
 	struct extent *url;
 	struct extent *body;
 	struct linked_list *headers;
-};
-
-struct requestInput{
-	struct mempool *pool;
-	struct chunkStream *chunks;
-	struct extent *method;
-	struct extent *requestUrl;
-	struct dequoid *headers;
-	struct chunkStream *body;
-	unsigned long int length;
-	int fd;
-	int httpMajorVersion;
-	int httpMinorVersion;
-	char done;
-	char headersDone;
 };
 
 struct conn_bundle{

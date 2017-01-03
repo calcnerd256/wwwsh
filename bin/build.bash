@@ -13,4 +13,5 @@ gcc \
  ../src/mempool.c \
  ../src/lines.c \
  ../src/chunkStream.c \
+ ../src/requestInput.c \
  ../src/main.c

@@ -16,12 +16,12 @@ int connection_bundle_free(struct conn_bundle *conn){
 	close(conn->fd);
 	conn->fd = -1;
 
-	if(conn->pool){
+	if(conn->allocations.allocs){
 
 		requestInput_consumeLastLine(&(conn->input));
 
-		free_pool(conn->pool);
-		conn->pool = 0;
+		free_pool(&(conn->allocations));
+		memset(&(conn->allocations), 0, sizeof(struct mempool));
 	}
 	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
@@ -199,7 +199,6 @@ int connection_bundle_respond(struct conn_bundle *conn){
 
 int connection_bundle_process_steppedp(struct conn_bundle *conn){
 	if(!conn) return 0;
-	conn->input.pool = conn->pool;
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!connection_bundle_can_respondp(conn)) return 0;
 	connection_bundle_respond(conn);

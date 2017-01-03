@@ -23,21 +23,21 @@ struct staticGetResource{
 
 struct conn_bundle{
 	struct requestInput input;
-	struct mempool *pool;
+	struct mempool allocations;
 	struct httpServer *server;
 	int fd;
 	char done_writing;
 };
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
-	ptr->pool = palloc(server->memoryPool, sizeof(struct mempool));
-	init_pool(ptr->pool);
+	memset(&(ptr->allocations), 0, sizeof(struct mempool));
+	init_pool(&(ptr->allocations));
 	ptr->fd = fd;
 	fd = 0;
 	ptr->done_writing = 0;
 	ptr->server = server;
 	server = 0;
-	requestInput_init(&(ptr->input), ptr->pool);
+	requestInput_init(&(ptr->input), &(ptr->allocations));
 	ptr->input.fd = ptr->fd;
 	ptr = 0;
 	return 0;

@@ -203,9 +203,9 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	conn->input.pool = conn->pool;
 	if(1 == requestInput_processStep(&(conn->input)))
 		*context = 1;
-	if(connection_bundle_can_respondp(conn)){
-		*context = 1;
-		connection_bundle_respond(conn);
-	}
+	if(!connection_bundle_can_respondp(conn))
+		return 0;
+	*context = 1;
+	connection_bundle_respond(conn);
 	return 0;
 }

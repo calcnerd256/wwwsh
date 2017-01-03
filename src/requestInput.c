@@ -210,6 +210,19 @@ int requestInput_processStep(struct requestInput *req){
 		if(requestInput_consumeHttpVersion(req)) return status ? status : 2;
 		status = 1;
 	}
+	while(!(req->headersDone)){
+		if(!requestInput_consumeHeader(req))
+			status = 1;
+		else
+			return status ? status : 2;
+	}
+	while(!requestInput_consumeLine(req))
+		status = 1;
+	if(req->done){
+		requestInput_consumeLastLine(req);
+		status = 1;
+	}
+	chunkStream_reduceCursor(req->chunks);
 	return status;
 }
 

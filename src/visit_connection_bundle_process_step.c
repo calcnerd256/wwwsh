@@ -209,5 +209,8 @@ int connection_bundle_process_steppedp(struct conn_bundle *conn){
 int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
 	(void)node;
 	if(connection_bundle_process_steppedp(conn)) *context = 1;
+	conn = 0;
+	context = 0;
+	node = 0;
 	return 0;
 }

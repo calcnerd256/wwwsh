@@ -14,4 +14,5 @@ gcc \
  ../src/lines.c \
  ../src/chunkStream.c \
  ../src/requestInput.c \
+ ../src/network.c \
  ../src/main.c

@@ -1,14 +1,12 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <string.h>
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include "./requestInput.h"
+#include "./network.h"
 
 struct httpServer{
 	struct mempool *memoryPool;
@@ -45,7 +43,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	return 0;
 }
 
-#include "./get_socket.c"
 #include "./visit_connection_bundle_process_step.c"
 
 int httpServer_init(struct httpServer *server){

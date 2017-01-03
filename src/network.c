@@ -1,5 +1,10 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include <netdb.h>
+#include <string.h>
+#include <unistd.h>
+#include "./network.h"
+
 int get_socket(char* port_number, int *out_sockfd){
 	struct addrinfo *server_address;
 	struct addrinfo hint;

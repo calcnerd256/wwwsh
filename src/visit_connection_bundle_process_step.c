@@ -197,15 +197,17 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	return connection_bundle_send_response(conn, 200, &reason, resource->headers, resource->body);
 }
 
-int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
-	(void)node;
+int connection_bundle_process_steppedp(struct conn_bundle *conn){
 	if(!conn) return 0;
 	conn->input.pool = conn->pool;
-	if(1 == requestInput_processStep(&(conn->input)))
-		*context = 1;
-	if(!connection_bundle_can_respondp(conn))
-		return 0;
-	*context = 1;
+	if(1 == requestInput_processStep(&(conn->input))) return 1;
+	if(!connection_bundle_can_respondp(conn)) return 0;
 	connection_bundle_respond(conn);
+	return 1;
+}
+
+int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
+	(void)node;
+	if(connection_bundle_process_steppedp(conn)) *context = 1;
 	return 0;
 }

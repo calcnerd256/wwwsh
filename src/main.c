@@ -8,11 +8,42 @@
 #include "./requestInput.h"
 #include "./network.h"
 
+/*
+	dependencies:
+		structs:
+			httpServer
+				mempool
+				linked_list
+			staticGetResource
+				extent
+				linked_list
+			conn_bundle
+				requestInput
+				mempool
+				httpServer
+				linked_list
+			httpResource
+				conn_bundle
+
+		method signatures:
+			conn_bundle
+				init_connection
+				can_respondp
+				free
+				close_write
+				write_crlf
+				extent
+				write_header
+				write_status_line
+				write
+				send_response
+*/
+
 struct httpServer{
 	struct mempool *memoryPool;
-	int listeningSocket_fileDescriptor;
 	struct linked_list *connections;
 	struct linked_list *resources;
+	int listeningSocket_fileDescriptor;
 };
 
 struct staticGetResource{
@@ -71,18 +102,10 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 int staticGetResource_initHtml(struct staticGetResource *resource, char* url, char* body, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *otherHeaders, struct linked_list *keyNode, struct linked_list *valueNode, struct extent *key, struct extent *value){
 	point_extent_at_nice_string(urlStorage, url);
 	point_extent_at_nice_string(bodyStorage, body);
-	point_extent_at_nice_string(key, "Content-Type");
-	point_extent_at_nice_string(value, "text/html");
-	keyNode->data = key;
-	valueNode->data = value;
-	valueNode->next = 0;
-	keyNode->next = valueNode;
-	headerHeadStorage->data = keyNode;
-	headerHeadStorage->next = otherHeaders;
 	resource->url = urlStorage;
 	resource->body = bodyStorage;
-	resource->headers = headerHeadStorage;
-	return 0;
+	resource->headers = push_header_nice_strings(headerHeadStorage, keyNode, valueNode, key, "Content-Type", value, "text/html", otherHeaders);
+	return !(resource->headers);
 }
 
 int httpServer_init(struct httpServer *server, struct mempool *pool){
@@ -293,7 +316,7 @@ int main(int argument_count, char* *arguments_vector){
 	ready_fd = staticGetResource_initHtml(
 		&rootResourceStorage_staticResource,
 		"/",
-		"<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n",
+		"<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n  <p>Coming soon: a resource for the following form to POST to</p>\r\n  <form method=\"POST\" action=\"formtest/\">\r\n   <input type=\"submit\" />\r\n  </form>\r\n </body>\r\n</html>\r\n\r\n",
 		&rootResourceStorage_url,
 		&rootResourceStorage_body,
 		&rootResourceStorage_headerHead,

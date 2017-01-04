@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include "./server.h"
 #include "./network.h"
 
@@ -78,6 +79,7 @@ int httpServer_close(struct httpServer *server){
 }
 
 
+/* TODO: extract a method on connection_bundle to call from here */
 int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
 	int *done;
 	int *fd;
@@ -127,4 +129,39 @@ int httpServer_selectRead(struct httpServer *server){
 	fake_for_server.input.done = 0;
 	if(traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context)) return -1;
 	return ready_fd;
+}
+
+
+int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
+	memset(&(ptr->allocations), 0, sizeof(struct mempool));
+	init_pool(&(ptr->allocations));
+	ptr->fd = fd;
+	fd = 0;
+	ptr->done_writing = 0;
+	ptr->server = server;
+	server = 0;
+	requestInput_init(&(ptr->input), &(ptr->allocations));
+	ptr->input.fd = ptr->fd;
+	ptr->node = 0;
+	ptr = 0;
+	return 0;
+}
+int httpServer_acceptNewConnection(struct httpServer *server){
+	struct sockaddr address;
+	socklen_t length;
+	int fd;
+	struct linked_list *new_head;
+
+	memset(&address, 0, sizeof(struct sockaddr));
+	length = 0;
+	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
+	if(-1 == fd) return 1;
+
+	new_head = malloc(sizeof(struct linked_list));
+	new_head->data = malloc(sizeof(struct conn_bundle));
+	new_head->next = server->connections;
+	init_connection((struct conn_bundle*)(new_head->data), server, fd);
+	((struct conn_bundle*)(new_head->data))->node = new_head;
+	server->connections = new_head;
+	return 0;
 }

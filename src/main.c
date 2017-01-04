@@ -1,26 +1,10 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include <stdio.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include "./server.h"
-
-int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
-	memset(&(ptr->allocations), 0, sizeof(struct mempool));
-	init_pool(&(ptr->allocations));
-	ptr->fd = fd;
-	fd = 0;
-	ptr->done_writing = 0;
-	ptr->server = server;
-	server = 0;
-	requestInput_init(&(ptr->input), &(ptr->allocations));
-	ptr->input.fd = ptr->fd;
-	ptr->node = 0;
-	ptr = 0;
-	return 0;
-}
 
 #include "./visit_connection_bundle_process_step.c"
 
@@ -53,26 +37,6 @@ int httpServer_stepConnections(struct httpServer *server){
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
 	httpServer_removeEmptyConnections(server);
 	return any;
-}
-
-int httpServer_acceptNewConnection(struct httpServer *server){
-	struct sockaddr address;
-	socklen_t length;
-	int fd;
-	struct linked_list *new_head;
-
-	memset(&address, 0, sizeof(struct sockaddr));
-	length = 0;
-	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
-	if(-1 == fd) return 1;
-
-	new_head = malloc(sizeof(struct linked_list));
-	new_head->data = malloc(sizeof(struct conn_bundle));
-	new_head->next = server->connections;
-	init_connection((struct conn_bundle*)(new_head->data), server, fd);
-	((struct conn_bundle*)(new_head->data))->node = new_head;
-	server->connections = new_head;
-	return 0;
 }
 
 int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){

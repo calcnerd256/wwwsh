@@ -1,6 +1,9 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include <arpa/inet.h>
 #include "./server.h"
+#include "./network.h"
+
 
 int httpServer_init(struct httpServer *server, struct mempool *pool){
 	server->listeningSocket_fileDescriptor = -1;
@@ -23,5 +26,27 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	new_head->next = server->resources;
 	new_head->data = resource;
 	server->resources = new_head;
+	return 0;
+}
+
+int httpServer_listen(struct httpServer *server, char* port_number, int backlog){
+	int sockfd = -1;
+	if(get_socket(port_number, &sockfd)){
+		server = 0;
+		port_number = 0;
+		backlog = 0;
+		sockfd = 0;
+		return 1;
+	}
+	port_number = 0;
+	server->listeningSocket_fileDescriptor = sockfd;
+	server = 0;
+	if(listen(sockfd, backlog)){
+		backlog = 0;
+		sockfd = 0;
+		return 2;
+	}
+	sockfd = 0;
+	backlog = 0;
 	return 0;
 }

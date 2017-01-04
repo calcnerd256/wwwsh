@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./network.h"
 #include "./server.h"
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
@@ -24,28 +23,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 }
 
 #include "./visit_connection_bundle_process_step.c"
-
-int httpServer_listen(struct httpServer *server, char* port_number, int backlog){
-	int sockfd = -1;
-	if(get_socket(port_number, &sockfd)){
-		server = 0;
-		port_number = 0;
-		backlog = 0;
-		sockfd = 0;
-		return 1;
-	}
-	port_number = 0;
-	server->listeningSocket_fileDescriptor = sockfd;
-	server = 0;
-	if(listen(sockfd, backlog)){
-		backlog = 0;
-		sockfd = 0;
-		return 2;
-	}
-	sockfd = 0;
-	backlog = 0;
-	return 0;
-}
 
 int httpServer_close(struct httpServer *server){
 	if(server->memoryPool){

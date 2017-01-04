@@ -12,3 +12,5 @@ int httpServer_pushResource(
 	int (*respond)(struct httpResource*, struct conn_bundle*),
 	void *context
 );
+
+int httpServer_listen(struct httpServer *server, char* port_number, int backlog);

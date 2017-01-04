@@ -25,20 +25,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 
 #include "./visit_connection_bundle_process_step.c"
 
-int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct conn_bundle*), void *context){
-	if(!server) return 1;
-	if(!new_head) return 2;
-	if(!urlMatchesp) return 2;
-	if(!respond) return 2;
-	resource->urlMatchesp = urlMatchesp;
-	resource->respond = respond;
-	resource->context = context;
-	new_head->next = server->resources;
-	new_head->data = resource;
-	server->resources = new_head;
-	return 0;
-}
-
 int httpServer_listen(struct httpServer *server, char* port_number, int backlog){
 	int sockfd = -1;
 	if(get_socket(port_number, &sockfd)){

@@ -12,3 +12,16 @@ int httpServer_init(struct httpServer *server, struct mempool *pool){
 	return 0;
 }
 
+int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct conn_bundle*), void *context){
+	if(!server) return 1;
+	if(!new_head) return 2;
+	if(!urlMatchesp) return 2;
+	if(!respond) return 2;
+	resource->urlMatchesp = urlMatchesp;
+	resource->respond = respond;
+	resource->context = context;
+	new_head->next = server->resources;
+	new_head->data = resource;
+	server->resources = new_head;
+	return 0;
+}

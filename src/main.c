@@ -85,31 +85,16 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_pushRoot(struct httpServer *server, struct staticGetResource *staticResource_storage){
+int httpServer_pushRoot(struct httpServer *server, struct staticGetResource *staticResource_storage, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *keyNode, struct linked_list *valueNode){
 	char *ptr;
 	char *url;
 	char *body;
-	size_t staticResource_size = 3 * sizeof(struct linked_list) + 4 * sizeof(struct extent);
-	struct extent *urlStorage;
-	struct extent *bodyStorage;
-	struct linked_list *headerHeadStorage;
-	struct linked_list *keyNode;
-	struct linked_list *valueNode;
+	size_t staticResource_size = 2 * sizeof(struct extent);
 	struct extent *key;
 	struct extent *value;
 	url = "/";
 	body = "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n";
 	ptr = palloc(server->memoryPool, staticResource_size);
-	urlStorage = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	bodyStorage = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	headerHeadStorage = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	keyNode = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	valueNode = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
 	key = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
 	value = (struct extent*)ptr;
@@ -309,18 +294,28 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list *match_node;
 
 	struct linked_list rootResourceStorage_newHead;
-	struct httpResource rootResourceStorage_resourceStorage;
-	struct staticGetResource rootResourceStorage_staticResourceStorage;
+	struct httpResource rootResourceStorage_resource;
+	struct staticGetResource rootResourceStorage_staticResource;
+	struct extent rootResourceStorage_url;
+	struct extent rootResourceStorage_body;
+	struct linked_list rootResourceStorage_headerHead;
+	struct linked_list rootResourceStorage_keyNode;
+	struct linked_list rootResourceStorage_valNode;
 
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 2;
 
 	ready_fd = httpServer_pushRoot(
 		&server,
-		&rootResourceStorage_staticResourceStorage
+		&rootResourceStorage_staticResource,
+		&rootResourceStorage_url,
+		&rootResourceStorage_body,
+		&rootResourceStorage_headerHead,
+		&rootResourceStorage_keyNode,
+		&rootResourceStorage_valNode
 	);
 	if(ready_fd) return 3;
-	ready_fd = httpServer_pushResource(&server, &rootResourceStorage_newHead, &rootResourceStorage_resourceStorage, &staticGetResource_urlMatchesp, &staticGetResource_respond, &rootResourceStorage_staticResourceStorage);
+	ready_fd = httpServer_pushResource(&server, &rootResourceStorage_newHead, &rootResourceStorage_resource, &staticGetResource_urlMatchesp, &staticGetResource_respond, &rootResourceStorage_staticResource);
 	if(ready_fd) return 4;
 
 	ready_fd = -1;

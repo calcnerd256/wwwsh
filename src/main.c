@@ -284,34 +284,49 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	return 0;
 }
 
+struct contiguousHtmlResource{
+	struct linked_list link_node;
+	struct httpResource resource;
+	struct staticGetResource staticResource;
+	struct extent url;
+	struct extent body;
+	struct linked_list headerTop;
+	struct linked_list keyNode;
+	struct linked_list valNode;
+	struct extent key;
+	struct extent val;
+};
+
+int contiguousHtmlResource_init(struct contiguousHtmlResource *res, char *url, char *body){
+	if(!res) return 2;
+	if(!url) return 3;
+	if(!body) return 3;
+	if(point_extent_at_nice_string(&(res->url), url)) return 4;
+	if(point_extent_at_nice_string(&(res->body), body)) return 4;
+	res->staticResource.url = &(res->url);
+	res->staticResource.body = &(res->body);
+	res->staticResource.headers = push_header_nice_strings(&(res->headerTop), &(res->keyNode), &(res->valNode), &(res->key), "Content-Type", &(res->val), "text/html", 0);
+	return !(res->staticResource.headers);
+}
+
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	struct mempool serverAllocations;
 	int ready_fd;
 	struct linked_list *match_node;
 
-	struct linked_list rootResourceStorage_newHead;
-	struct httpResource rootResourceStorage_resource;
-	struct staticGetResource rootResourceStorage_staticResource;
-	struct extent rootResourceStorage_url;
-	struct extent rootResourceStorage_body;
-	struct linked_list rootResourceStorage_headerHead;
-	struct linked_list rootResourceStorage_keyNode;
-	struct linked_list rootResourceStorage_valNode;
-	struct extent rootResourceStorage_key;
-	struct extent rootResourceStorage_val;
+	struct contiguousHtmlResource rootResourceStorage;
 
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server, &serverAllocations)) return 2;
 
-	if(point_extent_at_nice_string(&rootResourceStorage_url, "/")) return 3;
-	if(point_extent_at_nice_string(&rootResourceStorage_body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n  <p>Coming soon: a resource for the following form to POST to</p>\r\n  <form method=\"POST\" action=\"formtest/\">\r\n   <input type=\"submit\" />\r\n  </form>\r\n </body>\r\n</html>\r\n\r\n"))
-		return 3;
-	rootResourceStorage_staticResource.url = &rootResourceStorage_url;
-	rootResourceStorage_staticResource.body = &rootResourceStorage_body;
-	rootResourceStorage_staticResource.headers = push_header_nice_strings(&rootResourceStorage_headerHead, &rootResourceStorage_keyNode, &rootResourceStorage_valNode, &rootResourceStorage_key, "Content-Type", &rootResourceStorage_val, "text/html", 0);
-	if(!(rootResourceStorage_staticResource.headers)) return 3;
-	ready_fd = httpServer_pushResource(&server, &rootResourceStorage_newHead, &rootResourceStorage_resource, &staticGetResource_urlMatchesp, &staticGetResource_respond, &rootResourceStorage_staticResource);
+	ready_fd = contiguousHtmlResource_init(
+		&rootResourceStorage,
+		"/",
+		"<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n  <p>Coming soon: a resource for the following form to POST to</p>\r\n  <form method=\"POST\" action=\"formtest/\">\r\n   <input type=\"submit\" />\r\n  </form>\r\n </body>\r\n</html>\r\n\r\n"
+	);
+	if(ready_fd) return 3;
+	ready_fd = httpServer_pushResource(&server, &(rootResourceStorage.link_node), &(rootResourceStorage.resource), &staticGetResource_urlMatchesp, &staticGetResource_respond, &(rootResourceStorage.staticResource));
 	if(ready_fd) return 4;
 
 	ready_fd = -1;

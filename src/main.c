@@ -5,10 +5,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./requestInput.h"
 #include "./network.h"
-#include "./server_structs.h"
-
+#include "./server.h"
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	memset(&(ptr->allocations), 0, sizeof(struct mempool));
@@ -38,16 +36,6 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	new_head->next = server->resources;
 	new_head->data = resource;
 	server->resources = new_head;
-	return 0;
-}
-
-int httpServer_init(struct httpServer *server, struct mempool *pool){
-	server->listeningSocket_fileDescriptor = -1;
-	server->memoryPool = pool;
-	init_pool(server->memoryPool);
-	server->connections = 0;
-	server->resources = 0;
-	server = 0;
 	return 0;
 }
 

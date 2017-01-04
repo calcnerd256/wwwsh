@@ -15,4 +15,5 @@ gcc \
  ../src/chunkStream.c \
  ../src/requestInput.c \
  ../src/network.c \
+ ../src/server.c \
  ../src/main.c

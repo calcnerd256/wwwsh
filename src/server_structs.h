@@ -6,6 +6,11 @@
 
 */
 
+#ifndef INCLUDE_SERVER_STRUCTS
+#define INCLUDE_SERVER_STRUCTS
+
+#include "./requestInput.h"
+
 struct httpServer{
 	struct mempool *memoryPool;
 	struct linked_list *connections;
@@ -33,3 +38,5 @@ struct httpResource{
 	int (*respond)(struct httpResource*, struct conn_bundle*);
 	void *context;
 };
+
+#endif

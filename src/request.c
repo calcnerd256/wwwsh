@@ -190,6 +190,43 @@ int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
 	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
 }
 
+struct linked_list *push_header_contiguous(char *buffer, char *key, char *value, struct linked_list *next){
+	char *ptr;
+	struct linked_list *top;
+	struct linked_list *key_node;
+	struct linked_list *value_node;
+	struct extent *key_extent;
+	struct extent *value_extent;
+	ptr = buffer;
+	top = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	key_node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	value_node = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	key_extent = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	value_extent = (struct extent*)ptr;
+	return push_header_nice_strings(top, key_node, value_node, key_extent, key, value_extent, value, next);
+}
+int connection_bundle_respond_bad_method(struct conn_bundle *conn){
+	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
+	struct extent reason;
+	struct extent body;
+	int status_code = 405;
+	if(point_extent_at_nice_string(&reason, "METHOD NOT ALLOWED")) return 1;
+	if(!push_header_contiguous(buffer, "Allow", "GET", 0)) return 1;
+	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
+	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, &body);
+}
+int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body){
+	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
+	struct extent reason;
+	int status_code = 200;
+	if(point_extent_at_nice_string(&reason, "OK")) return 1;
+	if(!push_header_contiguous(buffer, "Content-Type", "text/html", headers)) return 1;
+	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, body);
+}
 
 
 /* TODO: consider moving this method */

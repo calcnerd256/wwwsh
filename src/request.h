@@ -22,6 +22,8 @@ int connection_bundle_close_write(struct conn_bundle *conn);
 int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body);
 
 int connection_bundle_respond_bad_request_target(struct conn_bundle *conn);
+int connection_bundle_respond_bad_method(struct conn_bundle *conn);
+int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body);
 
 
 int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection);

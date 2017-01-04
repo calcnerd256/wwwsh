@@ -7,66 +7,6 @@
 #include "./server.h"
 #include "./request.h"
 
-int connection_bundle_free(struct conn_bundle *conn){
-	if(!conn) return 1;
-	if(conn->fd == -1) return 0;
-	close(conn->fd);
-	conn->fd = -1;
-
-	if(conn->allocations.allocs){
-
-		requestInput_consumeLastLine(&(conn->input));
-
-		free_pool(&(conn->allocations));
-		memset(&(conn->allocations), 0, sizeof(struct mempool));
-	}
-	if(conn->node) conn->node->data = 0;
-	memset(conn, 0, sizeof(struct conn_bundle));
-	conn->done_writing = 1;
-	conn->input.done = 1;
-	conn->input.httpMajorVersion = -1;
-	conn->input.httpMinorVersion = -1;
-	free(conn);
-	return 0;
-}
-
-int connection_bundle_close_write(struct conn_bundle *conn){
-	if(conn->done_writing) return 0;
-	conn->done_writing = 1;
-	if(!(conn->input.done)) return 0;
-	return connection_bundle_free(conn);
-}
-
-int visit_header_write(struct linked_list *header, struct conn_bundle *context, struct linked_list *node){
-	(void)node;
-	if(!header) return 1;
-	if(!(header->data)) return 1;
-	if(!(header->next)) return 1;
-	if(!(header->next->data)) return 1;
-	if(!context) return 1;
-	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
-}
-
-int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
-	struct extent connection;
-	struct extent close;
-	struct extent content_length_key;
-	struct extent content_length_value;
-	char content_length_str[256];
-	if(point_extent_at_nice_string(&connection, "Connection")) return 1;
-	if(point_extent_at_nice_string(&close, "close")) return 1;
-	if(point_extent_at_nice_string(&content_length_key, "Content-Length")) return 1;
-	snprintf(content_length_str, 255, "%d", (int)(body->len));
-	content_length_str[255] = 0;
-	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
-	if(connection_bundle_write_status_line(conn, status_code, reason)) return 1;
-	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
-	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 3;
-	if(connection_bundle_write_header(conn, &connection, &close)) return 3;
-	if(connection_bundle_write_crlf(conn)) return 4;
-	if(connection_bundle_write_extent(conn, body)) return 5;
-	return connection_bundle_close_write(conn);
-}
 
 struct linked_list *push_header_nice_strings(struct linked_list *top, struct linked_list *key_node, struct linked_list *value_node, struct extent *key_extent, char *key, struct extent *value_extent, char *value, struct linked_list *next){
 	top->data = key_node;

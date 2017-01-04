@@ -7,65 +7,7 @@
 #include <string.h>
 #include "./requestInput.h"
 #include "./network.h"
-
-/*
-	dependencies:
-		structs:
-			httpServer
-				mempool
-				linked_list
-			staticGetResource
-				extent
-				linked_list
-			conn_bundle
-				requestInput
-				mempool
-				httpServer
-				linked_list
-			httpResource
-				conn_bundle
-
-		method signatures:
-			conn_bundle
-				init_connection
-				can_respondp
-				free
-				close_write
-				write_crlf
-				extent
-				write_header
-				write_status_line
-				write
-				send_response
-*/
-
-struct httpServer{
-	struct mempool *memoryPool;
-	struct linked_list *connections;
-	struct linked_list *resources;
-	int listeningSocket_fileDescriptor;
-};
-
-struct staticGetResource{
-	struct extent *url;
-	struct extent *body;
-	struct linked_list *headers;
-};
-
-struct conn_bundle{
-	struct requestInput input;
-	struct mempool allocations;
-	struct httpServer *server;
-	struct linked_list *node;
-	int fd;
-	char done_writing;
-};
-
-struct httpResource{
-	int (*urlMatchesp)(struct httpResource*, struct extent*);
-	int (*respond)(struct httpResource*, struct conn_bundle*);
-	void *context;
-};
+#include "./server_structs.h"
 
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){

@@ -5,3 +5,4 @@
 /* TODO: rename connection_bundle and struct conn_bundle to incomingHttpRequest */
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd);
+int incomingHttpRequest_selectRead(struct conn_bundle *req);

@@ -80,12 +80,9 @@ int httpServer_close(struct httpServer *server){
 }
 
 
-/* TODO: extract a method on connection_bundle to call from here */
 int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
 	int *done;
 	int *fd;
-	struct timeval timeout;
-	fd_set to_read;
 	int status;
 	(void)node;
 	if(!context) return 1;
@@ -95,20 +92,10 @@ int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_
 	if(*done) return 0;
 	fd = (int *)(context->next->data);
 	if(!fd) return 3;
-	if(!conn) return 2;
-	if(conn->input.done) return 0;
-	if(-1 == conn->fd) return 2;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 0;
-	FD_ZERO(&to_read);
-	FD_SET(conn->fd, &to_read);
-	status = select(conn->fd + 1, &to_read, 0, 0, &timeout);
-	if(-1 == status) return 4;
-	if(!status) return 0;
-	if(FD_ISSET(conn->fd, &to_read)){
-		*fd = conn->fd;
-		*done = 1;
-	}
+	status = incomingHttpRequest_selectRead(conn);
+	if(-1 == status) return 0;
+	*fd = status;
+	*done = 1;
 	return 0;
 }
 int httpServer_selectRead(struct httpServer *server){

@@ -85,9 +85,9 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_init(struct httpServer *server){
+int httpServer_init(struct httpServer *server, struct mempool *pool){
 	server->listeningSocket_fileDescriptor = -1;
-	server->memoryPool = malloc(sizeof(struct mempool));
+	server->memoryPool = pool;
 	init_pool(server->memoryPool);
 	server->connections = 0;
 	server->resources = 0;
@@ -272,6 +272,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
+	struct mempool serverAllocations;
 	int ready_fd;
 	struct linked_list *match_node;
 
@@ -287,7 +288,7 @@ int main(int argument_count, char* *arguments_vector){
 	struct extent rootResourceStorage_val;
 
 	if(2 != argument_count) return 1;
-	if(httpServer_init(&server)) return 2;
+	if(httpServer_init(&server, &serverAllocations)) return 2;
 
 	ready_fd = staticGetResource_initHtml(
 		&rootResourceStorage_staticResource,

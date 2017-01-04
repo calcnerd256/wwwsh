@@ -152,3 +152,44 @@ int connection_bundle_send_response(struct conn_bundle *conn, int status_code, s
 	if(connection_bundle_write_extent(conn, body)) return 5;
 	return connection_bundle_close_write(conn);
 }
+
+
+int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
+	struct extent reason;
+	struct extent body;
+	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
+	if(point_extent_at_nice_string(&body, "Not Found.\r\n\r\n")) return 2;
+	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
+}
+
+
+/* TODO: consider moving this method */
+int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection){
+	if(!connection) return 1;
+	if(!resource) return 1;
+	if(!(resource->respond)) return 1;
+	return (*(resource->respond))(resource, connection);
+}
+
+
+int connection_bundle_respond(struct conn_bundle *conn){
+	struct httpResource *resource;
+	struct linked_list *match_node = 0;
+	if(conn->done_writing) return 0;
+
+	resource = 0;
+	if(!first_matching(conn->server->resources, (visitor_t)(&match_httpResource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
+		if(match_node)
+			resource = match_node->data;
+	if(!resource)
+		return connection_bundle_respond_bad_request_target(conn);
+	return httpResource_respond(resource, conn);
+}
+
+int connection_bundle_process_steppedp(struct conn_bundle *conn){
+	if(!conn) return 0;
+	if(1 == requestInput_processStep(&(conn->input))) return 1;
+	if(!connection_bundle_can_respondp(conn)) return 0;
+	connection_bundle_respond(conn);
+	return 1;
+}

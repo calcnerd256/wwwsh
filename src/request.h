@@ -17,3 +17,11 @@ int connection_bundle_free(struct conn_bundle *conn);
 int connection_bundle_close_write(struct conn_bundle *conn);
 
 int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body);
+
+int connection_bundle_respond_bad_request_target(struct conn_bundle *conn);
+
+int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection);
+
+int connection_bundle_respond(struct conn_bundle *conn);
+
+int connection_bundle_process_steppedp(struct conn_bundle *conn);

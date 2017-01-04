@@ -50,13 +50,6 @@ int connection_bundle_respond_bad_method(struct conn_bundle *conn){
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
 	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
-int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
-	struct extent reason;
-	struct extent body;
-	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
-	if(point_extent_at_nice_string(&body, "Not Found.\r\n\r\n")) return 2;
-	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
-}
 int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
@@ -99,35 +92,6 @@ int staticGetResource_respond(struct httpResource *resource, struct conn_bundle 
 		return connection_bundle_respond_bad_method(connection);
 	point_extent_at_nice_string(&reason, "OK");
 	return connection_bundle_send_response(connection, 200, &reason, response->headers, response->body);
-}
-
-int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection){
-	if(!connection) return 1;
-	if(!resource) return 1;
-	if(!(resource->respond)) return 1;
-	return (*(resource->respond))(resource, connection);
-}
-
-int connection_bundle_respond(struct conn_bundle *conn){
-	struct httpResource *resource;
-	struct linked_list *match_node = 0;
-	if(conn->done_writing) return 0;
-
-	resource = 0;
-	if(!first_matching(conn->server->resources, (visitor_t)(&match_httpResource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
-		if(match_node)
-			resource = match_node->data;
-	if(!resource)
-		return connection_bundle_respond_bad_request_target(conn);
-	return httpResource_respond(resource, conn);
-}
-
-int connection_bundle_process_steppedp(struct conn_bundle *conn){
-	if(!conn) return 0;
-	if(1 == requestInput_processStep(&(conn->input))) return 1;
-	if(!connection_bundle_can_respondp(conn)) return 0;
-	connection_bundle_respond(conn);
-	return 1;
 }
 
 int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){

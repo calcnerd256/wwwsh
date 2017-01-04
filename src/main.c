@@ -94,21 +94,6 @@ int staticGetResource_respond(struct httpResource *resource, struct conn_bundle 
 	return connection_bundle_send_response(connection, 200, &reason, response->headers, response->body);
 }
 
-int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
-	(void)node;
-	if(connection_bundle_process_steppedp(conn)) *context = 1;
-	conn = 0;
-	context = 0;
-	node = 0;
-	return 0;
-}
-
-int httpServer_stepConnections(struct httpServer *server){
-	int any = 0;
-	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
-	httpServer_removeEmptyConnections(server);
-	return any;
-}
 
 int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){
 	(void)node;

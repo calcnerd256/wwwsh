@@ -85,15 +85,11 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_pushRoot(struct httpServer *server){
+int httpServer_pushRoot(struct httpServer *server, struct staticGetResource *staticResource_storage){
 	char *ptr;
 	char *url;
 	char *body;
-	size_t resource_size = sizeof(struct linked_list) + sizeof(struct httpResource) + sizeof(struct staticGetResource);
 	size_t staticResource_size = 3 * sizeof(struct linked_list) + 4 * sizeof(struct extent);
-	struct linked_list *new_head;
-	struct httpResource *resource_storage;
-	struct staticGetResource *staticResource_storage;
 	struct extent *urlStorage;
 	struct extent *bodyStorage;
 	struct linked_list *headerHeadStorage;
@@ -101,15 +97,9 @@ int httpServer_pushRoot(struct httpServer *server){
 	struct linked_list *valueNode;
 	struct extent *key;
 	struct extent *value;
-	ptr = palloc(server->memoryPool, resource_size + staticResource_size);
-	new_head = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	resource_storage = (struct httpResource*)ptr;
-	ptr += sizeof(struct httpResource);
-	staticResource_storage = (struct staticGetResource*)ptr;
-	ptr += sizeof(struct staticGetResource);
 	url = "/";
 	body = "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n";
+	ptr = palloc(server->memoryPool, staticResource_size);
 	urlStorage = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
 	bodyStorage = (struct extent*)ptr;
@@ -125,17 +115,7 @@ int httpServer_pushRoot(struct httpServer *server){
 	value = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
 	ptr = 0;
-	staticGetResource_initHtml(staticResource_storage, url, body, urlStorage, bodyStorage, headerHeadStorage, 0, keyNode, valueNode, key, value);
-	url = 0;
-	body = 0;
-	urlStorage = 0;
-	bodyStorage = 0;
-	headerHeadStorage = 0;
-	keyNode = 0;
-	valueNode = 0;
-	key = 0;
-	value = 0;
-	return httpServer_pushResource(server, new_head, resource_storage, &staticGetResource_urlMatchesp, &staticGetResource_respond, staticResource_storage);
+	return staticGetResource_initHtml(staticResource_storage, url, body, urlStorage, bodyStorage, headerHeadStorage, 0, keyNode, valueNode, key, value);
 }
 
 int httpServer_init(struct httpServer *server){
@@ -327,13 +307,27 @@ int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	int ready_fd;
 	struct linked_list *match_node;
+
+	struct linked_list rootResourceStorage_newHead;
+	struct httpResource rootResourceStorage_resourceStorage;
+	struct staticGetResource rootResourceStorage_staticResourceStorage;
+
 	if(2 != argument_count) return 1;
-	if(httpServer_init(&server)) return 1;
-	if(httpServer_pushRoot(&server)) return 1;
+	if(httpServer_init(&server)) return 2;
+
+	ready_fd = httpServer_pushRoot(
+		&server,
+		&rootResourceStorage_staticResourceStorage
+	);
+	if(ready_fd) return 3;
+	ready_fd = httpServer_pushResource(&server, &rootResourceStorage_newHead, &rootResourceStorage_resourceStorage, &staticGetResource_urlMatchesp, &staticGetResource_respond, &rootResourceStorage_staticResourceStorage);
+	if(ready_fd) return 4;
+
+	ready_fd = -1;
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;
 		httpServer_close(&server);
-		return 2;
+		return 5;
 	}
 
 	while(1){
@@ -355,7 +349,7 @@ int main(int argument_count, char* *arguments_vector){
 
 	if(httpServer_close(&server)){
 		server.listeningSocket_fileDescriptor = -1;
-		return 4;
+		return 6;
 	}
 	return 0;
 }

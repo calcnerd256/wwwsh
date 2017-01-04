@@ -17,4 +17,5 @@ gcc \
  ../src/network.c \
  ../src/server.c \
  ../src/request.c \
+ ../src/static.c \
  ../src/main.c

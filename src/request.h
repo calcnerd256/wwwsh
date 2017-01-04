@@ -9,3 +9,6 @@ int incomingHttpRequest_selectRead(struct conn_bundle *req);
 int connection_bundle_can_respondp(struct conn_bundle *conn);
 
 int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str);
+int connection_bundle_write_crlf(struct conn_bundle *conn);
+int connection_bundle_write_status_line(struct conn_bundle *conn, int status_code, struct extent *reason);
+int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key, struct extent *value);

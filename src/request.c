@@ -57,3 +57,36 @@ int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str)
 	if((size_t)bytes != str->len) return 2;
 	return 0;
 }
+int connection_bundle_write_crlf(struct conn_bundle *conn){
+	return 2 != write(conn->fd, "\r\n", 2);
+}
+
+int connection_bundle_write_status_line(struct conn_bundle *conn, int status_code, struct extent *reason){
+	char status_code_str[3];
+	ssize_t bytes;
+	if(status_code < 0) return 1;
+	if(status_code > 999) return 1;
+	status_code_str[0] = status_code / 100 + '1' - 1;
+	status_code %= 100;
+	status_code_str[1] = status_code / 10 + '1' - 1;
+	status_code %= 10;
+	status_code_str[2] = status_code + '1' - 1;
+	bytes = write(conn->fd, "HTTP/1.1 ", 9);
+	if(9 != bytes) return 1;
+	bytes = write(conn->fd, status_code_str, 3);
+	if(3 != bytes) return 1;
+	bytes = write(conn->fd, " ", 1);
+	if(1 != bytes) return 1;
+	if(connection_bundle_write_extent(conn, reason)) return 1;
+	return connection_bundle_write_crlf(conn);
+}
+
+int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key, struct extent *value){
+	ssize_t bytes;
+	if(connection_bundle_write_extent(conn, key)) return 1;
+	bytes = write(conn->fd, ": ", 2);
+	if(bytes < 0) return 1;
+	if(2 != bytes) return 2;
+	if(connection_bundle_write_extent(conn, value)) return 1;
+	return connection_bundle_write_crlf(conn);
+}

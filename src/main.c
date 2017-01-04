@@ -206,9 +206,34 @@ int httpServer_selectRead(struct httpServer *server){
 	return ready_fd;
 }
 
+int httpServer_removeEmptyConnections(struct httpServer *server){
+	struct linked_list *node = 0;
+	struct linked_list *middle = 0;
+	if(!server) return 1;
+	if(!(server->connections)) return 0;
+	while(server->connections && !(server->connections->data)){
+		node = server->connections->next;
+		server->connections->next = 0;
+		free(server->connections);
+		server->connections = node;
+	}
+	node = server->connections;
+	while(node){
+		while(node->next && !(node->next->data)){
+			middle = node->next;
+			node->next = middle->next;
+			middle->next = 0;
+			free(middle);
+		}
+		node = node->next;
+	}
+	return 0;
+}
+
 int httpServer_stepConnections(struct httpServer *server){
 	int any = 0;
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
+	httpServer_removeEmptyConnections(server);
 	return any;
 }
 
@@ -223,7 +248,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
 	if(-1 == fd) return 1;
 
-	new_head = palloc(server->memoryPool, sizeof(struct linked_list));
+	new_head = malloc(sizeof(struct linked_list));
 	new_head->data = malloc(sizeof(struct conn_bundle));
 	new_head->next = server->connections;
 	init_connection((struct conn_bundle*)(new_head->data), server, fd);

@@ -8,18 +8,6 @@
 #include "./request.h"
 
 
-struct linked_list *push_header_nice_strings(struct linked_list *top, struct linked_list *key_node, struct linked_list *value_node, struct extent *key_extent, char *key, struct extent *value_extent, char *value, struct linked_list *next){
-	top->data = key_node;
-	top->next = next;
-	key_node->data = key_extent;
-	key_node->next = value_node;
-	value_node->data = value_extent;
-	value_node->next = 0;
-	if(point_extent_at_nice_string(key_extent, key)) return 0;
-	if(point_extent_at_nice_string(value_extent, value)) return 0;
-	return top;
-}
-
 struct linked_list *push_header_contiguous(char *buffer, char *key, char *value, struct linked_list *next){
 	char *ptr;
 	struct linked_list *top;
@@ -94,33 +82,6 @@ int staticGetResource_respond(struct httpResource *resource, struct conn_bundle 
 	return connection_bundle_send_response(connection, 200, &reason, response->headers, response->body);
 }
 
-
-int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){
-	(void)node;
-	node = 0;
-	if(!data) return 0;
-	if(!target) return 0;
-	return data->fd == *target;
-}
-
-/* TODO: extract a method on requestInput */
-int httpRequestHandler_readChunk(struct conn_bundle *conn){
-	char buf[CHUNK_SIZE + 1];
-	size_t len;
-
-	if(!conn) return 2;
-
-	buf[CHUNK_SIZE] = 0;
-	len = read(conn->fd, buf, CHUNK_SIZE);
-	buf[len] = 0;
-	chunkStream_append(conn->input.chunks, buf, len);
-
-	if(len) return 0;
-	conn->input.done = 1;
-	if(conn->done_writing)
-		return connection_bundle_free(conn);
-	return 0;
-}
 
 struct contiguousHtmlResource{
 	struct linked_list link_node;

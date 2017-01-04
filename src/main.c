@@ -85,21 +85,11 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_pushRoot(struct httpServer *server, struct staticGetResource *staticResource_storage, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *keyNode, struct linked_list *valueNode){
-	char *ptr;
+int httpServer_pushRoot(struct staticGetResource *staticResource_storage, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *keyNode, struct linked_list *valueNode, struct extent *key, struct extent *value){
 	char *url;
 	char *body;
-	size_t staticResource_size = 2 * sizeof(struct extent);
-	struct extent *key;
-	struct extent *value;
 	url = "/";
 	body = "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n";
-	ptr = palloc(server->memoryPool, staticResource_size);
-	key = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	value = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	ptr = 0;
 	return staticGetResource_initHtml(staticResource_storage, url, body, urlStorage, bodyStorage, headerHeadStorage, 0, keyNode, valueNode, key, value);
 }
 
@@ -301,18 +291,21 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list rootResourceStorage_headerHead;
 	struct linked_list rootResourceStorage_keyNode;
 	struct linked_list rootResourceStorage_valNode;
+	struct extent rootResourceStorage_key;
+	struct extent rootResourceStorage_val;
 
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 2;
 
 	ready_fd = httpServer_pushRoot(
-		&server,
 		&rootResourceStorage_staticResource,
 		&rootResourceStorage_url,
 		&rootResourceStorage_body,
 		&rootResourceStorage_headerHead,
 		&rootResourceStorage_keyNode,
-		&rootResourceStorage_valNode
+		&rootResourceStorage_valNode,
+		&rootResourceStorage_key,
+		&rootResourceStorage_val
 	);
 	if(ready_fd) return 3;
 	ready_fd = httpServer_pushResource(&server, &rootResourceStorage_newHead, &rootResourceStorage_resource, &staticGetResource_urlMatchesp, &staticGetResource_respond, &rootResourceStorage_staticResource);

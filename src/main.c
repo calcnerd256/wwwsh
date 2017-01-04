@@ -54,11 +54,24 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 
 #include "./visit_connection_bundle_process_step.c"
 
+int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct conn_bundle*), void *context){
+	if(!server) return 1;
+	if(!new_head) return 2;
+	if(!urlMatchesp) return 2;
+	if(!respond) return 2;
+	resource->urlMatchesp = urlMatchesp;
+	resource->respond = respond;
+	resource->context = context;
+	new_head->next = server->resources;
+	new_head->data = resource;
+	server->resources = new_head;
+	return 0;
+}
+
 int httpServer_init(struct httpServer *server){
 	char *ptr;
 	struct staticGetResource *root;
 	struct linked_list *node;
-	struct httpResource *rootResource;
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
 	init_pool(server->memoryPool);
@@ -67,9 +80,10 @@ int httpServer_init(struct httpServer *server){
 	server->resources = 0;
 
 	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
-	server->resources = (struct linked_list*)ptr;
+	httpServer_pushResource(server, (struct linked_list*)ptr, (struct httpResource*)(ptr + 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent)), &staticGetResource_urlMatchesp, &staticGetResource_respond, (struct staticGetResource*)(ptr + sizeof(struct linked_list)));
+	root = ((struct httpResource*)(server->resources->data))->context;
+	server = 0;
 	ptr += sizeof(struct linked_list);
-	root = (struct staticGetResource*)ptr;
 	ptr += sizeof(struct staticGetResource);
 	root->url = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
@@ -82,19 +96,8 @@ int httpServer_init(struct httpServer *server){
 	node->next = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	node->data = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	node->next->data = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	rootResource = (struct httpResource*)ptr;
+	node->next->data = (struct extent*)(ptr + sizeof(struct extent));
 	ptr = 0;
-
-	rootResource->context = root;
-	rootResource->urlMatchesp = &staticGetResource_urlMatchesp;
-	rootResource->respond = &staticGetResource_respond;
-
-	server->resources->data = rootResource;
-	server->resources->next = 0;
-	server = 0;
 
 	point_extent_at_nice_string(root->url, "/");
 	point_extent_at_nice_string(root->body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n");

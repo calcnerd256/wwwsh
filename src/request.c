@@ -37,3 +37,12 @@ int incomingHttpRequest_selectRead(struct conn_bundle *req){
 	FD_ZERO(&to_read);
 	return req->fd;
 }
+
+int connection_bundle_can_respondp(struct conn_bundle *conn){
+	if(!(conn->input.method)) return 0;
+	if(!(conn->input.requestUrl)) return 0;
+	if(-1 == conn->input.httpMajorVersion) return 0;
+	if(-1 == conn->input.httpMinorVersion) return 0;
+	if(conn->done_writing) return 0;
+	return 1;
+}

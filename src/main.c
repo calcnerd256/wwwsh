@@ -7,15 +7,6 @@
 #include "./server.h"
 #include "./request.h"
 
-int connection_bundle_can_respondp(struct conn_bundle *conn){
-	if(!(conn->input.method)) return 0;
-	if(!(conn->input.requestUrl)) return 0;
-	if(-1 == conn->input.httpMajorVersion) return 0;
-	if(-1 == conn->input.httpMinorVersion) return 0;
-	if(conn->done_writing) return 0;
-	return 1;
-}
-
 int connection_bundle_free(struct conn_bundle *conn){
 	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
@@ -259,30 +250,6 @@ int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context,
 	return 0;
 }
 
-int httpServer_removeEmptyConnections(struct httpServer *server){
-	struct linked_list *node = 0;
-	struct linked_list *middle = 0;
-	if(!server) return 1;
-	if(!(server->connections)) return 0;
-	while(server->connections && !(server->connections->data)){
-		node = server->connections->next;
-		server->connections->next = 0;
-		free(server->connections);
-		server->connections = node;
-	}
-	node = server->connections;
-	while(node){
-		while(node->next && !(node->next->data)){
-			middle = node->next;
-			node->next = middle->next;
-			middle->next = 0;
-			free(middle);
-		}
-		node = node->next;
-	}
-	return 0;
-}
-
 int httpServer_stepConnections(struct httpServer *server){
 	int any = 0;
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
@@ -298,6 +265,7 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 	return data->fd == *target;
 }
 
+/* TODO: extract a method on requestInput */
 int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;

@@ -55,6 +55,7 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 	return 0;
 }
 
+/* TODO: consider cleaning up all open connections when closing the server */
 int httpServer_close(struct httpServer *server){
 	if(server->memoryPool){
 		free_pool(server->memoryPool);
@@ -136,5 +137,29 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	init_connection((struct conn_bundle*)(new_head->data), server, fd);
 	((struct conn_bundle*)(new_head->data))->node = new_head;
 	server->connections = new_head;
+	return 0;
+}
+
+int httpServer_removeEmptyConnections(struct httpServer *server){
+	struct linked_list *node = 0;
+	struct linked_list *middle = 0;
+	if(!server) return 1;
+	if(!(server->connections)) return 0;
+	while(server->connections && !(server->connections->data)){
+		node = server->connections->next;
+		server->connections->next = 0;
+		free(server->connections);
+		server->connections = node;
+	}
+	node = server->connections;
+	while(node){
+		while(node->next && !(node->next->data)){
+			middle = node->next;
+			node->next = middle->next;
+			middle->next = 0;
+			free(middle);
+		}
+		node = node->next;
+	}
 	return 0;
 }

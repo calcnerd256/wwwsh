@@ -6,3 +6,4 @@
 
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd);
 int incomingHttpRequest_selectRead(struct conn_bundle *req);
+int connection_bundle_can_respondp(struct conn_bundle *conn);

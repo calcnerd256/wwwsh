@@ -17,3 +17,4 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 int httpServer_close(struct httpServer *server);
 int httpServer_selectRead(struct httpServer *server);
 int httpServer_acceptNewConnection(struct httpServer *server);
+int httpServer_removeEmptyConnections(struct httpServer *server);

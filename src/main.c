@@ -85,21 +85,66 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_init(struct httpServer *server){
+int httpServer_pushRoot(struct httpServer *server){
 	char *ptr;
+	char *url;
+	char *body;
+	size_t resource_size = sizeof(struct linked_list) + sizeof(struct httpResource) + sizeof(struct staticGetResource);
+	size_t staticResource_size = 3 * sizeof(struct linked_list) + 4 * sizeof(struct extent);
+	struct linked_list *new_head;
+	struct httpResource *resource_storage;
+	struct staticGetResource *staticResource_storage;
+	struct extent *urlStorage;
+	struct extent *bodyStorage;
+	struct linked_list *headerHeadStorage;
+	struct linked_list *keyNode;
+	struct linked_list *valueNode;
+	struct extent *key;
+	struct extent *value;
+	ptr = palloc(server->memoryPool, resource_size + staticResource_size);
+	new_head = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	resource_storage = (struct httpResource*)ptr;
+	ptr += sizeof(struct httpResource);
+	staticResource_storage = (struct staticGetResource*)ptr;
+	ptr += sizeof(struct staticGetResource);
+	url = "/";
+	body = "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n";
+	urlStorage = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	bodyStorage = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	headerHeadStorage = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	keyNode = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	valueNode = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	key = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	value = (struct extent*)ptr;
+	ptr += sizeof(struct extent);
+	ptr = 0;
+	staticGetResource_initHtml(staticResource_storage, url, body, urlStorage, bodyStorage, headerHeadStorage, 0, keyNode, valueNode, key, value);
+	url = 0;
+	body = 0;
+	urlStorage = 0;
+	bodyStorage = 0;
+	headerHeadStorage = 0;
+	keyNode = 0;
+	valueNode = 0;
+	key = 0;
+	value = 0;
+	return httpServer_pushResource(server, new_head, resource_storage, &staticGetResource_urlMatchesp, &staticGetResource_respond, staticResource_storage);
+}
+
+int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
 	init_pool(server->memoryPool);
 	server->connections = 0;
-	ptr = 0;
 	server->resources = 0;
-
-	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
-	httpServer_pushResource(server, (struct linked_list*)ptr, (struct httpResource*)(ptr + sizeof(struct linked_list)), &staticGetResource_urlMatchesp, &staticGetResource_respond, (struct staticGetResource*)(ptr + sizeof(struct linked_list) + sizeof(struct httpResource)));
-	ptr += sizeof(struct linked_list) + sizeof(struct httpResource) + sizeof(struct staticGetResource);
-	staticGetResource_initHtml(((struct httpResource*)(server->resources->data))->context, "/", "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n", (struct extent*)ptr, (struct extent*)(ptr + sizeof(struct extent)), (struct linked_list*)(ptr + 2 * sizeof(struct extent)), 0, (struct linked_list*)(ptr + 2 * sizeof(struct extent) + sizeof(struct linked_list)), (struct linked_list*)(ptr + 2 * sizeof(struct extent) + 2 * sizeof(struct linked_list)), (struct extent*)(ptr + 2 * sizeof(struct extent) + 3 * sizeof(struct linked_list)), (struct extent*)(ptr + 3 * sizeof(struct extent) + 3 * sizeof(struct linked_list)));
 	server = 0;
-	ptr = 0;
 	return 0;
 }
 
@@ -284,6 +329,7 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list *match_node;
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 1;
+	if(httpServer_pushRoot(&server)) return 1;
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;
 		httpServer_close(&server);

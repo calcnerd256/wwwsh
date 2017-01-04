@@ -216,7 +216,6 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	struct sockaddr address;
 	socklen_t length;
 	int fd;
-	char *ptr;
 	struct linked_list *new_head;
 
 	memset(&address, 0, sizeof(struct sockaddr));
@@ -224,13 +223,12 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
 	if(-1 == fd) return 1;
 
-	ptr = palloc(server->memoryPool, sizeof(struct linked_list));
-	new_head = (struct linked_list*)ptr;
-	new_head->next = server->connections;
-	server->connections = new_head;
+	new_head = palloc(server->memoryPool, sizeof(struct linked_list));
 	new_head->data = malloc(sizeof(struct conn_bundle));
+	new_head->next = server->connections;
 	init_connection((struct conn_bundle*)(new_head->data), server, fd);
 	((struct conn_bundle*)(new_head->data))->node = new_head;
+	server->connections = new_head;
 	return 0;
 }
 

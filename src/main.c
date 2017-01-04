@@ -85,14 +85,6 @@ int staticGetResource_initHtml(struct staticGetResource *resource, char* url, ch
 	return 0;
 }
 
-int httpServer_pushRoot(struct staticGetResource *staticResource_storage, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *keyNode, struct linked_list *valueNode, struct extent *key, struct extent *value){
-	char *url;
-	char *body;
-	url = "/";
-	body = "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n";
-	return staticGetResource_initHtml(staticResource_storage, url, body, urlStorage, bodyStorage, headerHeadStorage, 0, keyNode, valueNode, key, value);
-}
-
 int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
@@ -297,11 +289,14 @@ int main(int argument_count, char* *arguments_vector){
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 2;
 
-	ready_fd = httpServer_pushRoot(
+	ready_fd = staticGetResource_initHtml(
 		&rootResourceStorage_staticResource,
+		"/",
+		"<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n",
 		&rootResourceStorage_url,
 		&rootResourceStorage_body,
 		&rootResourceStorage_headerHead,
+		0,
 		&rootResourceStorage_keyNode,
 		&rootResourceStorage_valNode,
 		&rootResourceStorage_key,

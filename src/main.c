@@ -41,14 +41,6 @@ int connection_bundle_write_crlf(struct conn_bundle *conn){
 	return 2 != write(conn->fd, "\r\n", 2);
 }
 
-int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str){
-	ssize_t bytes;
-	bytes = write(conn->fd, str->bytes, str->len);
-	if(bytes < 0) return 1;
-	if((size_t)bytes != str->len) return 2;
-	return 0;
-}
-
 int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key, struct extent *value){
 	ssize_t bytes;
 	if(connection_bundle_write_extent(conn, key)) return 1;
@@ -182,15 +174,6 @@ int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *
 	if(!(resource->context)) return 0;
 	if(!url) return 0;
 	return match_resource_url(resource->context, url, 0);
-}
-
-int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){
-	(void)node;
-	node = 0;
-	if(!url) return 0;
-	if(!resource) return 0;
-	if(!(resource->urlMatchesp)) return 0;
-	return (*(resource->urlMatchesp))(resource, url);
 }
 
 int staticGetResource_respond(struct httpResource *resource, struct conn_bundle *connection){

@@ -163,3 +163,13 @@ int httpServer_removeEmptyConnections(struct httpServer *server){
 	}
 	return 0;
 }
+
+
+int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){
+	(void)node;
+	node = 0;
+	if(!url) return 0;
+	if(!resource) return 0;
+	if(!(resource->urlMatchesp)) return 0;
+	return (*(resource->urlMatchesp))(resource, url);
+}

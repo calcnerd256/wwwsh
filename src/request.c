@@ -1,7 +1,9 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include <unistd.h>
 #include <string.h>
 #include "./request.h"
+#include "./server.h"
 
 /* TODO: rename move this method as appropriate */
 int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
@@ -45,4 +47,13 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 	if(-1 == conn->input.httpMinorVersion) return 0;
 	if(conn->done_writing) return 0;
 	return 1;
+}
+
+
+int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str){
+	ssize_t bytes;
+	bytes = write(conn->fd, str->bytes, str->len);
+	if(bytes < 0) return 1;
+	if((size_t)bytes != str->len) return 2;
+	return 0;
 }

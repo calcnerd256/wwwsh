@@ -18,3 +18,5 @@ int httpServer_close(struct httpServer *server);
 int httpServer_selectRead(struct httpServer *server);
 int httpServer_acceptNewConnection(struct httpServer *server);
 int httpServer_removeEmptyConnections(struct httpServer *server);
+
+int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node);

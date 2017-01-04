@@ -16,4 +16,5 @@ gcc \
  ../src/requestInput.c \
  ../src/network.c \
  ../src/server.c \
+ ../src/request.c \
  ../src/main.c

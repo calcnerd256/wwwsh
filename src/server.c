@@ -6,6 +6,7 @@
 #include <string.h>
 #include "./server.h"
 #include "./network.h"
+#include "./request.h"
 
 
 int httpServer_init(struct httpServer *server, struct mempool *pool){
@@ -131,21 +132,6 @@ int httpServer_selectRead(struct httpServer *server){
 	return ready_fd;
 }
 
-
-int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
-	memset(&(ptr->allocations), 0, sizeof(struct mempool));
-	init_pool(&(ptr->allocations));
-	ptr->fd = fd;
-	fd = 0;
-	ptr->done_writing = 0;
-	ptr->server = server;
-	server = 0;
-	requestInput_init(&(ptr->input), &(ptr->allocations));
-	ptr->input.fd = ptr->fd;
-	ptr->node = 0;
-	ptr = 0;
-	return 0;
-}
 int httpServer_acceptNewConnection(struct httpServer *server){
 	struct sockaddr address;
 	socklen_t length;

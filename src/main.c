@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "./server.h"
+#include "./request.h"
 
 int connection_bundle_can_respondp(struct conn_bundle *conn){
 	if(!(conn->input.method)) return 0;

@@ -1,11 +1,10 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
 #include "./server.h"
 #include "./request.h"
+#include "./static.h"
 
 
 int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node){

@@ -1,6 +1,8 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "./server.h"
 #include "./network.h"
 
@@ -48,5 +50,29 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 	}
 	sockfd = 0;
 	backlog = 0;
+	return 0;
+}
+
+int httpServer_close(struct httpServer *server){
+	if(server->memoryPool){
+		free_pool(server->memoryPool);
+		free(server->memoryPool);
+		server->memoryPool = 0;
+	}
+	server->resources = 0;
+	if(-1 == server->listeningSocket_fileDescriptor){
+		server = 0;
+		return 0;
+	}
+	if(shutdown(server->listeningSocket_fileDescriptor, SHUT_RDWR)){
+		server = 0;
+		return 1;
+	}
+	if(close(server->listeningSocket_fileDescriptor)){
+		server = 0;
+		return 2;
+	}
+	server->listeningSocket_fileDescriptor = -1;
+	server = 0;
 	return 0;
 }

@@ -24,30 +24,6 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 
 #include "./visit_connection_bundle_process_step.c"
 
-int httpServer_close(struct httpServer *server){
-	if(server->memoryPool){
-		free_pool(server->memoryPool);
-		free(server->memoryPool);
-		server->memoryPool = 0;
-	}
-	server->resources = 0;
-	if(-1 == server->listeningSocket_fileDescriptor){
-		server = 0;
-		return 0;
-	}
-	if(shutdown(server->listeningSocket_fileDescriptor, SHUT_RDWR)){
-		server = 0;
-		return 1;
-	}
-	if(close(server->listeningSocket_fileDescriptor)){
-		server = 0;
-		return 2;
-	}
-	server->listeningSocket_fileDescriptor = -1;
-	server = 0;
-	return 0;
-}
-
 int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
 	int *done;
 	int *fd;

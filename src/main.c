@@ -68,10 +68,25 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	return 0;
 }
 
+int staticGetResource_initHtml(struct staticGetResource *resource, char* url, char* body, struct extent *urlStorage, struct extent *bodyStorage, struct linked_list *headerHeadStorage, struct linked_list *otherHeaders, struct linked_list *keyNode, struct linked_list *valueNode, struct extent *key, struct extent *value){
+	point_extent_at_nice_string(urlStorage, url);
+	point_extent_at_nice_string(bodyStorage, body);
+	point_extent_at_nice_string(key, "Content-Type");
+	point_extent_at_nice_string(value, "text/html");
+	keyNode->data = key;
+	valueNode->data = value;
+	valueNode->next = 0;
+	keyNode->next = valueNode;
+	headerHeadStorage->data = keyNode;
+	headerHeadStorage->next = otherHeaders;
+	resource->url = urlStorage;
+	resource->body = bodyStorage;
+	resource->headers = headerHeadStorage;
+	return 0;
+}
+
 int httpServer_init(struct httpServer *server){
 	char *ptr;
-	struct staticGetResource *root;
-	struct linked_list *node;
 	server->listeningSocket_fileDescriptor = -1;
 	server->memoryPool = malloc(sizeof(struct mempool));
 	init_pool(server->memoryPool);
@@ -82,32 +97,9 @@ int httpServer_init(struct httpServer *server){
 	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
 	httpServer_pushResource(server, (struct linked_list*)ptr, (struct httpResource*)(ptr + sizeof(struct linked_list)), &staticGetResource_urlMatchesp, &staticGetResource_respond, (struct staticGetResource*)(ptr + sizeof(struct linked_list) + sizeof(struct httpResource)));
 	ptr += sizeof(struct linked_list) + sizeof(struct httpResource) + sizeof(struct staticGetResource);
-	root = ((struct httpResource*)(server->resources->data))->context;
+	staticGetResource_initHtml(((struct httpResource*)(server->resources->data))->context, "/", "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n", (struct extent*)ptr, (struct extent*)(ptr + sizeof(struct extent)), (struct linked_list*)(ptr + 2 * sizeof(struct extent)), 0, (struct linked_list*)(ptr + 2 * sizeof(struct extent) + sizeof(struct linked_list)), (struct linked_list*)(ptr + 2 * sizeof(struct extent) + 2 * sizeof(struct linked_list)), (struct extent*)(ptr + 2 * sizeof(struct extent) + 3 * sizeof(struct linked_list)), (struct extent*)(ptr + 3 * sizeof(struct extent) + 3 * sizeof(struct linked_list)));
 	server = 0;
-	root->url = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	root->body = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	root->headers = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	node = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	node->next = (struct linked_list*)ptr;
-	ptr += sizeof(struct linked_list);
-	node->data = (struct extent*)ptr;
-	ptr += sizeof(struct extent);
-	node->next->data = (struct extent*)ptr;
 	ptr = 0;
-
-	point_extent_at_nice_string(root->url, "/");
-	point_extent_at_nice_string(root->body, "<html>\r\n <head>\r\n  <title>Hello World!</title>\r\n </head>\r\n <body>\r\n  <h1>Hello, World!</h1>\r\n  <p>\r\n   This webserver is written in C.\r\n   I'm pretty proud of it!\r\n  </p>\r\n </body>\r\n</html>\r\n\r\n");
-	root->headers->data = node;
-	root->headers->next = 0;
-	root = 0;
-	point_extent_at_nice_string(node->data, "Content-Type");
-	point_extent_at_nice_string(node->next->data, "text/html");
-	node->next->next = 0;
-	node = 0;
 	return 0;
 }
 

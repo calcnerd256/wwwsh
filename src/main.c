@@ -25,6 +25,7 @@ struct conn_bundle{
 	struct requestInput input;
 	struct mempool allocations;
 	struct httpServer *server;
+	struct linked_list *node;
 	int fd;
 	char done_writing;
 };
@@ -46,6 +47,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	server = 0;
 	requestInput_init(&(ptr->input), &(ptr->allocations));
 	ptr->input.fd = ptr->fd;
+	ptr->node = 0;
 	ptr = 0;
 	return 0;
 }
@@ -222,17 +224,21 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
 	if(-1 == fd) return 1;
 
-	ptr = palloc(server->memoryPool, sizeof(struct conn_bundle) + sizeof(struct linked_list));
+	ptr = palloc(server->memoryPool, sizeof(struct linked_list));
 	new_head = (struct linked_list*)ptr;
 	new_head->next = server->connections;
 	server->connections = new_head;
-	new_head->data = ptr + sizeof(struct linked_list);
+	new_head->data = malloc(sizeof(struct conn_bundle));
 	init_connection((struct conn_bundle*)(new_head->data), server, fd);
+	((struct conn_bundle*)(new_head->data))->node = new_head;
 	return 0;
 }
 
 int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){
 	(void)node;
+	node = 0;
+	if(!data) return 0;
+	if(!target) return 0;
 	return data->fd == *target;
 }
 

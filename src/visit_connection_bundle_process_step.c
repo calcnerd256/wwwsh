@@ -12,6 +12,7 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 }
 
 int connection_bundle_free(struct conn_bundle *conn){
+	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
 	close(conn->fd);
 	conn->fd = -1;
@@ -23,11 +24,13 @@ int connection_bundle_free(struct conn_bundle *conn){
 		free_pool(&(conn->allocations));
 		memset(&(conn->allocations), 0, sizeof(struct mempool));
 	}
+	if(conn->node) conn->node->data = 0;
 	memset(conn, 0, sizeof(struct conn_bundle));
 	conn->done_writing = 1;
 	conn->input.done = 1;
 	conn->input.httpMajorVersion = -1;
 	conn->input.httpMinorVersion = -1;
+	free(conn);
 	return 0;
 }
 

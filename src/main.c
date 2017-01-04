@@ -80,11 +80,10 @@ int httpServer_init(struct httpServer *server){
 	server->resources = 0;
 
 	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
-	httpServer_pushResource(server, (struct linked_list*)ptr, (struct httpResource*)(ptr + 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent)), &staticGetResource_urlMatchesp, &staticGetResource_respond, (struct staticGetResource*)(ptr + sizeof(struct linked_list)));
+	httpServer_pushResource(server, (struct linked_list*)ptr, (struct httpResource*)(ptr + sizeof(struct linked_list)), &staticGetResource_urlMatchesp, &staticGetResource_respond, (struct staticGetResource*)(ptr + sizeof(struct linked_list) + sizeof(struct httpResource)));
+	ptr += sizeof(struct linked_list) + sizeof(struct httpResource) + sizeof(struct staticGetResource);
 	root = ((struct httpResource*)(server->resources->data))->context;
 	server = 0;
-	ptr += sizeof(struct linked_list);
-	ptr += sizeof(struct staticGetResource);
 	root->url = (struct extent*)ptr;
 	ptr += sizeof(struct extent);
 	root->body = (struct extent*)ptr;
@@ -96,7 +95,8 @@ int httpServer_init(struct httpServer *server){
 	node->next = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	node->data = (struct extent*)ptr;
-	node->next->data = (struct extent*)(ptr + sizeof(struct extent));
+	ptr += sizeof(struct extent);
+	node->next->data = (struct extent*)ptr;
 	ptr = 0;
 
 	point_extent_at_nice_string(root->url, "/");

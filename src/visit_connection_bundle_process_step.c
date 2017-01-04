@@ -229,7 +229,7 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	if(conn->done_writing) return 0;
 
 	resource = 0;
-	if(!first_matching(conn->server->staticResources, (visitor_t)(&match_httpResource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
+	if(!first_matching(conn->server->resources, (visitor_t)(&match_httpResource_url), (struct linked_list*)(conn->input.requestUrl), &match_node))
 		if(match_node)
 			resource = match_node->data;
 	if(!resource)

@@ -12,7 +12,7 @@ struct httpServer{
 	struct mempool *memoryPool;
 	int listeningSocket_fileDescriptor;
 	struct linked_list *connections;
-	struct linked_list *staticResources;
+	struct linked_list *resources;
 };
 
 struct staticGetResource{
@@ -64,10 +64,10 @@ int httpServer_init(struct httpServer *server){
 	init_pool(server->memoryPool);
 	server->connections = 0;
 	ptr = 0;
-	server->staticResources = 0;
+	server->resources = 0;
 
 	ptr = palloc(server->memoryPool, 4 * sizeof(struct linked_list) + sizeof(struct staticGetResource) + 4 * sizeof(struct extent) + sizeof(struct httpResource));
-	server->staticResources = (struct linked_list*)ptr;
+	server->resources = (struct linked_list*)ptr;
 	ptr += sizeof(struct linked_list);
 	root = (struct staticGetResource*)ptr;
 	ptr += sizeof(struct staticGetResource);
@@ -92,8 +92,8 @@ int httpServer_init(struct httpServer *server){
 	rootResource->urlMatchesp = &staticGetResource_urlMatchesp;
 	rootResource->respond = &staticGetResource_respond;
 
-	server->staticResources->data = rootResource;
-	server->staticResources->next = 0;
+	server->resources->data = rootResource;
+	server->resources->next = 0;
 	server = 0;
 
 	point_extent_at_nice_string(root->url, "/");
@@ -136,7 +136,7 @@ int httpServer_close(struct httpServer *server){
 		free(server->memoryPool);
 		server->memoryPool = 0;
 	}
-	server->staticResources = 0;
+	server->resources = 0;
 	if(-1 == server->listeningSocket_fileDescriptor){
 		server = 0;
 		return 0;

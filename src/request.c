@@ -41,8 +41,7 @@ int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
 	return req->fd;
 }
 
-/* TODO: rename this method as appropriate */
-int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked_list *node){
+int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node){
 	(void)node;
 	node = 0;
 	if(!data) return 0;
@@ -50,6 +49,7 @@ int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked
 	return data->fd == *target;
 }
 
+/* TODO: rename this method as appropriate */
 int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;

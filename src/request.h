@@ -6,7 +6,7 @@
 
 int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer *server, int fd);
 int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
-int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked_list *node);
+int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 int httpRequestHandler_readChunk(struct incomingHttpRequest *conn);
 
 int connection_bundle_can_respondp(struct incomingHttpRequest *conn);

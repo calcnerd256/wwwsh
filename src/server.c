@@ -78,18 +78,31 @@ int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct
 	int *d;
 	int *fd;
 	int status;
-	if(!ctx) return 1;
-	if(!ctx->next) return 1;
-	d = (int *)(ctx->data);
-	if(!d) return 3;
-	if(*d) return 0;
-	fd = (int *)(ctx->next->data);
-	if(!fd) return 3;
-	status = incomingHttpRequest_selectRead(conn);
-	if(-1 == status) return 0;
-	*fd = status;
-	*d = 1;
-	return 0;
+	int result = 0;
+	if(!ctx) result = 1;
+	else{
+		if(!ctx->next) result = 1;
+		else{
+			d = (int *)(ctx->data);
+			if(!d) result = 3;
+			else{
+				if(*d) result = 0;
+				else{
+					fd = (int *)(ctx->next->data);
+					if(!fd) result = 3;
+					else{
+						status = incomingHttpRequest_selectRead(conn);
+						if(-1 == status) result = 0;
+						else{
+							*fd = status;
+							*d = 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return result;
 }
 int httpServer_selectRead(struct httpServer *server){
 	int ready_fd;
@@ -99,6 +112,12 @@ int httpServer_selectRead(struct httpServer *server){
 	int done;
 	struct incomingHttpRequest *conn;
 	struct linked_list *ctx;
+	/*
+	int *d;
+	int *fd;
+	int status;
+	int result = 0;
+	*/
 	done = 0;
 	ready_fd = -1;
 	fd_cell.next = 0;

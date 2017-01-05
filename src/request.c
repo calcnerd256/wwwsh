@@ -7,8 +7,7 @@
 #include "./request.h"
 #include "./server.h"
 
-/* TODO: rename move this method as appropriate */
-int init_connection(struct incomingHttpRequest *ptr, struct httpServer *server, int fd){
+int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer *server, int fd){
 	memset(&(ptr->allocations), 0, sizeof(struct mempool));
 	init_pool(&(ptr->allocations));
 	ptr->fd = fd;
@@ -42,6 +41,7 @@ int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
 	return req->fd;
 }
 
+/* TODO: rename this method as appropriate */
 int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked_list *node){
 	(void)node;
 	node = 0;

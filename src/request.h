@@ -4,7 +4,7 @@
 
 /* TODO: rename connection_bundle to incomingHttpRequest */
 
-int init_connection(struct incomingHttpRequest *ptr, struct httpServer *server, int fd);
+int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer *server, int fd);
 int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 int httpRequestHandler_readChunk(struct incomingHttpRequest *conn);

@@ -127,7 +127,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	new_head = malloc(sizeof(struct linked_list));
 	new_head->data = malloc(sizeof(struct incomingHttpRequest));
 	new_head->next = server->connections;
-	init_connection((struct incomingHttpRequest*)(new_head->data), server, fd);
+	incomingHttpRequest_init((struct incomingHttpRequest*)(new_head->data), server, fd);
 	((struct incomingHttpRequest*)(new_head->data))->node = new_head;
 	server->connections = new_head;
 	return 0;

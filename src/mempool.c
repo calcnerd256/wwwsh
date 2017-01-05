@@ -1,6 +1,5 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include <stdlib.h>
 #include <string.h>
 #include "./mempool.h"
 
@@ -28,12 +27,6 @@ void *palloc(struct mempool *pool, size_t len){
 	return ((struct extent*)new_head)->bytes;
 }
 
-int visit_nop(void *data, void *context, struct linked_list *node){
-	(void)data;
-	(void)context;
-	(void)node;
-	return 0;
-}
 int visit_clear(struct extent *data, void *context, struct linked_list *node){
 	(void)context;
 	if(!data) return 1;
@@ -45,16 +38,6 @@ int visit_clear(struct extent *data, void *context, struct linked_list *node){
 	node->data = 0;
 	return 0;
 }
-
 int free_pool(struct mempool *pool){
 	return clean_and_free_list(pool->allocs, (visitor_t)&visit_clear, 0);
-}
-
-int pool_pop(struct mempool *pool){
-	struct linked_list *head = pool->allocs;
-	pool->allocs = head->next;
-	head->next = 0;
-	if(visit_clear((struct extent*)(head->data), 0, head)) return 1;
-	free(head);
-	return 0;
 }

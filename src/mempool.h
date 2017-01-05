@@ -19,4 +19,3 @@ struct mempool{
 int init_pool(struct mempool *pool);
 void *palloc(struct mempool *pool, size_t len);
 int free_pool(struct mempool *pool);
-int pool_pop(struct mempool *pool);

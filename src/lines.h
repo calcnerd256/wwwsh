@@ -8,16 +8,4 @@ struct extent{
 	size_t len;
 };
 
-int init_ransom(struct linked_list *head);
-int append_to_ransom(struct linked_list *ransom, char *bytes, size_t len);
-int visit_clean_extent(struct extent *ptr, void *context, struct linked_list *node);
-int visit_clean_ransom(struct linked_list *ransom, void *context, struct linked_list *node);
-
-size_t ransom_len(struct linked_list *ransom);
-char *flatten_ransom(struct linked_list *ransom);
-
-int visit_print_ransom(struct linked_list *head, void *context, struct linked_list *node);
-
-int split_extent_on_byte(struct extent *inp, char b, struct extent *l, struct extent *r);
-
 int point_extent_at_nice_string(struct extent *storage, char *bytes);

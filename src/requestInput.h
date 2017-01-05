@@ -18,6 +18,7 @@ struct requestInput{
 };
 
 int requestInput_init(struct requestInput *req, struct mempool *pool);
+int requestInput_readChunk(struct requestInput *req, char* buf, int len);
 int requestInput_findCrlfOffset(struct requestInput *req);
 int requestInput_printHeaders(struct requestInput *req);
 int requestInput_consumeHeader(struct requestInput *req);

@@ -50,7 +50,6 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 	return data->fd == *target;
 }
 
-/* TODO: extract a method on requestInput */
 int httpRequestHandler_readChunk(struct conn_bundle *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;
@@ -59,11 +58,9 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 
 	buf[CHUNK_SIZE] = 0;
 	len = read(conn->fd, buf, CHUNK_SIZE);
-	buf[len] = 0;
-	chunkStream_append(conn->input.chunks, buf, len);
+	requestInput_readChunk(&(conn->input), buf, len);
 
-	if(len) return 0;
-	conn->input.done = 1;
+	if(!(conn->input.done)) return 0;
 	if(conn->done_writing)
 		return connection_bundle_free(conn);
 	return 0;

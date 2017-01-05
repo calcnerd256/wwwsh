@@ -33,6 +33,17 @@ int requestInput_init(struct requestInput *req, struct mempool *pool){
 	return 0;
 }
 
+int requestInput_readChunk(struct requestInput *req, char* buf, int len){
+	if(!req) return 1;
+	if(!buf) return 1;
+	if(len > CHUNK_SIZE) return 1;
+	buf[len] = 0;
+	chunkStream_append(req->chunks, buf, len);
+	if(len) return 0;
+	req->done = 1;
+	return 0;
+}
+
 int requestInput_findCrlfOffset(struct requestInput *req){
 	int offset = 0;
 	if(!req) return -1;

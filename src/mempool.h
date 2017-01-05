@@ -3,12 +3,14 @@
 #include <sys/types.h>
 #include "./linked_list.h"
 
+
 struct extent{
 	char *bytes;
 	size_t len;
 };
 
 int point_extent_at_nice_string(struct extent *storage, char *bytes);
+
 
 struct mempool{
 	struct linked_list *allocs;

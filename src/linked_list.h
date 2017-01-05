@@ -1,8 +1,5 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#ifndef INCLUDE_LINKED_LIST
-#define INCLUDE_LINKED_LIST
-
 struct linked_list{
 	void *data;
 	struct linked_list *next;
@@ -20,5 +17,3 @@ int first_matching(struct linked_list *head, visitor_t matcher, struct linked_li
 int match_last(void *data, void *context, struct linked_list *node);
 struct linked_list *last_node(struct linked_list *head);
 int append(struct linked_list *head, void* data);
-
-#endif

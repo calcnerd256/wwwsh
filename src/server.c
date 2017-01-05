@@ -106,6 +106,7 @@ int httpServer_selectRead(struct httpServer *server){
 	context.next = &fd_cell;
 	context.data = &done;
 	extra_head.next = server->connections;
+	extra_head.next = 0;
 	extra_head.data = &fake_for_server;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.input.done = 0;
@@ -178,6 +179,7 @@ int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *
 }
 int httpServer_stepConnections(struct httpServer *server){
 	int any = 0;
+	httpServer_removeEmptyConnections(server);
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any)) return 0;
 	httpServer_removeEmptyConnections(server);
 	return any;

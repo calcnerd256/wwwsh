@@ -250,9 +250,18 @@ int connection_bundle_respond(struct incomingHttpRequest *conn){
 }
 
 int connection_bundle_process_steppedp(struct incomingHttpRequest *conn){
+	int status = 0;
+	struct linked_list *old_node;
 	if(!conn) return 0;
+	if(-1 != incomingHttpRequest_selectRead(conn)){
+		status = 1;
+		old_node = conn->node;
+		httpRequestHandler_readChunk(conn);
+		if(!old_node) return 1;
+		if(!(old_node->data)) return 0;
+	}
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
-	if(!connection_bundle_can_respondp(conn)) return 0;
+	if(!connection_bundle_can_respondp(conn)) return status;
 	connection_bundle_respond(conn);
 	return 1;
 }

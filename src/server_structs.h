@@ -12,7 +12,6 @@
 #include "./requestInput.h"
 
 struct httpServer{
-	struct mempool *memoryPool;
 	struct linked_list *connections;
 	struct linked_list *resources;
 	int listeningSocket_fileDescriptor;

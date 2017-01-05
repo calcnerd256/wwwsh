@@ -2,7 +2,7 @@
 
 #include "./server_structs.h"
 
-int httpServer_init(struct httpServer *server, struct mempool *pool);
+int httpServer_init(struct httpServer *server);
 
 int httpServer_pushResource(
 	struct httpServer *server,

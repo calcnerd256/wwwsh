@@ -8,7 +8,6 @@
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
-	struct mempool serverAllocations;
 	struct linked_list *match_node;
 	int ready_fd = -1;
 	int status = 0;
@@ -16,7 +15,7 @@ int main(int argument_count, char* *arguments_vector){
 	struct contiguousHtmlResource rootResourceStorage;
 
 	if(2 != argument_count) return 1;
-	if(httpServer_init(&server, &serverAllocations)) return 2;
+	if(httpServer_init(&server)) return 2;
 
 	status = contiguousHtmlResource_init(
 		&rootResourceStorage,

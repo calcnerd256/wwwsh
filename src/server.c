@@ -9,10 +9,8 @@
 #include "./request.h"
 
 
-int httpServer_init(struct httpServer *server, struct mempool *pool){
+int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
-	server->memoryPool = pool;
-	init_pool(server->memoryPool);
 	server->connections = 0;
 	server->resources = 0;
 	server = 0;
@@ -57,11 +55,6 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 
 /* TODO: consider cleaning up all open connections when closing the server */
 int httpServer_close(struct httpServer *server){
-	if(server->memoryPool){
-		free_pool(server->memoryPool);
-		free(server->memoryPool);
-		server->memoryPool = 0;
-	}
 	server->resources = 0;
 	if(-1 == server->listeningSocket_fileDescriptor){
 		server = 0;

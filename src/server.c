@@ -116,8 +116,8 @@ int httpServer_selectRead(struct httpServer *server){
 	int *d;
 	int *fd;
 	int status;
-	int result = 0;
 	*/
+	int result = 0;
 	done = 0;
 	ready_fd = -1;
 	fd_cell.next = 0;
@@ -128,7 +128,8 @@ int httpServer_selectRead(struct httpServer *server){
 	fake_for_server.input.done = 0;
 	conn = &fake_for_server;
 	ctx = &context;
-	if(visit_connection_bundle_select_read(conn, ctx))
+	result = visit_connection_bundle_select_read(conn, ctx);
+	if(result)
 		return -1;
 	return ready_fd;
 }

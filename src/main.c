@@ -59,12 +59,10 @@ int main(int argument_count, char* *arguments_vector){
 		fake_for_server.fd = server.listeningSocket_fileDescriptor;
 		fake_for_server.input.done = 0;
 		ready_fd = incomingHttpRequest_selectRead(&fake_for_server);
-		if(-1 != ready_fd){
-			if(ready_fd == server.listeningSocket_fileDescriptor)
-				httpServer_acceptNewConnection(&server);
-		}
-		if(!httpServer_stepConnections(&server))
-			if(ready_fd == -1)
+		if(-1 != ready_fd)
+			httpServer_acceptNewConnection(&server);
+		else
+			if(!httpServer_stepConnections(&server))
 				usleep(10);
 	}
 

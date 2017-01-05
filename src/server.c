@@ -76,21 +76,18 @@ int httpServer_close(struct httpServer *server){
 
 int httpServer_selectRead(struct httpServer *server){
 	int ready_fd;
-	struct linked_list fd_cell;
 	struct incomingHttpRequest fake_for_server;
 	int done;
 	int status;
 	done = 0;
 	ready_fd = -1;
-	fd_cell.next = 0;
-	fd_cell.data = &ready_fd;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.input.done = 0;
-	if(*(&done)) return ready_fd;
-	if(!(fd_cell.data)) return -1;
+	if(done) return ready_fd;
+	if(!(fake_for_server.input.done + &ready_fd)) return -1;
 	status = incomingHttpRequest_selectRead(&fake_for_server);
 	if(-1 == status) return ready_fd;
-	*((int*)(fd_cell.data)) = status;
+	*((int*)(&ready_fd)) = status;
 	done = 1;
 	return ready_fd;
 }

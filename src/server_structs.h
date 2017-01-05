@@ -17,12 +17,6 @@ struct httpServer{
 	int listeningSocket_fileDescriptor;
 };
 
-struct staticGetResource{
-	struct extent *url;
-	struct extent *body;
-	struct linked_list *headers;
-};
-
 struct conn_bundle{
 	struct requestInput input;
 	struct mempool allocations;

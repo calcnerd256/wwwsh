@@ -2,6 +2,12 @@
 
 #include "./server_structs.h"
 
+struct staticGetResource{
+	struct extent *url;
+	struct extent *body;
+	struct linked_list *headers;
+};
+
 int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node);
 int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url);
 int staticGetResource_respond(struct httpResource *resource, struct conn_bundle *connection);

@@ -96,22 +96,14 @@ int httpServer_selectRead(struct httpServer *server){
 	conn = &fake_for_server;
 	if(!(context.next)) return -1;
 	d = (int *)(context.data);
-	if(!d) result = 3;
-	else{
-		if(*d) result = 0;
-		else{
-			fd = (int *)(context.next->data);
-			if(!fd) result = 3;
-			else{
-				status = incomingHttpRequest_selectRead(conn);
-				if(-1 == status) result = 0;
-				else{
-					*fd = status;
-					*d = 1;
-				}
-			}
-		}
-	}
+	if(!d) return -1;
+	if(*d) return ready_fd;
+	fd = (int *)(context.next->data);
+	if(!fd) return -1;
+	status = incomingHttpRequest_selectRead(conn);
+	if(-1 == status) return ready_fd;
+	*fd = status;
+	*d = 1;
 	if(result)
 		return -1;
 	return ready_fd;

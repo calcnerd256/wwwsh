@@ -3,25 +3,6 @@
 #include <string.h>
 #include "./chunkStream.h"
 
-int dequoid_init(struct dequoid *list){
-	list->head = 0;
-	list->tail = 0;
-	return 0;
-}
-int dequoid_append(struct dequoid *list, void *data, struct linked_list *node){
-	node->next = 0;
-	node->data = data;
-	if(!(list->tail)) list->tail = list->head;
-	if(!(list->tail)){
-		list->head = node;
-		list->tail = list->head;
-	}
-	else
-		list->tail->next = node;
-	list->tail = node;
-	return 0;
-}
-
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){
 	ptr->pool = pool;
 	pool = 0;

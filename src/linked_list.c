@@ -95,3 +95,23 @@ int append(struct linked_list *head, void* data){
 	head->next = 0;
 	return 0;
 }
+
+
+int dequoid_init(struct dequoid *list){
+	list->head = 0;
+	list->tail = 0;
+	return 0;
+}
+int dequoid_append(struct dequoid *list, void *data, struct linked_list *node){
+	node->next = 0;
+	node->data = data;
+	if(!(list->tail)) list->tail = list->head;
+	if(!(list->tail)){
+		list->head = node;
+		list->tail = list->head;
+	}
+	else
+		list->tail->next = node;
+	list->tail = node;
+	return 0;
+}

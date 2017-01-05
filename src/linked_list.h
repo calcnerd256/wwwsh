@@ -17,3 +17,12 @@ int first_matching(struct linked_list *head, visitor_t matcher, struct linked_li
 int match_last(void *data, void *context, struct linked_list *node);
 struct linked_list *last_node(struct linked_list *head);
 int append(struct linked_list *head, void* data);
+
+
+struct dequoid{
+	struct linked_list *head;
+	struct linked_list *tail;
+};
+
+int dequoid_init(struct dequoid *list);
+int dequoid_append(struct dequoid *list, void *data, struct linked_list *node);

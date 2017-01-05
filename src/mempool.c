@@ -4,6 +4,14 @@
 #include <string.h>
 #include "./mempool.h"
 
+
+int point_extent_at_nice_string(struct extent *storage, char *bytes){
+	storage->bytes = bytes;
+	storage->len = strlen(bytes);
+	return 0;
+}
+
+
 int init_pool(struct mempool *pool){
 	pool->allocs = 0;
 	return 0;

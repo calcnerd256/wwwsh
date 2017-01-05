@@ -11,7 +11,6 @@ gcc \
  -o ../build/main \
  ../src/linked_list.c \
  ../src/mempool.c \
- ../src/lines.c \
  ../src/chunkStream.c \
  ../src/requestInput.c \
  ../src/network.c \

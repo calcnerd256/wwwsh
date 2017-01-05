@@ -10,7 +10,7 @@ struct staticGetResource{
 
 int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node);
 int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url);
-int staticGetResource_respond(struct httpResource *resource, struct conn_bundle *connection);
+int staticGetResource_respond(struct httpResource *resource, struct incomingHttpRequest *connection);
 
 struct contiguousHtmlResource{
 	struct linked_list link_node;

@@ -8,7 +8,7 @@
 #include "./server.h"
 
 /* TODO: rename move this method as appropriate */
-int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
+int init_connection(struct incomingHttpRequest *ptr, struct httpServer *server, int fd){
 	memset(&(ptr->allocations), 0, sizeof(struct mempool));
 	init_pool(&(ptr->allocations));
 	ptr->fd = fd;
@@ -23,7 +23,7 @@ int init_connection(struct conn_bundle *ptr, struct httpServer *server, int fd){
 	return 0;
 }
 
-int incomingHttpRequest_selectRead(struct conn_bundle *req){
+int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
 	struct timeval timeout;
 	fd_set to_read;
 	int status;
@@ -42,7 +42,7 @@ int incomingHttpRequest_selectRead(struct conn_bundle *req){
 	return req->fd;
 }
 
-int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *node){
+int match_by_sockfd(struct incomingHttpRequest *data, int *target, struct linked_list *node){
 	(void)node;
 	node = 0;
 	if(!data) return 0;
@@ -50,7 +50,7 @@ int match_by_sockfd(struct conn_bundle *data, int *target, struct linked_list *n
 	return data->fd == *target;
 }
 
-int httpRequestHandler_readChunk(struct conn_bundle *conn){
+int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;
 
@@ -67,7 +67,7 @@ int httpRequestHandler_readChunk(struct conn_bundle *conn){
 }
 
 
-int connection_bundle_can_respondp(struct conn_bundle *conn){
+int connection_bundle_can_respondp(struct incomingHttpRequest *conn){
 	if(!(conn->input.method)) return 0;
 	if(!(conn->input.requestUrl)) return 0;
 	if(-1 == conn->input.httpMajorVersion) return 0;
@@ -77,18 +77,18 @@ int connection_bundle_can_respondp(struct conn_bundle *conn){
 }
 
 
-int connection_bundle_write_extent(struct conn_bundle *conn, struct extent *str){
+int connection_bundle_write_extent(struct incomingHttpRequest *conn, struct extent *str){
 	ssize_t bytes;
 	bytes = write(conn->fd, str->bytes, str->len);
 	if(bytes < 0) return 1;
 	if((size_t)bytes != str->len) return 2;
 	return 0;
 }
-int connection_bundle_write_crlf(struct conn_bundle *conn){
+int connection_bundle_write_crlf(struct incomingHttpRequest *conn){
 	return 2 != write(conn->fd, "\r\n", 2);
 }
 
-int connection_bundle_write_status_line(struct conn_bundle *conn, int status_code, struct extent *reason){
+int connection_bundle_write_status_line(struct incomingHttpRequest *conn, int status_code, struct extent *reason){
 	char status_code_str[3];
 	ssize_t bytes;
 	if(status_code < 0) return 1;
@@ -108,7 +108,7 @@ int connection_bundle_write_status_line(struct conn_bundle *conn, int status_cod
 	return connection_bundle_write_crlf(conn);
 }
 
-int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key, struct extent *value){
+int connection_bundle_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
 	ssize_t bytes;
 	if(connection_bundle_write_extent(conn, key)) return 1;
 	bytes = write(conn->fd, ": ", 2);
@@ -118,7 +118,7 @@ int connection_bundle_write_header(struct conn_bundle *conn, struct extent *key,
 	return connection_bundle_write_crlf(conn);
 }
 
-int connection_bundle_free(struct conn_bundle *conn){
+int connection_bundle_free(struct incomingHttpRequest *conn){
 	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
 	close(conn->fd);
@@ -132,7 +132,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 		memset(&(conn->allocations), 0, sizeof(struct mempool));
 	}
 	if(conn->node) conn->node->data = 0;
-	memset(conn, 0, sizeof(struct conn_bundle));
+	memset(conn, 0, sizeof(struct incomingHttpRequest));
 	conn->done_writing = 1;
 	conn->input.done = 1;
 	conn->input.httpMajorVersion = -1;
@@ -140,7 +140,7 @@ int connection_bundle_free(struct conn_bundle *conn){
 	free(conn);
 	return 0;
 }
-int connection_bundle_close_write(struct conn_bundle *conn){
+int connection_bundle_close_write(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
 	if(!(conn->input.done)) return 0;
@@ -148,7 +148,7 @@ int connection_bundle_close_write(struct conn_bundle *conn){
 }
 
 
-int visit_header_write(struct linked_list *header, struct conn_bundle *context, struct linked_list *node){
+int visit_header_write(struct linked_list *header, struct incomingHttpRequest *context, struct linked_list *node){
 	(void)node;
 	if(!header) return 1;
 	if(!(header->data)) return 1;
@@ -157,7 +157,7 @@ int visit_header_write(struct linked_list *header, struct conn_bundle *context, 
 	if(!context) return 1;
 	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
-int connection_bundle_send_response(struct conn_bundle *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+int connection_bundle_send_response(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent connection;
 	struct extent close;
 	struct extent content_length_key;
@@ -179,7 +179,7 @@ int connection_bundle_send_response(struct conn_bundle *conn, int status_code, s
 }
 
 
-int connection_bundle_respond_bad_request_target(struct conn_bundle *conn){
+int connection_bundle_respond_bad_request_target(struct incomingHttpRequest *conn){
 	struct extent reason;
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
@@ -206,7 +206,7 @@ struct linked_list *push_header_contiguous(char *buffer, char *key, char *value,
 	value_extent = (struct extent*)ptr;
 	return push_header_nice_strings(top, key_node, value_node, key_extent, key, value_extent, value, next);
 }
-int connection_bundle_respond_bad_method(struct conn_bundle *conn){
+int connection_bundle_respond_bad_method(struct incomingHttpRequest *conn){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	struct extent body;
@@ -216,7 +216,7 @@ int connection_bundle_respond_bad_method(struct conn_bundle *conn){
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
 	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
-int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_list *headers, struct extent *body){
+int connection_bundle_respond_html_ok(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	int status_code = 200;
@@ -227,7 +227,7 @@ int connection_bundle_respond_html_ok(struct conn_bundle *conn, struct linked_li
 
 
 /* TODO: consider moving this method */
-int httpResource_respond(struct httpResource *resource, struct conn_bundle *connection){
+int httpResource_respond(struct httpResource *resource, struct incomingHttpRequest *connection){
 	if(!connection) return 1;
 	if(!resource) return 1;
 	if(!(resource->respond)) return 1;
@@ -235,7 +235,7 @@ int httpResource_respond(struct httpResource *resource, struct conn_bundle *conn
 }
 
 
-int connection_bundle_respond(struct conn_bundle *conn){
+int connection_bundle_respond(struct incomingHttpRequest *conn){
 	struct httpResource *resource;
 	struct linked_list *match_node = 0;
 	if(conn->done_writing) return 0;
@@ -249,7 +249,7 @@ int connection_bundle_respond(struct conn_bundle *conn){
 	return httpResource_respond(resource, conn);
 }
 
-int connection_bundle_process_steppedp(struct conn_bundle *conn){
+int connection_bundle_process_steppedp(struct incomingHttpRequest *conn){
 	if(!conn) return 0;
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!connection_bundle_can_respondp(conn)) return 0;

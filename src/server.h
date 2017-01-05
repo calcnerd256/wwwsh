@@ -9,7 +9,7 @@ int httpServer_pushResource(
 	struct linked_list *new_head,
 	struct httpResource *resource,
 	int (*urlMatchesp)(struct httpResource*, struct extent*),
-	int (*respond)(struct httpResource*, struct conn_bundle*),
+	int (*respond)(struct httpResource*, struct incomingHttpRequest*),
 	void *context
 );
 

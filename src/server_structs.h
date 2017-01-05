@@ -17,7 +17,7 @@ struct httpServer{
 	int listeningSocket_fileDescriptor;
 };
 
-struct conn_bundle{
+struct incomingHttpRequest{
 	struct requestInput input;
 	struct mempool allocations;
 	struct httpServer *server;
@@ -28,7 +28,7 @@ struct conn_bundle{
 
 struct httpResource{
 	int (*urlMatchesp)(struct httpResource*, struct extent*);
-	int (*respond)(struct httpResource*, struct conn_bundle*);
+	int (*respond)(struct httpResource*, struct incomingHttpRequest*);
 	void *context;
 };
 

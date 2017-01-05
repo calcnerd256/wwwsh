@@ -20,7 +20,7 @@ int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *
 	return match_resource_url(resource->context, url, 0);
 }
 
-int staticGetResource_respond(struct httpResource *resource, struct conn_bundle *connection){
+int staticGetResource_respond(struct httpResource *resource, struct incomingHttpRequest *connection){
 	struct extent reason;
 	struct staticGetResource *response;
 	if(!resource) return 1;

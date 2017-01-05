@@ -17,7 +17,7 @@ int httpServer_init(struct httpServer *server){
 	return 0;
 }
 
-int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct conn_bundle*), void *context){
+int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct incomingHttpRequest*), void *context){
 	if(!server) return 1;
 	if(!new_head) return 2;
 	if(!urlMatchesp) return 2;
@@ -74,7 +74,7 @@ int httpServer_close(struct httpServer *server){
 }
 
 
-int visit_connection_bundle_select_read(struct conn_bundle *conn, struct linked_list *context, struct linked_list *node){
+int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct linked_list *context, struct linked_list *node){
 	int *done;
 	int *fd;
 	int status;
@@ -96,7 +96,7 @@ int httpServer_selectRead(struct httpServer *server){
 	int ready_fd;
 	struct linked_list context;
 	struct linked_list fd_cell;
-	struct conn_bundle fake_for_server;
+	struct incomingHttpRequest fake_for_server;
 	struct linked_list extra_head;
 	int done;
 	done = 0;
@@ -125,10 +125,10 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	if(-1 == fd) return 1;
 
 	new_head = malloc(sizeof(struct linked_list));
-	new_head->data = malloc(sizeof(struct conn_bundle));
+	new_head->data = malloc(sizeof(struct incomingHttpRequest));
 	new_head->next = server->connections;
-	init_connection((struct conn_bundle*)(new_head->data), server, fd);
-	((struct conn_bundle*)(new_head->data))->node = new_head;
+	init_connection((struct incomingHttpRequest*)(new_head->data), server, fd);
+	((struct incomingHttpRequest*)(new_head->data))->node = new_head;
 	server->connections = new_head;
 	return 0;
 }
@@ -168,7 +168,7 @@ int match_httpResource_url(struct httpResource *resource, struct extent *url, st
 }
 
 
-int visit_connection_bundle_process_step(struct conn_bundle *conn, int *context, struct linked_list *node){
+int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *context, struct linked_list *node){
 	(void)node;
 	if(connection_bundle_process_steppedp(conn)) *context = 1;
 	conn = 0;

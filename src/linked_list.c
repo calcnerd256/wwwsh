@@ -95,14 +95,3 @@ int append(struct linked_list *head, void* data){
 	head->next = 0;
 	return 0;
 }
-
-int visit_accumulate_length(void *data, size_t *context, struct linked_list *node){
-	*context++ ? (void)data : (void)node;
-	return 0;
-}
-size_t list_length(struct linked_list *head){
-	size_t result = 0;
-	if(traverse_linked_list(head, (visitor_t)visit_accumulate_length, &result))
-		return -1;
-	return result;
-}

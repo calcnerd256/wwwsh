@@ -73,7 +73,12 @@ int httpServer_close(struct httpServer *server){
 	return 0;
 }
 
-
+int httpServer_canAcceptConnectionp(struct httpServer *server){
+	struct incomingHttpRequest fake;
+	fake.fd = server->listeningSocket_fileDescriptor;
+	fake.input.done = 0;
+	return -1 != incomingHttpRequest_selectRead(&fake);
+}
 int httpServer_acceptNewConnection(struct httpServer *server){
 	struct sockaddr address;
 	socklen_t length;

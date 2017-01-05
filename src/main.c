@@ -11,7 +11,6 @@ int main(int argument_count, char* *arguments_vector){
 	int status = 0;
 
 	struct contiguousHtmlResource rootResourceStorage;
-	struct incomingHttpRequest fake_for_server;
 
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 2;
@@ -48,6 +47,7 @@ int main(int argument_count, char* *arguments_vector){
 	);
 	if(status) return 4;
 
+
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;
 		httpServer_close(&server);
@@ -55,9 +55,7 @@ int main(int argument_count, char* *arguments_vector){
 	}
 
 	while(1){
-		fake_for_server.fd = server.listeningSocket_fileDescriptor;
-		fake_for_server.input.done = 0;
-		if(-1 != incomingHttpRequest_selectRead(&fake_for_server))
+		if(httpServer_canAcceptConnectionp(&server))
 			httpServer_acceptNewConnection(&server);
 		else
 			if(!httpServer_stepConnections(&server))

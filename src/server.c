@@ -74,11 +74,28 @@ int httpServer_close(struct httpServer *server){
 }
 
 
-int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct linked_list *ctx){
+int httpServer_selectRead(struct httpServer *server){
+	int ready_fd;
+	struct linked_list context;
+	struct linked_list fd_cell;
+	struct incomingHttpRequest fake_for_server;
+	int done;
+	struct incomingHttpRequest *conn;
+	struct linked_list *ctx;
 	int *d;
 	int *fd;
 	int status;
 	int result = 0;
+	done = 0;
+	ready_fd = -1;
+	fd_cell.next = 0;
+	fd_cell.data = &ready_fd;
+	context.next = &fd_cell;
+	context.data = &done;
+	fake_for_server.fd = server->listeningSocket_fileDescriptor;
+	fake_for_server.input.done = 0;
+	conn = &fake_for_server;
+	ctx = &context;
 	if(!ctx) result = 1;
 	else{
 		if(!ctx->next) result = 1;
@@ -102,33 +119,6 @@ int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct
 			}
 		}
 	}
-	return result;
-}
-int httpServer_selectRead(struct httpServer *server){
-	int ready_fd;
-	struct linked_list context;
-	struct linked_list fd_cell;
-	struct incomingHttpRequest fake_for_server;
-	int done;
-	struct incomingHttpRequest *conn;
-	struct linked_list *ctx;
-	/*
-	int *d;
-	int *fd;
-	int status;
-	*/
-	int result = 0;
-	done = 0;
-	ready_fd = -1;
-	fd_cell.next = 0;
-	fd_cell.data = &ready_fd;
-	context.next = &fd_cell;
-	context.data = &done;
-	fake_for_server.fd = server->listeningSocket_fileDescriptor;
-	fake_for_server.input.done = 0;
-	conn = &fake_for_server;
-	ctx = &context;
-	result = visit_connection_bundle_select_read(conn, ctx);
 	if(result)
 		return -1;
 	return ready_fd;

@@ -75,16 +75,13 @@ int httpServer_close(struct httpServer *server){
 
 
 int httpServer_selectRead(struct httpServer *server){
-	int ready_fd;
 	struct incomingHttpRequest fake_for_server;
 	int status;
-	ready_fd = -1;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.input.done = 0;
 	status = incomingHttpRequest_selectRead(&fake_for_server);
-	if(-1 == status) return ready_fd;
-	ready_fd = status;
-	return ready_fd;
+	if(-1 == status) return -1;
+	return status;
 }
 
 int httpServer_acceptNewConnection(struct httpServer *server){

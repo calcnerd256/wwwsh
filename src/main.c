@@ -8,7 +8,6 @@
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
-	struct linked_list *match_node;
 	int ready_fd = -1;
 	int status = 0;
 
@@ -60,13 +59,6 @@ int main(int argument_count, char* *arguments_vector){
 		if(-1 != ready_fd){
 			if(ready_fd == server.listeningSocket_fileDescriptor)
 				httpServer_acceptNewConnection(&server);
-			else{
-				match_node = 0;
-				status = first_matching(server.connections, (visitor_t)(&match_incomingHttpRequest_bySocketFileDescriptor), (struct linked_list *)(&ready_fd), &match_node);
-				if(!status)
-					if(match_node)
-						httpRequestHandler_readChunk(match_node->data);
-			}
 		}
 		if(!httpServer_stepConnections(&server))
 			if(ready_fd == -1)

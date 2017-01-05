@@ -74,11 +74,10 @@ int httpServer_close(struct httpServer *server){
 }
 
 
-int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct linked_list *context, struct linked_list *node){
+int visit_connection_bundle_select_read(struct incomingHttpRequest *conn, struct linked_list *context){
 	int *done;
 	int *fd;
 	int status;
-	(void)node;
 	if(!context) return 1;
 	if(!context->next) return 1;
 	done = (int *)(context->data);
@@ -97,7 +96,6 @@ int httpServer_selectRead(struct httpServer *server){
 	struct linked_list context;
 	struct linked_list fd_cell;
 	struct incomingHttpRequest fake_for_server;
-	struct linked_list extra_head;
 	int done;
 	done = 0;
 	ready_fd = -1;
@@ -105,12 +103,10 @@ int httpServer_selectRead(struct httpServer *server){
 	fd_cell.data = &ready_fd;
 	context.next = &fd_cell;
 	context.data = &done;
-	extra_head.next = server->connections;
-	extra_head.next = 0;
-	extra_head.data = &fake_for_server;
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.input.done = 0;
-	if(traverse_linked_list(&extra_head, (visitor_t)(&visit_connection_bundle_select_read), &context)) return -1;
+	if(visit_connection_bundle_select_read(&fake_for_server, &context))
+		return -1;
 	return ready_fd;
 }
 

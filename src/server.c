@@ -94,22 +94,20 @@ int httpServer_selectRead(struct httpServer *server){
 	fake_for_server.fd = server->listeningSocket_fileDescriptor;
 	fake_for_server.input.done = 0;
 	conn = &fake_for_server;
-	if(!((&context)->next)) result = 1;
+	if(!(context.next)) return -1;
+	d = (int *)(context.data);
+	if(!d) result = 3;
 	else{
-		d = (int *)((&context)->data);
-		if(!d) result = 3;
+		if(*d) result = 0;
 		else{
-			if(*d) result = 0;
+			fd = (int *)(context.next->data);
+			if(!fd) result = 3;
 			else{
-				fd = (int *)((&context)->next->data);
-				if(!fd) result = 3;
+				status = incomingHttpRequest_selectRead(conn);
+				if(-1 == status) result = 0;
 				else{
-					status = incomingHttpRequest_selectRead(conn);
-					if(-1 == status) result = 0;
-					else{
-						*fd = status;
-						*d = 1;
-					}
+					*fd = status;
+					*d = 1;
 				}
 			}
 		}

@@ -14,6 +14,11 @@ int incomingHttpRequest_sendResponse(
 	struct extent *body
 );
 int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn);
+int httpRequestHandler_respond_htmlOk(
+	struct incomingHttpRequest *conn,
+	struct linked_list *headers,
+	struct extent *body
+);
 
 int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn);
 

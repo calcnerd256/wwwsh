@@ -23,14 +23,43 @@ int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
 int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 0;
 	if(!req) return 0;
-	/* TODO: check the request method */
+	if(!staticGetResource_canRespondp(res, req)) return 0;
+	if(!(req->input.method)) return 0;
+	if(3 > req->input.method->len) return 1;
+	if(!strncmp("GET", req->input.method->bytes, 4)) return 1;
+	if(4 > req->input.method->len) return 1;
+	if(strncmp("POST", req->input.method->bytes, 5)) return 1;
+	/* TODO: support POST methods */
 	return 0;
+}
+int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
+	struct extent body;
+	if(!res) return 1;
+	if(!req) return 1;
+	if(point_extent_at_nice_string(&body, "<html><body>test</body></html>"))
+		return 1;
+	return httpRequestHandler_respond_htmlOk(req, 0, &body);
+}
+int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
+	if(!res) return 1;
+	if(!req) return 1;
+	/* TODO: capture the whole request body */
+	return sampleForm_respond_GET(res, req);
 }
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;
 	if(!req) return 1;
-	/* TODO: capture the whole request body */
-	return 1;
+	if(!sampleForm_canRespondp(res, req)) return 1;
+	if(!(req->input.method)) return 1;
+	if(3 > req->input.method->len)
+		return incomingHttpRequest_respond_badMethod(req);
+	if(!strncmp("GET", req->input.method->bytes, 4))
+		return sampleForm_respond_GET(res, req);
+	if(4 > req->input.method->len)
+		return incomingHttpRequest_respond_badMethod(req);
+	if(!strncmp("POST", req->input.method->bytes, 5))
+		return sampleForm_respond_POST(res, req);
+	return incomingHttpRequest_respond_badMethod(req);
 }
 
 int main(int argument_count, char* *arguments_vector){
@@ -38,6 +67,9 @@ int main(int argument_count, char* *arguments_vector){
 	int status = 0;
 
 	struct contiguousHtmlResource rootResourceStorage;
+
+	struct linked_list formHead;
+	struct httpResource formResource;
 
 	if(2 != argument_count) return 1;
 	if(httpServer_init(&server)) return 2;
@@ -75,6 +107,7 @@ int main(int argument_count, char* *arguments_vector){
 	);
 	if(status) return 4;
 
+	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, 0)) return 4;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

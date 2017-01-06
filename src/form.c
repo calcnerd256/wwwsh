@@ -110,41 +110,46 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "<html>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <head>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  <title>");
+
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   ");
 	if(status) return 5;
 	if(incomingHttpRequest_write_chunk(req, form->title->bytes, form->title->len))
 		return 6;
 	status = 0;
-	status += !!incomingHttpRequest_write_chunk(req, "\r\n", 2);
-	status += !!incomingHttpRequest_write_chunk(req, "  </title>\r\n", 12);
-	status += !!incomingHttpRequest_write_chunk(req, " </head>\r\n", 10);
-	status += !!incomingHttpRequest_write_chunk(req, " <body>\r\n", 9);
-	status += !!incomingHttpRequest_write_chunk(req, "  <h1>", 6);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "");
+
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </title>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </head>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <body>");
+
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <h1>");
 	if(status) return 7;
 	if(incomingHttpRequest_write_chunk(req, form->title->bytes, form->title->len))
 		return 8;
 	status = 0;
-	status += !!incomingHttpRequest_write_chunk(req, "</h1>\r\n", 7);
-	status += !!incomingHttpRequest_write_chunk(req, "  <form method=\"POST\" action=\"", 30);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</h1>");
+
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <form method=\"POST\" action=\"");
 	if(incomingHttpRequest_write_chunk(req, fr->url.bytes, fr->url.len))
 		return 9;
-	status += !!incomingHttpRequest_write_chunk(req, "\">\r\n", 4);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\">");
 
-	status += !!incomingHttpRequest_write_chunk(req, "   <", 4);
-	status += !!incomingHttpRequest_write_chunk(req, "textarea", 8);
-	status += !!incomingHttpRequest_write_chunk(req, " name=\"", 7);
-	status += !!incomingHttpRequest_write_chunk(req, "cmd", 3);
-	status += !!incomingHttpRequest_write_chunk(req, "\"><", 3);
-	status += !!incomingHttpRequest_write_chunk(req, "/", 1);
-	status += !!incomingHttpRequest_write_chunk(req, "textarea", 8);
-	status += !!incomingHttpRequest_write_chunk(req, ">\r\n", 3);
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "textarea");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, " name=\"");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "cmd");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "\"><");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "/");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "textarea");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, ">");
 
-	status += !!incomingHttpRequest_write_chunk(req, "   <input type=\"submit\" value=\"", 31);
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <input type=\"submit\" value=\"");
 	status += !!incomingHttpRequest_write_chunk(req, "test", 4);
-	status += !!incomingHttpRequest_write_chunk(req, "\" />\r\n", 6);
-	status += !!incomingHttpRequest_write_chunk(req, "  </form>\r\n", 11);
-	status += !!incomingHttpRequest_write_chunk(req, " </body>\r\n", 10);
-	status += !!incomingHttpRequest_write_chunk(req, "</html>\r\n", 9);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\" />");
+
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </form>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </body>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</html>");
 	return !!incomingHttpRequest_sendLastChunk(req, 0) + status;
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){

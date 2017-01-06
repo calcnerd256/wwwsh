@@ -17,9 +17,13 @@ int main(int argument_count, char* *arguments_vector){
 	struct mempool formAllocations;
 	struct linked_list formContext;
 	struct linked_list formPoolCell;
+	struct linked_list formTailCell;
+	struct form formForm;
+	struct extent formTitle;
 
 	if(2 != argument_count) return 1;
 	if(init_pool(&formAllocations)) return 8;
+	if(point_extent_at_nice_string(&formTitle, "form")) return 9;
 	if(httpServer_init(&server)) return 2;
 
 	status = contiguousHtmlResource_init(
@@ -61,7 +65,12 @@ int main(int argument_count, char* *arguments_vector){
 	formContext.data = &server;
 	formContext.next = &formPoolCell;
 	formPoolCell.data = &formAllocations;
-	formPoolCell.next = 0;
+	formPoolCell.next = &formTailCell;
+	formTailCell.data = &formForm;
+	formTailCell.next = 0;
+	formForm.title = &formTitle;
+	formForm.fields = 0;
+	formForm.action = &formResource;
 	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formContext)) return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

@@ -232,18 +232,10 @@ int httpResource_respond(struct httpResource *resource, struct incomingHttpReque
 	return (*(resource->respond))(resource, connection);
 }
 
-int httpRequestHandler_respond(struct incomingHttpRequest *conn){
-	struct httpResource *resource;
-	if(conn->done_writing) return 0;
-	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
-	if(!resource)
-		return httpRequestHandler_respond_badRequestTarget(conn);
-	return httpResource_respond(resource, conn);
-}
-
 int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	int status = 0;
 	struct linked_list *old_node;
+	struct httpResource *resource;
 	if(!conn) return 0;
 	if(-1 != incomingHttpRequest_selectRead(conn)){
 		status = 1;
@@ -255,7 +247,13 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!(conn->input.requestUrl)) return status;
 	if(!httpRequestHandler_canRespondp(conn)) return status;
-	httpRequestHandler_respond(conn);
+	if(conn->done_writing) return status;
+	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
+	if(!resource){
+		httpRequestHandler_respond_badRequestTarget(conn);
+		return 1;
+	}
+	httpResource_respond(resource, conn);
 	return 1;
 }
 

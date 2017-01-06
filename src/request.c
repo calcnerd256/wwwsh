@@ -246,13 +246,15 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	}
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!(conn->input.requestUrl)) return status;
-	if(!httpRequestHandler_canRespondp(conn)) return status;
 	if(conn->done_writing) return status;
 	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
-	if(resource)
-		httpResource_respond(resource, conn);
-	else
+	if(!resource){
+		if(!httpRequestHandler_canRespondp(conn)) return status;
 		httpRequestHandler_respond_badRequestTarget(conn);
+		return 1;
+	}
+	if(!httpRequestHandler_canRespondp(conn)) return status;
+	httpResource_respond(resource, conn);
 	return 1;
 }
 

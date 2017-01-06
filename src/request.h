@@ -6,8 +6,13 @@ int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer 
 int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
+
 int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, struct linked_list *headers);
+
 int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len);
+int incomingHttpRequest_writeChunk_niceString(struct incomingHttpRequest *req, char* str);
+int incomingHttpRequest_writelnChunk_niceString(struct incomingHttpRequest *req, char* str);
+
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers);
 
 

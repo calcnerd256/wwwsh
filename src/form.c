@@ -107,10 +107,10 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	if(!(form->action)) return 3;
 	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0)) return 4;
 	status = 0;
-	status += !!incomingHttpRequest_write_chunk(req, "<html>\r\n", 8);
-	status += !!incomingHttpRequest_write_chunk(req, " <head>\r\n", 9);
-	status += !!incomingHttpRequest_write_chunk(req, "  <title>\r\n", 11);
-	status += !!incomingHttpRequest_write_chunk(req, "   ", 3);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "<html>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <head>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  <title>");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "   ");
 	if(status) return 5;
 	if(incomingHttpRequest_write_chunk(req, form->title->bytes, form->title->len))
 		return 6;

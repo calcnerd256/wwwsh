@@ -216,6 +216,17 @@ int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes
 	if(incomingHttpRequest_write_crlf(req)) return 6;
 	return 0;
 }
+int incomingHttpRequest_writeChunk_niceString(struct incomingHttpRequest *req, char* str){
+	return incomingHttpRequest_write_chunk(req, str, strlen(str));
+}
+int incomingHttpRequest_writelnChunk_niceString(struct incomingHttpRequest *req, char* str){
+	int result = 0;
+	if(!req) return 3;
+	if(!str) return 4;
+	if(*str)
+		result += !!incomingHttpRequest_writeChunk_niceString(req, str);
+	return result + !!incomingHttpRequest_writeChunk_niceString(req, "\r\n");
+}
 
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
 	struct extent lastChunk;

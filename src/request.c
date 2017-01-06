@@ -201,11 +201,22 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 
 
 int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers){
+	struct linked_list extraHead_node;
+	struct linked_list extraHead_key;
+	struct linked_list extraHead_val;
+	struct extent key;
+	struct extent val;
 	if(!req) return 1;
 	if(!reason) return 1;
-	(void)status_code;
-	(void)headers;
-	return 1;
+	if(point_extent_at_nice_string(&key, "Transfer-Encoding")) return 2;
+	if(point_extent_at_nice_string(&val, "chunked")) return 2;
+	extraHead_node.data = &extraHead_key;
+	extraHead_node.next = headers;
+	extraHead_key.data = &key;
+	extraHead_key.next = &extraHead_val;
+	extraHead_val.data = &val;
+	extraHead_val.next = 0;
+	return incomingHttpRequest_sendResponseHeaders(req, status_code, reason, &extraHead_node);
 }
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
 	struct extent lastChunk;

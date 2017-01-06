@@ -18,7 +18,7 @@ int incomingHttpRequest_sendResponse(
 	struct extent *body
 );
 
-int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers);
+int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers);
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers);
 
 int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn);

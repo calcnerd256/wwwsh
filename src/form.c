@@ -94,11 +94,6 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct extent body;
-	struct linked_list header_transferEncoding_node;
-	struct linked_list header_transferEncoding_key;
-	struct linked_list header_transferEncoding_val;
-	struct extent header_transferEncoding_key_str;
-	struct extent header_transferEncoding_val_str;
 	struct linked_list header_contentType_node;
 	struct linked_list header_contentType_key;
 	struct linked_list header_contentType_val;
@@ -108,20 +103,12 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	int status = 0;
 	if(!res) return 1;
 	if(!req) return 1;
-	header_transferEncoding_node.data = &header_transferEncoding_key;
-	header_transferEncoding_node.next = &header_contentType_node;
 	header_contentType_node.data = &header_contentType_key;
 	header_contentType_node.next = 0;
-	header_transferEncoding_key.data = &header_transferEncoding_key_str;
-	header_transferEncoding_key.next = &header_transferEncoding_val;
-	header_transferEncoding_val.data = &header_transferEncoding_val_str;
-	header_transferEncoding_val.next = 0;
 	header_contentType_key.data = &header_contentType_key_str;
 	header_contentType_key.next = &header_contentType_val;
 	header_contentType_val.data = &header_contentType_val_str;
 	header_contentType_val.next = 0;
-	if(point_extent_at_nice_string(&header_transferEncoding_key_str, "Transfer-Encoding")) return 2;
-	if(point_extent_at_nice_string(&header_transferEncoding_val_str, "chunked")) return 2;
 	if(point_extent_at_nice_string(&header_contentType_key_str, "Content-Type")) return 2;
 	if(point_extent_at_nice_string(&header_contentType_val_str, "text/html")) return 2;
 	if(point_extent_at_nice_string(&reason, "OK")) return 2;
@@ -141,7 +128,7 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 		"</html>\r\n"
 	);
 	if(status) return 3;
-	if(incomingHttpRequest_sendResponseHeaders(req, 200, &reason, &header_transferEncoding_node)) return 4;
+	if(incomingHttpRequest_beginChunkedResponse(req, 200, &reason, &header_contentType_node)) return 4;
 	if(incomingHttpRequest_write_chunk(req, body.bytes, body.len)) return 5;
 	return incomingHttpRequest_sendLastChunk(req, 0);
 }

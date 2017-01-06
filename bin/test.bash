@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
-valgrind -v ../build/main 8080 &
+./server.test.bash &
 PID_VALGRIND="$!"
 sleep 1
 echo "valgrind=$PID_VALGRIND"
-curl http://localhost:8080/
-curl http://localhost:8080/formtest/ -d cmd=ls+-al
+./client.test.bash
 sleep 2
 kill "$PID_VALGRIND"
 sleep 1

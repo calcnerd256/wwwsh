@@ -130,24 +130,6 @@ int incomingHttpRequest_write_header(struct incomingHttpRequest *conn, struct ex
 	return incomingHttpRequest_write_crlf(conn);
 }
 
-int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len){
-	struct extent chunk;
-	char chunk_length_str[256];
-	if(!len) return 0;
-	if(!req) return 1;
-	if(!bytes) return 1;
-	snprintf(chunk_length_str, 255, "%X", (int)len);
-	chunk_length_str[255] = 0;
-	if(point_extent_at_nice_string(&chunk, chunk_length_str)) return 2;
-	if(incomingHttpRequest_writeExtent(req, &chunk)) return 3;
-	if(incomingHttpRequest_write_crlf(req)) return 4;
-	chunk.bytes = bytes;
-	chunk.len = len;
-	if(incomingHttpRequest_writeExtent(req, &chunk)) return 5;
-	if(incomingHttpRequest_write_crlf(req)) return 6;
-	return 0;
-}
-
 int incomingHttpRequest_closeWrite(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
@@ -177,28 +159,6 @@ int incomingHttpRequest_sendResponseHeaders(struct incomingHttpRequest *conn, in
 	if(incomingHttpRequest_write_crlf(conn)) return 4;
 	return 0;
 }
-int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
-	struct extent content_length_key;
-	struct extent content_length_value;
-	struct linked_list extraHeader_head;
-	struct linked_list extraHeader_key;
-	struct linked_list extraHeader_value;
-	char content_length_str[256];
-	if(point_extent_at_nice_string(&content_length_key, "Content-Length")) return 1;
-	snprintf(content_length_str, 255, "%d", (int)(body->len));
-	content_length_str[255] = 0;
-	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
-	extraHeader_head.data = &extraHeader_key;
-	extraHeader_head.next = headers;
-	extraHeader_key.data = &content_length_key;
-	extraHeader_key.next = &extraHeader_value;
-	extraHeader_value.data = &content_length_value;
-	extraHeader_value.next = 0;
-	if(incomingHttpRequest_sendResponseHeaders(conn, status_code, reason, &extraHeader_head)) return 1;
-	if(incomingHttpRequest_writeExtent(conn, body)) return 5;
-	return incomingHttpRequest_closeWrite(conn);
-}
-
 
 int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers){
 	struct linked_list extraHead_node;
@@ -238,6 +198,25 @@ int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, stru
 	return incomingHttpRequest_beginChunkedResponse(req, 200, &reason, &extraHead_node);
 	return 1;
 }
+
+int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len){
+	struct extent chunk;
+	char chunk_length_str[256];
+	if(!len) return 0;
+	if(!req) return 1;
+	if(!bytes) return 1;
+	snprintf(chunk_length_str, 255, "%X", (int)len);
+	chunk_length_str[255] = 0;
+	if(point_extent_at_nice_string(&chunk, chunk_length_str)) return 2;
+	if(incomingHttpRequest_writeExtent(req, &chunk)) return 3;
+	if(incomingHttpRequest_write_crlf(req)) return 4;
+	chunk.bytes = bytes;
+	chunk.len = len;
+	if(incomingHttpRequest_writeExtent(req, &chunk)) return 5;
+	if(incomingHttpRequest_write_crlf(req)) return 6;
+	return 0;
+}
+
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
 	struct extent lastChunk;
 	if(!req) return 2;
@@ -249,6 +228,30 @@ int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct li
 	if(incomingHttpRequest_write_crlf(req)) return 6;
 	return incomingHttpRequest_closeWrite(req);
 }
+
+
+int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+	struct extent content_length_key;
+	struct extent content_length_value;
+	struct linked_list extraHeader_head;
+	struct linked_list extraHeader_key;
+	struct linked_list extraHeader_value;
+	char content_length_str[256];
+	if(point_extent_at_nice_string(&content_length_key, "Content-Length")) return 1;
+	snprintf(content_length_str, 255, "%d", (int)(body->len));
+	content_length_str[255] = 0;
+	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
+	extraHeader_head.data = &extraHeader_key;
+	extraHeader_head.next = headers;
+	extraHeader_key.data = &content_length_key;
+	extraHeader_key.next = &extraHeader_value;
+	extraHeader_value.data = &content_length_value;
+	extraHeader_value.next = 0;
+	if(incomingHttpRequest_sendResponseHeaders(conn, status_code, reason, &extraHeader_head)) return 1;
+	if(incomingHttpRequest_writeExtent(conn, body)) return 5;
+	return incomingHttpRequest_closeWrite(conn);
+}
+
 
 int incomingHttpRequest_respond_notFound(struct incomingHttpRequest *conn){
 	struct extent reason;

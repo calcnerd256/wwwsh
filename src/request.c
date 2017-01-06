@@ -110,7 +110,7 @@ int httpRequestHandler_write_crlf(struct incomingHttpRequest *conn){
 	return 2 != write(conn->fd, "\r\n", 2);
 }
 
-int connection_bundle_write_status_line(struct incomingHttpRequest *conn, int status_code, struct extent *reason){
+int httpRequestHandler_write_statusLine(struct incomingHttpRequest *conn, int status_code, struct extent *reason){
 	char status_code_str[3];
 	ssize_t bytes;
 	if(status_code < 0) return 1;
@@ -130,7 +130,7 @@ int connection_bundle_write_status_line(struct incomingHttpRequest *conn, int st
 	return httpRequestHandler_write_crlf(conn);
 }
 
-int connection_bundle_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
+int httpRequestHandler_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
 	ssize_t bytes;
 	if(httpRequestHandler_writeExtent(conn, key)) return 1;
 	bytes = write(conn->fd, ": ", 2);
@@ -155,7 +155,7 @@ int visit_header_write(struct linked_list *header, struct incomingHttpRequest *c
 	if(!(header->next)) return 1;
 	if(!(header->next->data)) return 1;
 	if(!context) return 1;
-	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
+	return httpRequestHandler_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
 int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent connection;
@@ -169,10 +169,10 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	snprintf(content_length_str, 255, "%d", (int)(body->len));
 	content_length_str[255] = 0;
 	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
-	if(connection_bundle_write_status_line(conn, status_code, reason)) return 1;
+	if(httpRequestHandler_write_statusLine(conn, status_code, reason)) return 1;
 	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
-	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 3;
-	if(connection_bundle_write_header(conn, &connection, &close)) return 3;
+	if(httpRequestHandler_write_header(conn, &content_length_key, &content_length_value)) return 3;
+	if(httpRequestHandler_write_header(conn, &connection, &close)) return 3;
 	if(httpRequestHandler_write_crlf(conn)) return 4;
 	if(httpRequestHandler_writeExtent(conn, body)) return 5;
 	return connection_bundle_close_write(conn);

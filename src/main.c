@@ -58,10 +58,25 @@ int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest 
 }
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct extent body;
+	int status = 0;
 	if(!res) return 1;
 	if(!req) return 1;
-	if(point_extent_at_nice_string(&body, "<html><body>test</body></html>"))
-		return 1;
+	status = point_extent_at_nice_string(
+		&body,
+		"<html>\r\n"
+		" <head>\r\n"
+		"  <title>form</title>\r\n"
+		" </head>\r\n"
+		" <body>\r\n"
+		"  test\r\n"
+		"  <form method=\"POST\" action=\"/formtest/\">\r\n"
+		"   <textarea name=\"cmd\"></textarea>\r\n"
+		"   <input type=\"submit\" value=\"test\" />\r\n"
+		"  </form>\r\n"
+		" </body>\r\n"
+		"</html>\r\n"
+	);
+	if(status) return 1;
 	return incomingHttpRequest_respond_htmlOk(req, 0, &body);
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
@@ -97,8 +112,10 @@ int main(int argument_count, char* *arguments_vector){
 
 	struct linked_list formHead;
 	struct httpResource formResource;
+	struct mempool formAllocations;
 
 	if(2 != argument_count) return 1;
+	if(init_pool(&formAllocations)) return 8;
 	if(httpServer_init(&server)) return 2;
 
 	status = contiguousHtmlResource_init(
@@ -138,7 +155,7 @@ int main(int argument_count, char* *arguments_vector){
 	);
 	if(status) return 4;
 
-	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, 0)) return 4;
+	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formAllocations)) return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

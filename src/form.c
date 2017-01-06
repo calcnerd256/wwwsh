@@ -94,24 +94,9 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct extent body;
-	struct linked_list header_contentType_node;
-	struct linked_list header_contentType_key;
-	struct linked_list header_contentType_val;
-	struct extent header_contentType_key_str;
-	struct extent header_contentType_val_str;
-	struct extent reason;
 	int status = 0;
 	if(!res) return 1;
 	if(!req) return 1;
-	header_contentType_node.data = &header_contentType_key;
-	header_contentType_node.next = 0;
-	header_contentType_key.data = &header_contentType_key_str;
-	header_contentType_key.next = &header_contentType_val;
-	header_contentType_val.data = &header_contentType_val_str;
-	header_contentType_val.next = 0;
-	if(point_extent_at_nice_string(&header_contentType_key_str, "Content-Type")) return 2;
-	if(point_extent_at_nice_string(&header_contentType_val_str, "text/html")) return 2;
-	if(point_extent_at_nice_string(&reason, "OK")) return 2;
 	status = point_extent_at_nice_string(
 		&body,
 		"<html>\r\n"
@@ -128,7 +113,7 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 		"</html>\r\n"
 	);
 	if(status) return 3;
-	if(incomingHttpRequest_beginChunkedResponse(req, 200, &reason, &header_contentType_node)) return 4;
+	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0)) return 4;
 	if(incomingHttpRequest_write_chunk(req, body.bytes, body.len)) return 5;
 	return incomingHttpRequest_sendLastChunk(req, 0);
 }

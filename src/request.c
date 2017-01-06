@@ -218,6 +218,26 @@ int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, in
 	extraHead_val.next = 0;
 	return incomingHttpRequest_sendResponseHeaders(req, status_code, reason, &extraHead_node);
 }
+int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, struct linked_list *headers){
+	struct extent reason;
+	struct linked_list extraHead_node;
+	struct linked_list extraHead_key;
+	struct linked_list extraHead_val;
+	struct extent key;
+	struct extent val;
+	if(!req) return 1;
+	if(point_extent_at_nice_string(&reason, "OK")) return 2;
+	if(point_extent_at_nice_string(&key, "Content-Type")) return 2;
+	if(point_extent_at_nice_string(&val, "text/html")) return 2;
+	extraHead_node.data = &extraHead_key;
+	extraHead_node.next = headers;
+	extraHead_key.data = &key;
+	extraHead_key.next = &extraHead_val;
+	extraHead_val.data = &val;
+	extraHead_val.next = 0;
+	return incomingHttpRequest_beginChunkedResponse(req, 200, &reason, &extraHead_node);
+	return 1;
+}
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
 	struct extent lastChunk;
 	if(!req) return 2;

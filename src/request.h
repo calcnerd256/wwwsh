@@ -7,7 +7,6 @@ int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
 int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len);
-int incomingHttpRequest_sendResponseHeaders(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers);
 
 
 int incomingHttpRequest_sendResponse(
@@ -18,7 +17,7 @@ int incomingHttpRequest_sendResponse(
 	struct extent *body
 );
 
-int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers);
+int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, struct linked_list *headers);
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers);
 
 int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn);

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-./server.test.bash &
-PID_VALGRIND="$!"
+source ./server.test.bash
 sleep 1
 echo "valgrind=$PID_VALGRIND"
 ./client.test.bash

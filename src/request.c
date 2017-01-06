@@ -50,7 +50,7 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 }
 
 /* TODO: rename internal variables from conn to req */
-int httpRequestHandler_free(struct incomingHttpRequest *conn){
+int incomingHttpRequest_free(struct incomingHttpRequest *conn){
 	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
 	close(conn->fd);
@@ -72,7 +72,7 @@ int httpRequestHandler_free(struct incomingHttpRequest *conn){
 	free(conn);
 	return 0;
 }
-int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
+int incomingHttpRequest_readChunk(struct incomingHttpRequest *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;
 
@@ -84,22 +84,22 @@ int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 
 	if(!(conn->input.done)) return 0;
 	if(conn->done_writing)
-		return httpRequestHandler_free(conn);
+		return incomingHttpRequest_free(conn);
 	return 0;
 }
 
-int httpRequestHandler_writeExtent(struct incomingHttpRequest *conn, struct extent *str){
+int incomingHttpRequest_writeExtent(struct incomingHttpRequest *conn, struct extent *str){
 	ssize_t bytes;
 	bytes = write(conn->fd, str->bytes, str->len);
 	if(bytes < 0) return 1;
 	if((size_t)bytes != str->len) return 2;
 	return 0;
 }
-int httpRequestHandler_write_crlf(struct incomingHttpRequest *conn){
+int incomingHttpRequest_write_crlf(struct incomingHttpRequest *conn){
 	return 2 != write(conn->fd, "\r\n", 2);
 }
 
-int httpRequestHandler_write_statusLine(struct incomingHttpRequest *conn, int status_code, struct extent *reason){
+int incomingHttpRequest_write_statusLine(struct incomingHttpRequest *conn, int status_code, struct extent *reason){
 	char status_code_str[3];
 	ssize_t bytes;
 	if(status_code < 0) return 1;
@@ -115,25 +115,25 @@ int httpRequestHandler_write_statusLine(struct incomingHttpRequest *conn, int st
 	if(3 != bytes) return 1;
 	bytes = write(conn->fd, " ", 1);
 	if(1 != bytes) return 1;
-	if(httpRequestHandler_writeExtent(conn, reason)) return 1;
-	return httpRequestHandler_write_crlf(conn);
+	if(incomingHttpRequest_writeExtent(conn, reason)) return 1;
+	return incomingHttpRequest_write_crlf(conn);
 }
 
-int httpRequestHandler_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
+int incomingHttpRequest_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
 	ssize_t bytes;
-	if(httpRequestHandler_writeExtent(conn, key)) return 1;
+	if(incomingHttpRequest_writeExtent(conn, key)) return 1;
 	bytes = write(conn->fd, ": ", 2);
 	if(bytes < 0) return 1;
 	if(2 != bytes) return 2;
-	if(httpRequestHandler_writeExtent(conn, value)) return 1;
-	return httpRequestHandler_write_crlf(conn);
+	if(incomingHttpRequest_writeExtent(conn, value)) return 1;
+	return incomingHttpRequest_write_crlf(conn);
 }
 
-int httpRequestHandler_closeWrite(struct incomingHttpRequest *conn){
+int incomingHttpRequest_closeWrite(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
 	if(!(conn->input.done)) return 0;
-	return httpRequestHandler_free(conn);
+	return incomingHttpRequest_free(conn);
 }
 
 
@@ -144,7 +144,7 @@ int visit_header_write(struct linked_list *header, struct incomingHttpRequest *c
 	if(!(header->next)) return 1;
 	if(!(header->next->data)) return 1;
 	if(!context) return 1;
-	return httpRequestHandler_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
+	return incomingHttpRequest_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
 int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent connection;
@@ -158,17 +158,17 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	snprintf(content_length_str, 255, "%d", (int)(body->len));
 	content_length_str[255] = 0;
 	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
-	if(httpRequestHandler_write_statusLine(conn, status_code, reason)) return 1;
+	if(incomingHttpRequest_write_statusLine(conn, status_code, reason)) return 1;
 	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
-	if(httpRequestHandler_write_header(conn, &content_length_key, &content_length_value)) return 3;
-	if(httpRequestHandler_write_header(conn, &connection, &close)) return 3;
-	if(httpRequestHandler_write_crlf(conn)) return 4;
-	if(httpRequestHandler_writeExtent(conn, body)) return 5;
-	return httpRequestHandler_closeWrite(conn);
+	if(incomingHttpRequest_write_header(conn, &content_length_key, &content_length_value)) return 3;
+	if(incomingHttpRequest_write_header(conn, &connection, &close)) return 3;
+	if(incomingHttpRequest_write_crlf(conn)) return 4;
+	if(incomingHttpRequest_writeExtent(conn, body)) return 5;
+	return incomingHttpRequest_closeWrite(conn);
 }
 
 
-int httpRequestHandler_respond_notFound(struct incomingHttpRequest *conn){
+int incomingHttpRequest_respond_notFound(struct incomingHttpRequest *conn){
 	struct extent reason;
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
@@ -231,7 +231,7 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(-1 != incomingHttpRequest_selectRead(conn)){
 		status = 1;
 		old_node = conn->node;
-		httpRequestHandler_readChunk(conn);
+		incomingHttpRequest_readChunk(conn);
 		if(!old_node) return 1;
 		if(!(old_node->data)) return 0;
 	}
@@ -251,7 +251,7 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(resource)
 		httpResource_respond(resource, conn);
 	else
-		httpRequestHandler_respond_notFound(conn);
+		incomingHttpRequest_respond_notFound(conn);
 	return 1;
 }
 

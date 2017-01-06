@@ -133,15 +133,14 @@ int incomingHttpRequest_write_header(struct incomingHttpRequest *conn, struct ex
 int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len){
 	struct extent chunk;
 	char chunk_length_str[256];
+	if(!len) return 0;
 	if(!req) return 1;
-	if(!bytes)
-		if(len) return 1;
+	if(!bytes) return 1;
 	snprintf(chunk_length_str, 255, "%X", (int)len);
 	chunk_length_str[255] = 0;
 	if(point_extent_at_nice_string(&chunk, chunk_length_str)) return 2;
 	if(incomingHttpRequest_writeExtent(req, &chunk)) return 3;
 	if(incomingHttpRequest_write_crlf(req)) return 4;
-	if(!len) return 0;
 	chunk.bytes = bytes;
 	chunk.len = len;
 	if(incomingHttpRequest_writeExtent(req, &chunk)) return 5;
@@ -200,6 +199,25 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	return incomingHttpRequest_closeWrite(conn);
 }
 
+
+int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers){
+	if(!req) return 1;
+	if(!reason) return 1;
+	(void)status_code;
+	(void)headers;
+	return 1;
+}
+int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
+	struct extent lastChunk;
+	if(!req) return 2;
+	lastChunk.bytes = "0";
+	lastChunk.len = 1;
+	if(incomingHttpRequest_writeExtent(req, &lastChunk)) return 3;
+	if(incomingHttpRequest_write_crlf(req)) return 4;
+	if(traverse_linked_list(trailers, (visitor_t)(&visit_header_write), req)) return 5;
+	if(incomingHttpRequest_write_crlf(req)) return 6;
+	return incomingHttpRequest_closeWrite(req);
+}
 
 int incomingHttpRequest_respond_notFound(struct incomingHttpRequest *conn){
 	struct extent reason;

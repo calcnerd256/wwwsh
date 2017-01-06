@@ -49,6 +49,8 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 	return data->fd == *target;
 }
 
+/* TODO: rename connection_bundle to incomingHttpRequest */
+
 /* TODO: rename this method as appropriate */
 int connection_bundle_free(struct incomingHttpRequest *conn){
 	if(!conn) return 1;

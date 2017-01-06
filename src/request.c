@@ -140,7 +140,7 @@ int httpRequestHandler_write_header(struct incomingHttpRequest *conn, struct ext
 	return httpRequestHandler_write_crlf(conn);
 }
 
-int connection_bundle_close_write(struct incomingHttpRequest *conn){
+int httpRequestHandler_closeWrite(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
 	if(!(conn->input.done)) return 0;
@@ -175,7 +175,7 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	if(httpRequestHandler_write_header(conn, &connection, &close)) return 3;
 	if(httpRequestHandler_write_crlf(conn)) return 4;
 	if(httpRequestHandler_writeExtent(conn, body)) return 5;
-	return connection_bundle_close_write(conn);
+	return httpRequestHandler_closeWrite(conn);
 }
 
 

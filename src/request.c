@@ -249,7 +249,7 @@ int connection_bundle_respond(struct incomingHttpRequest *conn){
 	return httpResource_respond(resource, conn);
 }
 
-int connection_bundle_process_steppedp(struct incomingHttpRequest *conn){
+int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	int status = 0;
 	struct linked_list *old_node;
 	if(!conn) return 0;

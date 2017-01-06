@@ -136,7 +136,7 @@ int match_httpResource_url(struct httpResource *resource, struct extent *url, st
 
 int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *context, struct linked_list *node){
 	(void)node;
-	if(connection_bundle_process_steppedp(conn)) *context = 1;
+	if(incomingHttpRequest_processSteppedp(conn)) *context = 1;
 	conn = 0;
 	context = 0;
 	node = 0;

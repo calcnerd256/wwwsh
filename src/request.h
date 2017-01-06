@@ -16,9 +16,8 @@ int incomingHttpRequest_sendResponse(
 	struct extent *body
 );
 int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn);
-int connection_bundle_respond(struct incomingHttpRequest *conn);
 
-int connection_bundle_process_steppedp(struct incomingHttpRequest *conn);
+int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn);
 
 
 struct linked_list *push_header_nice_strings(

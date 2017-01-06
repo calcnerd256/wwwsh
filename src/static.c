@@ -36,7 +36,7 @@ int staticGetResource_respond(struct httpResource *resource, struct incomingHttp
 	if(strncmp(connection->input.method->bytes, "GET", connection->input.method->len + 1))
 		return connection_bundle_respond_bad_method(connection);
 	point_extent_at_nice_string(&reason, "OK");
-	return connection_bundle_send_response(connection, 200, &reason, response->headers, response->body);
+	return incomingHttpRequest_sendResponse(connection, 200, &reason, response->headers, response->body);
 }
 
 

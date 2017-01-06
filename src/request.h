@@ -8,7 +8,7 @@ int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer 
 int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
-int connection_bundle_send_response(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body);
+int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body);
 
 int connection_bundle_respond_bad_method(struct incomingHttpRequest *conn);
 

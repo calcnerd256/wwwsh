@@ -157,7 +157,7 @@ int visit_header_write(struct linked_list *header, struct incomingHttpRequest *c
 	if(!context) return 1;
 	return connection_bundle_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
-int connection_bundle_send_response(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent connection;
 	struct extent close;
 	struct extent content_length_key;
@@ -184,7 +184,7 @@ int connection_bundle_respond_bad_request_target(struct incomingHttpRequest *con
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
 	if(point_extent_at_nice_string(&body, "Not Found.\r\n\r\n")) return 2;
-	return connection_bundle_send_response(conn, 404, &reason, 0, &body);
+	return incomingHttpRequest_sendResponse(conn, 404, &reason, 0, &body);
 }
 
 struct linked_list *push_header_contiguous(char *buffer, char *key, char *value, struct linked_list *next){
@@ -214,7 +214,7 @@ int connection_bundle_respond_bad_method(struct incomingHttpRequest *conn){
 	if(point_extent_at_nice_string(&reason, "METHOD NOT ALLOWED")) return 1;
 	if(!push_header_contiguous(buffer, "Allow", "GET", 0)) return 1;
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
-	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, &body);
+	return incomingHttpRequest_sendResponse(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
 int connection_bundle_respond_html_ok(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
@@ -222,7 +222,7 @@ int connection_bundle_respond_html_ok(struct incomingHttpRequest *conn, struct l
 	int status_code = 200;
 	if(point_extent_at_nice_string(&reason, "OK")) return 1;
 	if(!push_header_contiguous(buffer, "Content-Type", "text/html", headers)) return 1;
-	return connection_bundle_send_response(conn, status_code, &reason, (struct linked_list*)buffer, body);
+	return incomingHttpRequest_sendResponse(conn, status_code, &reason, (struct linked_list*)buffer, body);
 }
 
 

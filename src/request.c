@@ -50,6 +50,28 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 }
 
 /* TODO: rename this method as appropriate */
+int connection_bundle_free(struct incomingHttpRequest *conn){
+	if(!conn) return 1;
+	if(conn->fd == -1) return 0;
+	close(conn->fd);
+	conn->fd = -1;
+
+	if(conn->allocations.allocs){
+
+		requestInput_consumeLastLine(&(conn->input));
+
+		free_pool(&(conn->allocations));
+		memset(&(conn->allocations), 0, sizeof(struct mempool));
+	}
+	if(conn->node) conn->node->data = 0;
+	memset(conn, 0, sizeof(struct incomingHttpRequest));
+	conn->done_writing = 1;
+	conn->input.done = 1;
+	conn->input.httpMajorVersion = -1;
+	conn->input.httpMinorVersion = -1;
+	free(conn);
+	return 0;
+}
 int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;
@@ -118,28 +140,6 @@ int connection_bundle_write_header(struct incomingHttpRequest *conn, struct exte
 	return connection_bundle_write_crlf(conn);
 }
 
-int connection_bundle_free(struct incomingHttpRequest *conn){
-	if(!conn) return 1;
-	if(conn->fd == -1) return 0;
-	close(conn->fd);
-	conn->fd = -1;
-
-	if(conn->allocations.allocs){
-
-		requestInput_consumeLastLine(&(conn->input));
-
-		free_pool(&(conn->allocations));
-		memset(&(conn->allocations), 0, sizeof(struct mempool));
-	}
-	if(conn->node) conn->node->data = 0;
-	memset(conn, 0, sizeof(struct incomingHttpRequest));
-	conn->done_writing = 1;
-	conn->input.done = 1;
-	conn->input.httpMajorVersion = -1;
-	conn->input.httpMinorVersion = -1;
-	free(conn);
-	return 0;
-}
 int connection_bundle_close_write(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;

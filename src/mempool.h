@@ -10,6 +10,7 @@ struct extent{
 };
 
 int point_extent_at_nice_string(struct extent *storage, char *bytes);
+int visit_extent_sumLength(struct extent *chunk, size_t *len, struct linked_list *node);
 
 
 struct mempool{

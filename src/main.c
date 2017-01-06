@@ -2,6 +2,8 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
@@ -20,7 +22,25 @@ int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
 	res = 0;
 	return !(url->bytes[9]);
 }
+int visit_header_getContentLength(struct linked_list *header, int *contentLength, struct linked_list *node){
+	struct extent *key;
+	struct extent *value;
+	if(!node) return 1;
+	if(!header) return 0;
+	if(!contentLength) return 1;
+	if(-1 != *contentLength) return 0;
+	key = (struct extent*)(header->data);
+	if(!(header->next)) return 1;
+	value = (struct extent*)(header->next->data);
+	if(!key) return 1;
+	if(!value) return 1;
+	if(14 > key->len) return 0;
+	if(strncmp("Content-Length", key->bytes, 15)) return 0;
+	*contentLength = atoi(value->bytes);
+	return 0;
+}
 int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
+	int contentLength = -1;
 	if(!res) return 0;
 	if(!req) return 0;
 	if(!staticGetResource_canRespondp(res, req)) return 0;
@@ -29,8 +49,12 @@ int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest 
 	if(!strncmp("GET", req->input.method->bytes, 4)) return 1;
 	if(4 > req->input.method->len) return 1;
 	if(strncmp("POST", req->input.method->bytes, 5)) return 1;
-	/* TODO: support POST methods */
-	return 0;
+	if(!(req->input.headersDone)) return 0;
+	if(!(req->input.headers)) return 0;
+	if(traverse_linked_list(req->input.headers->head, (visitor_t)(&visit_header_getContentLength), &contentLength)) return 0;
+	if(-1 == contentLength) return 0;
+	if(contentLength > requestInput_getBodyLengthSoFar(&(req->input))) return 0;
+	return 1;
 }
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct extent body;
@@ -43,7 +67,10 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;
 	if(!req) return 1;
-	/* TODO: capture the whole request body */
+	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
+	requestInput_consumeLastLine(&(req->input));
+	requestInput_printBody(&(req->input));
+	printf("}\n");
 	return sampleForm_respond_GET(res, req);
 }
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){

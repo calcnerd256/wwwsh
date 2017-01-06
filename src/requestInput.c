@@ -145,6 +145,23 @@ int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int 
 }
 
 
+int chunkStream_length(struct chunkStream *stream){
+	size_t len = 0;
+	if(!stream) return 0;
+	if(traverse_linked_list(stream->chunk_list.head, (visitor_t)(&visit_extent_sumLength), &len))
+		return -1;
+	return len;
+}
+int chunkStream_lengthRemaining(struct chunkStream *stream){
+	size_t len = 0;
+	if(!stream) return 0;
+	if(!(stream->cursor_chunk)) return 0;
+	if(traverse_linked_list(stream->cursor_chunk->next, (visitor_t)(&visit_extent_sumLength), &len))
+		return -1;
+	return len + ((struct extent*)(stream->cursor_chunk->data))->len - stream->cursor_chunk_offset;
+}
+
+
 int requestInput_init(struct requestInput *req, struct mempool *pool){
 	char *p = 0;
 	if(!req) return 1;
@@ -391,4 +408,18 @@ int requestInput_printBody(struct requestInput *req){
 		node = node->next;
 	}
 	return 0;
+}
+
+int requestInput_getBodyLengthSoFar(struct requestInput *req){
+	int len = -1;
+	int current = 0;
+	if(!req) return len;
+	if(!(req->headersDone)) return len;
+	current = chunkStream_length(req->body);
+	if(-1 == current) return current;
+	len = current;
+	current = chunkStream_lengthRemaining(req->chunks);
+	if(-1 == current) return current;
+	len += current;
+	return len;
 }

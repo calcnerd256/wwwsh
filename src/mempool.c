@@ -10,6 +10,17 @@ int point_extent_at_nice_string(struct extent *storage, char *bytes){
 	return 0;
 }
 
+int visit_extent_sumLength(struct extent *chunk, size_t *len, struct linked_list *node){
+	if(!node) return 1;
+	node = 0;
+	if(!chunk) return 1;
+	if(!len) return 1;
+	*len += chunk->len;
+	chunk = 0;
+	len = 0;
+	return 0;
+}
+
 
 int init_pool(struct mempool *pool){
 	pool->allocs = 0;

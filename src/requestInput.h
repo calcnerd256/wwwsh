@@ -20,6 +20,9 @@ int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent 
 char chunkStream_byteAtRelativeOffset(struct chunkStream *stream, int offset);
 int chunkStream_findByteOffsetFrom(struct chunkStream *stream, char target, int initial_offset);
 
+int chunkStream_length(struct chunkStream *stream);
+int chunkStream_lengthRemaining(struct chunkStream *stream);
+
 
 struct requestInput{
 	struct mempool *pool;
@@ -48,3 +51,4 @@ int requestInput_consumeRequestUrl(struct requestInput *req);
 int requestInput_consumeHttpVersion(struct requestInput *req);
 int requestInput_processStep(struct requestInput *req);
 int requestInput_printBody(struct requestInput *req);
+int requestInput_getBodyLengthSoFar(struct requestInput *req);

@@ -6,6 +6,7 @@ struct form{
 	struct extent *title;
 	struct linked_list *fields;
 	struct httpResource *action;
+	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*);
 };
 
 int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url);

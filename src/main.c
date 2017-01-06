@@ -65,13 +65,14 @@ int main(int argument_count, char* *arguments_vector){
 	formContext.data = &server;
 	formContext.next = &formPoolCell;
 	formPoolCell.data = &formAllocations;
-	formPoolCell.next = &formTailCell;
+	formPoolCell.next = 0;
 	formTailCell.data = &formForm;
-	formTailCell.next = 0;
+	formTailCell.next = &formContext;
 	formForm.title = &formTitle;
 	formForm.fields = 0;
 	formForm.action = &formResource;
-	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formContext)) return 7;
+	formForm.respond_POST = &sampleForm_respond_POST;
+	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formTailCell)) return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

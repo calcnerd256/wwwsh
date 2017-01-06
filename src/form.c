@@ -88,17 +88,26 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	return sampleForm_respond_GET(res, req);
 }
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
+	struct linked_list *context;
+	struct form *form;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!sampleForm_canRespondp(res, req)) return 1;
 	if(!(req->input.method)) return 1;
+	if(!(res->context)) return 1;
+	context = (struct linked_list*)(res->context);
+	if(!context->data) return 1;
+	form = (struct form*)(context->data);
 	if(3 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("GET", req->input.method->bytes, 4))
 		return sampleForm_respond_GET(res, req);
 	if(4 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
-	if(!strncmp("POST", req->input.method->bytes, 5))
-		return sampleForm_respond_POST(res, req);
+	if(!strncmp("POST", req->input.method->bytes, 5)){
+		if(!(form->respond_POST))
+			return incomingHttpRequest_respond_badMethod(req);
+		return (*(form->respond_POST))(res, req);
+	}
 	return incomingHttpRequest_respond_badMethod(req);
 }

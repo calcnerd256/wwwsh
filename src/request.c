@@ -146,23 +146,36 @@ int visit_header_write(struct linked_list *header, struct incomingHttpRequest *c
 	if(!context) return 1;
 	return incomingHttpRequest_write_header(context, (struct extent*)(header->data), (struct extent*)(header->next->data));
 }
-int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+int incomingHttpRequest_sendResponseHeaders(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers){
 	struct extent connection;
 	struct extent close;
-	struct extent content_length_key;
-	struct extent content_length_value;
-	char content_length_str[256];
 	if(point_extent_at_nice_string(&connection, "Connection")) return 1;
 	if(point_extent_at_nice_string(&close, "close")) return 1;
+
+	if(incomingHttpRequest_write_statusLine(conn, status_code, reason)) return 1;
+	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
+	if(incomingHttpRequest_write_header(conn, &connection, &close)) return 3;
+	if(incomingHttpRequest_write_crlf(conn)) return 4;
+	return 0;
+}
+int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
+	struct extent content_length_key;
+	struct extent content_length_value;
+	struct linked_list extraHeader_head;
+	struct linked_list extraHeader_key;
+	struct linked_list extraHeader_value;
+	char content_length_str[256];
 	if(point_extent_at_nice_string(&content_length_key, "Content-Length")) return 1;
 	snprintf(content_length_str, 255, "%d", (int)(body->len));
 	content_length_str[255] = 0;
 	if(point_extent_at_nice_string(&content_length_value, content_length_str)) return 1;
-	if(incomingHttpRequest_write_statusLine(conn, status_code, reason)) return 1;
-	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
-	if(incomingHttpRequest_write_header(conn, &content_length_key, &content_length_value)) return 3;
-	if(incomingHttpRequest_write_header(conn, &connection, &close)) return 3;
-	if(incomingHttpRequest_write_crlf(conn)) return 4;
+	extraHeader_head.data = &extraHeader_key;
+	extraHeader_head.next = headers;
+	extraHeader_key.data = &content_length_key;
+	extraHeader_key.next = &extraHeader_value;
+	extraHeader_value.data = &content_length_value;
+	extraHeader_value.next = 0;
+	if(incomingHttpRequest_sendResponseHeaders(conn, status_code, reason, &extraHeader_head)) return 1;
 	if(incomingHttpRequest_writeExtent(conn, body)) return 5;
 	return incomingHttpRequest_closeWrite(conn);
 }

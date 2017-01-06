@@ -132,6 +132,15 @@ int match_httpResource_url(struct httpResource *resource, struct extent *url, st
 	if(!(resource->urlMatchesp)) return 0;
 	return (*(resource->urlMatchesp))(resource, url);
 }
+struct httpResource* httpServer_getResourceByUrl(struct httpServer *server, struct extent *url){
+	struct linked_list *match_node = 0;
+	if(first_matching(server->resources, (visitor_t)(&match_httpResource_url), (struct linked_list*)url, &match_node))
+		return 0;
+	server = 0;
+	url = 0;
+	if(!match_node) return 0;
+	return match_node->data;
+}
 
 
 int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *context, struct linked_list *node){

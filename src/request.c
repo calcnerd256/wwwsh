@@ -52,7 +52,7 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 /* TODO: rename connection_bundle to incomingHttpRequest */
 
 /* TODO: rename this method as appropriate */
-int connection_bundle_free(struct incomingHttpRequest *conn){
+int httpRequestHandler_free(struct incomingHttpRequest *conn){
 	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
 	close(conn->fd);
@@ -86,12 +86,11 @@ int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 
 	if(!(conn->input.done)) return 0;
 	if(conn->done_writing)
-		return connection_bundle_free(conn);
+		return httpRequestHandler_free(conn);
 	return 0;
 }
 
-
-int connection_bundle_can_respondp(struct incomingHttpRequest *conn){
+int httpRequestHandler_canRespondp(struct incomingHttpRequest *conn){
 	if(!(conn->input.method)) return 0;
 	if(!(conn->input.requestUrl)) return 0;
 	if(-1 == conn->input.httpMajorVersion) return 0;
@@ -100,8 +99,7 @@ int connection_bundle_can_respondp(struct incomingHttpRequest *conn){
 	return 1;
 }
 
-
-int connection_bundle_write_extent(struct incomingHttpRequest *conn, struct extent *str){
+int httpRequestHandler_writeExtent(struct incomingHttpRequest *conn, struct extent *str){
 	ssize_t bytes;
 	bytes = write(conn->fd, str->bytes, str->len);
 	if(bytes < 0) return 1;
@@ -128,17 +126,17 @@ int connection_bundle_write_status_line(struct incomingHttpRequest *conn, int st
 	if(3 != bytes) return 1;
 	bytes = write(conn->fd, " ", 1);
 	if(1 != bytes) return 1;
-	if(connection_bundle_write_extent(conn, reason)) return 1;
+	if(httpRequestHandler_writeExtent(conn, reason)) return 1;
 	return connection_bundle_write_crlf(conn);
 }
 
 int connection_bundle_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
 	ssize_t bytes;
-	if(connection_bundle_write_extent(conn, key)) return 1;
+	if(httpRequestHandler_writeExtent(conn, key)) return 1;
 	bytes = write(conn->fd, ": ", 2);
 	if(bytes < 0) return 1;
 	if(2 != bytes) return 2;
-	if(connection_bundle_write_extent(conn, value)) return 1;
+	if(httpRequestHandler_writeExtent(conn, value)) return 1;
 	return connection_bundle_write_crlf(conn);
 }
 
@@ -146,7 +144,7 @@ int connection_bundle_close_write(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return 0;
 	conn->done_writing = 1;
 	if(!(conn->input.done)) return 0;
-	return connection_bundle_free(conn);
+	return httpRequestHandler_free(conn);
 }
 
 
@@ -176,7 +174,7 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 3;
 	if(connection_bundle_write_header(conn, &connection, &close)) return 3;
 	if(connection_bundle_write_crlf(conn)) return 4;
-	if(connection_bundle_write_extent(conn, body)) return 5;
+	if(httpRequestHandler_writeExtent(conn, body)) return 5;
 	return connection_bundle_close_write(conn);
 }
 
@@ -263,7 +261,7 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 		if(!(old_node->data)) return 0;
 	}
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
-	if(!connection_bundle_can_respondp(conn)) return status;
+	if(!httpRequestHandler_canRespondp(conn)) return status;
 	connection_bundle_respond(conn);
 	return 1;
 }

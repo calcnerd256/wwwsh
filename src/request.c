@@ -90,6 +90,7 @@ int incomingHttpRequest_readChunk(struct incomingHttpRequest *conn){
 
 int incomingHttpRequest_writeExtent(struct incomingHttpRequest *conn, struct extent *str){
 	ssize_t bytes;
+	if(!(str->bytes)) return 0;
 	bytes = write(conn->fd, str->bytes, str->len);
 	if(bytes < 0) return 1;
 	if((size_t)bytes != str->len) return 2;
@@ -127,6 +128,25 @@ int incomingHttpRequest_write_header(struct incomingHttpRequest *conn, struct ex
 	if(2 != bytes) return 2;
 	if(incomingHttpRequest_writeExtent(conn, value)) return 1;
 	return incomingHttpRequest_write_crlf(conn);
+}
+
+int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len){
+	struct extent chunk;
+	char chunk_length_str[256];
+	if(!req) return 1;
+	if(!bytes)
+		if(len) return 1;
+	snprintf(chunk_length_str, 255, "%X", (int)len);
+	chunk_length_str[255] = 0;
+	if(point_extent_at_nice_string(&chunk, chunk_length_str)) return 2;
+	if(incomingHttpRequest_writeExtent(req, &chunk)) return 3;
+	if(incomingHttpRequest_write_crlf(req)) return 4;
+	if(!len) return 0;
+	chunk.bytes = bytes;
+	chunk.len = len;
+	if(incomingHttpRequest_writeExtent(req, &chunk)) return 5;
+	if(incomingHttpRequest_write_crlf(req)) return 6;
+	return 0;
 }
 
 int incomingHttpRequest_closeWrite(struct incomingHttpRequest *conn){

@@ -249,11 +249,10 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(!httpRequestHandler_canRespondp(conn)) return status;
 	if(conn->done_writing) return status;
 	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
-	if(!resource){
+	if(resource)
+		httpResource_respond(resource, conn);
+	else
 		httpRequestHandler_respond_badRequestTarget(conn);
-		return 1;
-	}
-	httpResource_respond(resource, conn);
 	return 1;
 }
 

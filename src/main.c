@@ -47,12 +47,8 @@ int main(int argument_count, char* *arguments_vector){
 		"  </p>\r\n"
 		"  <p>\r\n"
 		"   Coming soon:\r\n"
-		"   a resource responding to the following form's POST requests\r\n"
+		"   <a href=\"./formtest/\">a form</a>\r\n"
 		"  </p>\r\n"
-		"  <form method=\"POST\" action=\"./formtest/\">\r\n"
-		"   <textarea name=\"cmd\"></textarea>\r\n"
-		"   <input type=\"submit\" value=\"test\" />\r\n"
-		"  </form>\r\n"
 		" </body>\r\n"
 		"</html>\r\n"
 	);

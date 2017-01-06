@@ -93,29 +93,23 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 }
 
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
-	struct extent body;
 	int status = 0;
 	if(!res) return 1;
 	if(!req) return 1;
-	status = point_extent_at_nice_string(
-		&body,
-		"<html>\r\n"
-		" <head>\r\n"
-		"  <title>form</title>\r\n"
-		" </head>\r\n"
-		" <body>\r\n"
-		"  test\r\n"
-		"  <form method=\"POST\" action=\"/formtest/\">\r\n"
-		"   <textarea name=\"cmd\"></textarea>\r\n"
-		"   <input type=\"submit\" value=\"test\" />\r\n"
-		"  </form>\r\n"
-		" </body>\r\n"
-		"</html>\r\n"
-	);
-	if(status) return 3;
 	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0)) return 4;
-	if(incomingHttpRequest_write_chunk(req, body.bytes, body.len)) return 5;
-	return incomingHttpRequest_sendLastChunk(req, 0);
+	status += !!incomingHttpRequest_write_chunk(req, "<html>\r\n", 8);
+	status += !!incomingHttpRequest_write_chunk(req, " <head>\r\n", 9);
+	status += !!incomingHttpRequest_write_chunk(req, "  <title>form</title>\r\n", 23);
+	status += !!incomingHttpRequest_write_chunk(req, " </head>\r\n", 10);
+	status += !!incomingHttpRequest_write_chunk(req, " <body>\r\n", 9);
+	status += !!incomingHttpRequest_write_chunk(req, "  test\r\n", 8);
+	status += !!incomingHttpRequest_write_chunk(req, "  <form method=\"POST\" action=\"/formtest/\">\r\n", 44);
+	status += !!incomingHttpRequest_write_chunk(req, "   <textarea name=\"cmd\"></textarea>\r\n", 37);
+	status += !!incomingHttpRequest_write_chunk(req, "   <input type=\"submit\" value=\"test\" />\r\n", 41);
+	status += !!incomingHttpRequest_write_chunk(req, "  </form>\r\n", 11);
+	status += !!incomingHttpRequest_write_chunk(req, " </body>\r\n", 10);
+	status += !!incomingHttpRequest_write_chunk(req, "</html>\r\n", 9);
+	return !!incomingHttpRequest_sendLastChunk(req, 0) + status;
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;

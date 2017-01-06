@@ -16,4 +16,5 @@ gcc \
  ../src/server.c \
  ../src/request.c \
  ../src/static.c \
+ ../src/form.c \
  ../src/main.c

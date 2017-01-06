@@ -7,9 +7,7 @@
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
-
-
-#include "./form.c"
+#include "./form.h"
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
@@ -48,7 +46,6 @@ int main(int argument_count, char* *arguments_vector){
 		"  </form>\r\n"
 		" </body>\r\n"
 		"</html>\r\n"
-		"\r\n"
 	);
 	if(status) return 3;
 	status = httpServer_pushResource(

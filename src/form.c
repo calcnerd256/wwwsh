@@ -1,5 +1,15 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "./server.h"
+#include "./request.h"
+#include "./static.h"
+#include "./form.h"
+
+
 int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
 	if(!res) return 0;
 	res = 0;

@@ -7,6 +7,35 @@
 #include "./request.h"
 #include "./static.h"
 
+int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url){
+	struct staticFormResource *fr;
+	size_t reqUrlLen = 0;
+	size_t resUrlLen = 0;
+	if(!res) return 0;
+	if(!url) return 0;
+	fr = (struct staticFormResource*)(res->context);
+	if(!fr) return 0;
+	resUrlLen = fr->url.len;
+	if(!resUrlLen){
+		res = 0;
+		fr = 0;
+		if(!url->len) return 1;
+		if(!url->bytes) return 0;
+		if(!(url->bytes[0])) return 1;
+		if('/' != url->bytes[0]) return 0;
+		if(url->bytes[1]) return 1;
+		return 0;
+	}
+	if(!fr->url.bytes) return 0;
+	if('/' == fr->url.bytes[resUrlLen - 1]) resUrlLen--;
+	reqUrlLen = url->len;
+	if(!reqUrlLen) return !resUrlLen;
+	if(!(url->bytes)) return 0;
+	if('/' == url->bytes[reqUrlLen - 1]) reqUrlLen--;
+	if(resUrlLen != reqUrlLen) return 0;
+	return !strncmp(fr->url.bytes, url->bytes, resUrlLen);
+}
+
 int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
 	if(!resource) return 1;
 	if(!form) return 1;
@@ -14,7 +43,7 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 	if(!title) return 1;
 	resource->node.next = 0;
 	resource->node.data = &(resource->resource);
-	resource->resource.urlMatchesp = 0;
+	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
 	resource->resource.canRespondp = 0;
 	resource->resource.respond = 0;
 	resource->resource.context = resource;
@@ -28,19 +57,6 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 	return point_extent_at_nice_string(&(resource->url), url);
 }
 
-int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
-	if(!res) return 0;
-	res = 0;
-	if(!url) return 0;
-	if(!(url->bytes)) return 0;
-	if(!(url->len)) return 0;
-	if(url->len < 9) return 0;
-	if(url->len > 10) return 0;
-	if(strncmp("/formtest", url->bytes, 9)) return 0;
-	if(url->bytes[9] == '/') return 1;
-	res = 0;
-	return !(url->bytes[9]);
-}
 int visit_header_getContentLength(struct linked_list *header, int *contentLength, struct linked_list *node){
 	struct extent *key;
 	struct extent *value;

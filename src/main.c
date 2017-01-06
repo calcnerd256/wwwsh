@@ -17,11 +17,18 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list formContext;
 	struct linked_list formPoolCell;
 	struct linked_list formTailCell;
+	struct linked_list fieldHead;
+	struct linked_list fieldNameNode;
+	struct linked_list fieldTagNode;
+	struct extent fieldName;
+	struct extent fieldTag;
 	struct form formForm;
 
 	if(2 != argument_count) return 1;
 	if(staticFormResource_init(&formResource, &formForm, "/formtest/", "form"))
 		return 10;
+	if(point_extent_at_nice_string(&fieldName, "cmd")) return 11;
+	if(point_extent_at_nice_string(&fieldTag, "textarea")) return 11;
 	if(init_pool(&formAllocations)) return 8;
 	if(httpServer_init(&server)) return 2;
 
@@ -68,9 +75,17 @@ int main(int argument_count, char* *arguments_vector){
 	formTailCell.data = &formForm;
 	formTailCell.next = &formContext;
 
+	fieldHead.next = 0;
+	fieldHead.data = &fieldNameNode;
+	fieldNameNode.data = &fieldName;
+	fieldNameNode.next = &fieldTagNode;
+	fieldTagNode.data = &fieldTag;
+	fieldTagNode.next = 0;
+
 	formForm.respond_POST = &sampleForm_respond_POST;
+	formForm.fields = &fieldHead;
 	formResource.context = &formTailCell;
-	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formResource))
+	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &staticFormResource_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formResource))
 		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

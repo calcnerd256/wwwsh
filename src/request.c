@@ -177,7 +177,7 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 }
 
 
-int httpRequestHandler_respond_badRequestTarget(struct incomingHttpRequest *conn){
+int httpRequestHandler_respond_notFound(struct incomingHttpRequest *conn){
 	struct extent reason;
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
@@ -249,8 +249,10 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(conn->done_writing) return status;
 	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
 	if(!resource){
-		if(!httpRequestHandler_canRespondp(conn)) return status;
-		httpRequestHandler_respond_badRequestTarget(conn);
+		if(!(conn->input.method)) return status;
+		if(-1 == conn->input.httpMajorVersion) return status;
+		if(-1 == conn->input.httpMinorVersion) return status;
+		httpRequestHandler_respond_notFound(conn);
 		return 1;
 	}
 	if(!httpRequestHandler_canRespondp(conn)) return status;

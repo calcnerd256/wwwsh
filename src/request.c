@@ -106,7 +106,7 @@ int httpRequestHandler_writeExtent(struct incomingHttpRequest *conn, struct exte
 	if((size_t)bytes != str->len) return 2;
 	return 0;
 }
-int httpRequestHandler_writeCrlf(struct incomingHttpRequest *conn){
+int httpRequestHandler_write_crlf(struct incomingHttpRequest *conn){
 	return 2 != write(conn->fd, "\r\n", 2);
 }
 
@@ -127,7 +127,7 @@ int connection_bundle_write_status_line(struct incomingHttpRequest *conn, int st
 	bytes = write(conn->fd, " ", 1);
 	if(1 != bytes) return 1;
 	if(httpRequestHandler_writeExtent(conn, reason)) return 1;
-	return httpRequestHandler_writeCrlf(conn);
+	return httpRequestHandler_write_crlf(conn);
 }
 
 int connection_bundle_write_header(struct incomingHttpRequest *conn, struct extent *key, struct extent *value){
@@ -137,7 +137,7 @@ int connection_bundle_write_header(struct incomingHttpRequest *conn, struct exte
 	if(bytes < 0) return 1;
 	if(2 != bytes) return 2;
 	if(httpRequestHandler_writeExtent(conn, value)) return 1;
-	return httpRequestHandler_writeCrlf(conn);
+	return httpRequestHandler_write_crlf(conn);
 }
 
 int connection_bundle_close_write(struct incomingHttpRequest *conn){
@@ -173,7 +173,7 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 	if(traverse_linked_list(headers, (visitor_t)(&visit_header_write), conn)) return 2;
 	if(connection_bundle_write_header(conn, &content_length_key, &content_length_value)) return 3;
 	if(connection_bundle_write_header(conn, &connection, &close)) return 3;
-	if(httpRequestHandler_writeCrlf(conn)) return 4;
+	if(httpRequestHandler_write_crlf(conn)) return 4;
 	if(httpRequestHandler_writeExtent(conn, body)) return 5;
 	return connection_bundle_close_write(conn);
 }

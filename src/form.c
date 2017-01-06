@@ -143,8 +143,9 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	if(status) return 3;
 	if(incomingHttpRequest_sendResponseHeaders(req, 200, &reason, &header_transferEncoding_node)) return 4;
 	if(incomingHttpRequest_write_chunk(req, body.bytes, body.len)) return 5;
-	if(incomingHttpRequest_write_chunk(req, 0, 0)) return 5;
-	return incomingHttpRequest_write_crlf(req);
+	if(incomingHttpRequest_write_chunk(req, 0, 0)) return 6;
+	if(incomingHttpRequest_write_crlf(req)) return 7;
+	return incomingHttpRequest_closeWrite(req);
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;

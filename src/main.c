@@ -85,7 +85,7 @@ int main(int argument_count, char* *arguments_vector){
 	formForm.respond_POST = &sampleForm_respond_POST;
 	formForm.fields = &fieldHead;
 	formResource.context = &formTailCell;
-	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &staticFormResource_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formResource))
+	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &sampleForm_respond, &formResource))
 		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

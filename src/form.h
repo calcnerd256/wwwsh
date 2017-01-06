@@ -19,10 +19,8 @@ struct staticFormResource{
 
 int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title);
 int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url);
+int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req);
 
-
-int visit_header_getContentLength(struct linked_list *header, int *contentLength, struct linked_list *node);
-int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest *req);
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req);
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req);
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req);

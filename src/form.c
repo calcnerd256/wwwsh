@@ -36,27 +36,6 @@ int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url)
 	return !strncmp(fr->url.bytes, url->bytes, resUrlLen);
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
-	if(!resource) return 1;
-	if(!form) return 1;
-	if(!url) return 1;
-	if(!title) return 1;
-	resource->node.next = 0;
-	resource->node.data = &(resource->resource);
-	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
-	resource->resource.canRespondp = 0;
-	resource->resource.respond = 0;
-	resource->resource.context = resource;
-	form->title = &(resource->title);
-	form->fields = 0;
-	form->action = &(resource->resource);
-	form->respond_POST = 0;
-	resource->form = form;
-	resource->context = 0;
-	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
-	return point_extent_at_nice_string(&(resource->url), url);
-}
-
 int visit_header_getContentLength(struct linked_list *header, int *contentLength, struct linked_list *node){
 	struct extent *key;
 	struct extent *value;
@@ -74,7 +53,7 @@ int visit_header_getContentLength(struct linked_list *header, int *contentLength
 	*contentLength = atoi(value->bytes);
 	return 0;
 }
-int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
+int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
 	int contentLength = -1;
 	if(!res) return 0;
 	if(!req) return 0;
@@ -91,6 +70,28 @@ int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest 
 	if(contentLength > requestInput_getBodyLengthSoFar(&(req->input))) return 0;
 	return 1;
 }
+
+int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
+	if(!resource) return 1;
+	if(!form) return 1;
+	if(!url) return 1;
+	if(!title) return 1;
+	resource->node.next = 0;
+	resource->node.data = &(resource->resource);
+	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
+	resource->resource.canRespondp = &staticFormResource_canRespondp;
+	resource->resource.respond = 0;
+	resource->resource.context = resource;
+	form->title = &(resource->title);
+	form->fields = 0;
+	form->action = &(resource->resource);
+	form->respond_POST = 0;
+	resource->form = form;
+	resource->context = 0;
+	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
+	return point_extent_at_nice_string(&(resource->url), url);
+}
+
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct extent body;
 	int status = 0;
@@ -129,7 +130,7 @@ int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req
 	struct form *form;
 	if(!res) return 1;
 	if(!req) return 1;
-	if(!sampleForm_canRespondp(res, req)) return 1;
+	if(!staticFormResource_canRespondp(res, req)) return 1;
 	if(!(req->input.method)) return 1;
 	if(!(res->context)) return 1;
 	fr = (struct staticFormResource*)(res->context);

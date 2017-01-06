@@ -17,12 +17,13 @@ int httpServer_init(struct httpServer *server){
 	return 0;
 }
 
-int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*respond)(struct httpResource*, struct incomingHttpRequest*), void *context){
+int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*canRespondp)(struct httpResource*, struct incomingHttpRequest*), int (*respond)(struct httpResource*, struct incomingHttpRequest*), void *context){
 	if(!server) return 1;
 	if(!new_head) return 2;
 	if(!urlMatchesp) return 2;
 	if(!respond) return 2;
 	resource->urlMatchesp = urlMatchesp;
+	resource->canRespondp = canRespondp;
 	resource->respond = respond;
 	resource->context = context;
 	new_head->next = server->resources;

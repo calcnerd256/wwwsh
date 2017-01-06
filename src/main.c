@@ -1,10 +1,37 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include <unistd.h>
+#include <string.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
 
+
+int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
+	if(!res) return 0;
+	res = 0;
+	if(!url) return 0;
+	if(!(url->bytes)) return 0;
+	if(!(url->len)) return 0;
+	if(url->len < 9) return 0;
+	if(url->len > 10) return 0;
+	if(strncmp("/formtest", url->bytes, 9)) return 0;
+	if(url->bytes[9] == '/') return 1;
+	res = 0;
+	return !(url->bytes[9]);
+}
+int sampleForm_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
+	if(!res) return 0;
+	if(!req) return 0;
+	/* TODO: check the request method */
+	return 0;
+}
+int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
+	if(!res) return 1;
+	if(!req) return 1;
+	/* TODO: capture the whole request body */
+	return 1;
+}
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
@@ -29,7 +56,7 @@ int main(int argument_count, char* *arguments_vector){
 		"   I'm pretty proud of it!\r\n"
 		"  </p>\r\n"
 		"  <p>Coming soon: a resource for the following form to POST to</p>\r\n"
-		"  <form method=\"POST\" action=\"formtest/\">\r\n"
+		"  <form method=\"POST\" action=\"./formtest/\">\r\n"
 		"   <input type=\"submit\" />\r\n"
 		"  </form>\r\n"
 		" </body>\r\n"
@@ -42,6 +69,7 @@ int main(int argument_count, char* *arguments_vector){
 		&(rootResourceStorage.link_node),
 		&(rootResourceStorage.resource),
 		&staticGetResource_urlMatchesp,
+		&staticGetResource_canRespondp,
 		&staticGetResource_respond,
 		&(rootResourceStorage.staticResource)
 	);

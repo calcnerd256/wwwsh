@@ -88,15 +88,6 @@ int httpRequestHandler_readChunk(struct incomingHttpRequest *conn){
 	return 0;
 }
 
-int httpRequestHandler_canRespondp(struct incomingHttpRequest *conn){
-	if(!(conn->input.method)) return 0;
-	if(!(conn->input.requestUrl)) return 0;
-	if(-1 == conn->input.httpMajorVersion) return 0;
-	if(-1 == conn->input.httpMinorVersion) return 0;
-	if(conn->done_writing) return 0;
-	return 1;
-}
-
 int httpRequestHandler_writeExtent(struct incomingHttpRequest *conn, struct extent *str){
 	ssize_t bytes;
 	bytes = write(conn->fd, str->bytes, str->len);
@@ -248,15 +239,19 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(!(conn->input.requestUrl)) return status;
 	if(conn->done_writing) return status;
 	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
-	if(!resource){
-		if(!(conn->input.method)) return status;
-		if(-1 == conn->input.httpMajorVersion) return status;
-		if(-1 == conn->input.httpMinorVersion) return status;
+	if(resource)
+		if(resource->canRespondp){
+			if(!((*(resource->canRespondp))(resource, conn))) return status;
+			httpResource_respond(resource, conn);
+			return 1;
+		}
+	if(!(conn->input.method)) return status;
+	if(-1 == conn->input.httpMajorVersion) return status;
+	if(-1 == conn->input.httpMinorVersion) return status;
+	if(resource)
+		httpResource_respond(resource, conn);
+	else
 		httpRequestHandler_respond_notFound(conn);
-		return 1;
-	}
-	if(!httpRequestHandler_canRespondp(conn)) return status;
-	httpResource_respond(resource, conn);
 	return 1;
 }
 

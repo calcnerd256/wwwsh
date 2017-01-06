@@ -20,6 +20,17 @@ int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *
 	return match_resource_url(resource->context, url, 0);
 }
 
+int staticGetResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
+	if(!resource) return 0;
+	if(!request) return 0;
+	if(!(request->input.method)) return 0;
+	if(!(request->input.requestUrl)) return 0;
+	if(-1 == request->input.httpMajorVersion) return 0;
+	if(-1 == request->input.httpMinorVersion) return 0;
+	if(request->done_writing) return 0;
+	return 1;
+}
+
 int staticGetResource_respond(struct httpResource *resource, struct incomingHttpRequest *connection){
 	struct extent reason;
 	struct staticGetResource *response;

@@ -28,6 +28,7 @@ struct incomingHttpRequest{
 
 struct httpResource{
 	int (*urlMatchesp)(struct httpResource*, struct extent*);
+	int (*canRespondp)(struct httpResource*, struct incomingHttpRequest*);
 	int (*respond)(struct httpResource*, struct incomingHttpRequest*);
 	void *context;
 };

@@ -62,7 +62,7 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	if(!req) return 1;
 	if(point_extent_at_nice_string(&body, "<html><body>test</body></html>"))
 		return 1;
-	return httpRequestHandler_respond_htmlOk(req, 0, &body);
+	return incomingHttpRequest_respond_htmlOk(req, 0, &body);
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;

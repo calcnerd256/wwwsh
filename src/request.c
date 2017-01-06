@@ -205,7 +205,7 @@ int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn){
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
 	return incomingHttpRequest_sendResponse(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
-int httpRequestHandler_respond_htmlOk(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
+int incomingHttpRequest_respond_htmlOk(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	int status_code = 200;

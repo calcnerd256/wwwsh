@@ -19,7 +19,6 @@ int httpServer_canAcceptConnectionp(struct httpServer *server);
 int httpServer_acceptNewConnection(struct httpServer *server);
 int httpServer_removeEmptyConnections(struct httpServer *server);
 
-int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node);
-struct httpResource* httpServer_getResourceByUrl(struct httpServer *server, struct extent *url);
+struct httpResource* httpServer_locateResource(struct httpServer *server, struct extent *url);
 
 int httpServer_stepConnections(struct httpServer *server);

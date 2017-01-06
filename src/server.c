@@ -132,14 +132,29 @@ int match_httpResource_url(struct httpResource *resource, struct extent *url, st
 	if(!(resource->urlMatchesp)) return 0;
 	return (*(resource->urlMatchesp))(resource, url);
 }
-struct httpResource* httpServer_getResourceByUrl(struct httpServer *server, struct extent *url){
+struct httpResource* httpServer_locateResource(struct httpServer *server, struct extent *url){
+	struct httpResource *retval = 0;
 	struct linked_list *match_node = 0;
-	if(first_matching(server->resources, (visitor_t)(&match_httpResource_url), (struct linked_list*)url, &match_node))
-		return 0;
+	struct linked_list *head = server->resources;
+	visitor_t matcher = (visitor_t)(&match_httpResource_url);
+	int result = first_matching(head, matcher, (struct linked_list*)url, &match_node);
 	server = 0;
 	url = 0;
-	if(!match_node) return 0;
-	return match_node->data;
+	head = 0;
+	matcher = 0;
+	if(result){
+		match_node = 0;
+		result = 0;
+		return 0;
+	}
+	result = 0;
+	if(!match_node){
+		match_node = 0;
+		return 0;
+	}
+	retval = match_node->data;
+	match_node = 0;
+	return retval;
 }
 
 

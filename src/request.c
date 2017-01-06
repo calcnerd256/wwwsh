@@ -235,7 +235,7 @@ int httpResource_respond(struct httpResource *resource, struct incomingHttpReque
 int httpRequestHandler_respond(struct incomingHttpRequest *conn){
 	struct httpResource *resource;
 	if(conn->done_writing) return 0;
-	resource = httpServer_getResourceByUrl(conn->server, conn->input.requestUrl);
+	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
 	if(!resource)
 		return httpRequestHandler_respond_badRequestTarget(conn);
 	return httpResource_respond(resource, conn);

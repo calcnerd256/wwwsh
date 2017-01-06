@@ -28,13 +28,13 @@ int staticGetResource_respond(struct httpResource *resource, struct incomingHttp
 	response = (struct staticGetResource*)(resource->context);
 	if(!response) return 1;
 	if(!(connection->input.method))
-		return connection_bundle_respond_bad_method(connection);
+		return incomingHttpRequest_respond_badMethod(connection);
 	if(3 != connection->input.method->len)
-		return connection_bundle_respond_bad_method(connection);
+		return incomingHttpRequest_respond_badMethod(connection);
 	if(!(connection->input.method->bytes))
-		return connection_bundle_respond_bad_method(connection);
+		return incomingHttpRequest_respond_badMethod(connection);
 	if(strncmp(connection->input.method->bytes, "GET", connection->input.method->len + 1))
-		return connection_bundle_respond_bad_method(connection);
+		return incomingHttpRequest_respond_badMethod(connection);
 	point_extent_at_nice_string(&reason, "OK");
 	return incomingHttpRequest_sendResponse(connection, 200, &reason, response->headers, response->body);
 }

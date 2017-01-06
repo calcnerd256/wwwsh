@@ -8,10 +8,14 @@ int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer 
 int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
-int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body);
-
-int connection_bundle_respond_bad_method(struct incomingHttpRequest *conn);
-
+int incomingHttpRequest_sendResponse(
+	struct incomingHttpRequest *conn,
+	int status_code,
+	struct extent *reason,
+	struct linked_list *headers,
+	struct extent *body
+);
+int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn);
 int connection_bundle_respond(struct incomingHttpRequest *conn);
 
 int connection_bundle_process_steppedp(struct incomingHttpRequest *conn);

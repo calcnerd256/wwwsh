@@ -206,7 +206,7 @@ struct linked_list *push_header_contiguous(char *buffer, char *key, char *value,
 	value_extent = (struct extent*)ptr;
 	return push_header_nice_strings(top, key_node, value_node, key_extent, key, value_extent, value, next);
 }
-int connection_bundle_respond_bad_method(struct incomingHttpRequest *conn){
+int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	struct extent body;

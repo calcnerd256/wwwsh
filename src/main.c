@@ -15,6 +15,8 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list formHead;
 	struct httpResource formResource;
 	struct mempool formAllocations;
+	struct linked_list formContext;
+	struct linked_list formPoolCell;
 
 	if(2 != argument_count) return 1;
 	if(init_pool(&formAllocations)) return 8;
@@ -56,7 +58,11 @@ int main(int argument_count, char* *arguments_vector){
 	);
 	if(status) return 4;
 
-	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formAllocations)) return 7;
+	formContext.data = &server;
+	formContext.next = &formPoolCell;
+	formPoolCell.data = &formAllocations;
+	formPoolCell.next = 0;
+	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formContext)) return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

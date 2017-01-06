@@ -49,9 +49,7 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 	return data->fd == *target;
 }
 
-/* TODO: rename connection_bundle to incomingHttpRequest */
-
-/* TODO: rename this method as appropriate */
+/* TODO: rename internal variables from conn to req */
 int httpRequestHandler_free(struct incomingHttpRequest *conn){
 	if(!conn) return 1;
 	if(conn->fd == -1) return 0;
@@ -179,7 +177,7 @@ int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int statu
 }
 
 
-int connection_bundle_respond_bad_request_target(struct incomingHttpRequest *conn){
+int httpRequestHandler_respond_badRequestTarget(struct incomingHttpRequest *conn){
 	struct extent reason;
 	struct extent body;
 	if(point_extent_at_nice_string(&reason, "NOT FOUND")) return 1;
@@ -216,7 +214,7 @@ int incomingHttpRequest_respond_badMethod(struct incomingHttpRequest *conn){
 	if(point_extent_at_nice_string(&body, "Method Not Allowed\r\nOnly GET requests are accepted here.\r\n\r\n")) return 1;
 	return incomingHttpRequest_sendResponse(conn, status_code, &reason, (struct linked_list*)buffer, &body);
 }
-int connection_bundle_respond_html_ok(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
+int httpRequestHandler_respond_htmlOk(struct incomingHttpRequest *conn, struct linked_list *headers, struct extent *body){
 	char buffer[sizeof(struct linked_list) * 3 + sizeof(struct extent) * 2];
 	struct extent reason;
 	int status_code = 200;
@@ -235,7 +233,7 @@ int httpResource_respond(struct httpResource *resource, struct incomingHttpReque
 }
 
 
-int connection_bundle_respond(struct incomingHttpRequest *conn){
+int httpRequestHandler_respond(struct incomingHttpRequest *conn){
 	struct httpResource *resource;
 	struct linked_list *match_node = 0;
 	if(conn->done_writing) return 0;
@@ -245,7 +243,7 @@ int connection_bundle_respond(struct incomingHttpRequest *conn){
 		if(match_node)
 			resource = match_node->data;
 	if(!resource)
-		return connection_bundle_respond_bad_request_target(conn);
+		return httpRequestHandler_respond_badRequestTarget(conn);
 	return httpResource_respond(resource, conn);
 }
 
@@ -262,7 +260,7 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	}
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!httpRequestHandler_canRespondp(conn)) return status;
-	connection_bundle_respond(conn);
+	httpRequestHandler_respond(conn);
 	return 1;
 }
 

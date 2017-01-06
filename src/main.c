@@ -12,18 +12,17 @@ int main(int argument_count, char* *arguments_vector){
 
 	struct contiguousHtmlResource rootResourceStorage;
 
-	struct linked_list formHead;
-	struct httpResource formResource;
+	struct staticFormResource formResource;
 	struct mempool formAllocations;
 	struct linked_list formContext;
 	struct linked_list formPoolCell;
 	struct linked_list formTailCell;
 	struct form formForm;
-	struct extent formTitle;
 
 	if(2 != argument_count) return 1;
+	if(staticFormResource_init(&formResource, &formForm, "/formtest/", "form"))
+		return 10;
 	if(init_pool(&formAllocations)) return 8;
-	if(point_extent_at_nice_string(&formTitle, "form")) return 9;
 	if(httpServer_init(&server)) return 2;
 
 	status = contiguousHtmlResource_init(
@@ -68,11 +67,11 @@ int main(int argument_count, char* *arguments_vector){
 	formPoolCell.next = 0;
 	formTailCell.data = &formForm;
 	formTailCell.next = &formContext;
-	formForm.title = &formTitle;
-	formForm.fields = 0;
-	formForm.action = &formResource;
+
 	formForm.respond_POST = &sampleForm_respond_POST;
-	if(httpServer_pushResource(&server, &formHead, &formResource, &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formTailCell)) return 7;
+	formResource.context = &formTailCell;
+	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &sampleForm_urlMatchesp, &sampleForm_canRespondp, &sampleForm_respond, &formResource))
+		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

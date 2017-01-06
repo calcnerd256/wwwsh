@@ -7,6 +7,26 @@
 #include "./request.h"
 #include "./static.h"
 
+int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
+	if(!resource) return 1;
+	if(!form) return 1;
+	if(!url) return 1;
+	if(!title) return 1;
+	resource->node.next = 0;
+	resource->node.data = &(resource->resource);
+	resource->resource.urlMatchesp = 0;
+	resource->resource.canRespondp = 0;
+	resource->resource.respond = 0;
+	resource->resource.context = resource;
+	form->title = &(resource->title);
+	form->fields = 0;
+	form->action = &(resource->resource);
+	form->respond_POST = 0;
+	resource->form = form;
+	resource->context = 0;
+	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
+	return point_extent_at_nice_string(&(resource->url), url);
+}
 
 int sampleForm_urlMatchesp(struct httpResource *res, struct extent *url){
 	if(!res) return 0;
@@ -89,14 +109,17 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 }
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
 	struct linked_list *context;
+	struct staticFormResource *fr;
 	struct form *form;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!sampleForm_canRespondp(res, req)) return 1;
 	if(!(req->input.method)) return 1;
 	if(!(res->context)) return 1;
-	context = (struct linked_list*)(res->context);
-	if(!context->data) return 1;
+	fr = (struct staticFormResource*)(res->context);
+	if(!(fr->context)) return 1;
+	context = (struct linked_list*)(fr->context);
+	if(!(context->data)) return 1;
 	form = (struct form*)(context->data);
 	if(3 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);

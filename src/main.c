@@ -12,6 +12,7 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
+	requestInput_printHeaders(&(req->input));
 	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
 	requestInput_printBody(&(req->input));
 	printf("}\nas form data: {\n");

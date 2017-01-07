@@ -37,27 +37,23 @@ int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url)
 	return !strncmp(fr->url.bytes, url->bytes, resUrlLen);
 }
 
-int visit_header_getContentLength(struct linked_list *header, int *contentLength, struct linked_list *node){
+int match_header_key(struct linked_list *header, struct extent *target, struct linked_list *node){
 	struct extent *key;
-	struct extent *value;
-	if(!node) return 1;
+	if(!node) return 0;
 	if(!header) return 0;
-	if(!contentLength) return 1;
-	if(-1 != *contentLength) return 0;
+	if(!target) return 0;
 	key = (struct extent*)(header->data);
-	if(!(header->next)) return 1;
-	value = (struct extent*)(header->next->data);
-	if(!key) return 1;
-	if(!value) return 1;
-	if(14 > key->len) return 0;
-	if(strncmp("Content-Length", key->bytes, 15)) return 0;
-	*contentLength = atoi(value->bytes);
-	return 0;
+	if(!key) return 0;
+	if(key->len != target->len) return 0;
+	return !strncmp(target->bytes, key->bytes, target->len);
 }
 int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req){
 	int contentLength = -1;
+	struct linked_list *match_node;
+	struct extent contentLengthKey;
 	if(!res) return 0;
 	if(!req) return 0;
+	if(point_extent_at_nice_string(&contentLengthKey, "Content-Length")) return 0;
 	if(!staticGetResource_canRespondp(res, req)) return 0;
 	if(!(req->input.method)) return 0;
 	if(3 > req->input.method->len) return 1;
@@ -66,7 +62,10 @@ int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttp
 	if(strncmp("POST", req->input.method->bytes, 5)) return 1;
 	if(!(req->input.headersDone)) return 0;
 	if(!(req->input.headers)) return 0;
-	if(traverse_linked_list(req->input.headers->head, (visitor_t)(&visit_header_getContentLength), &contentLength)) return 0;
+
+	if(first_matching(req->input.headers->head, (visitor_t)(match_header_key), (void*)(&contentLengthKey), &match_node)) return 0;
+	contentLength = atoi(((struct extent*)(((struct linked_list*)(match_node->data))->next->data))->bytes);
+
 	if(-1 == contentLength) return 0;
 	if(contentLength > requestInput_getBodyLengthSoFar(&(req->input))) return 0;
 	return 1;

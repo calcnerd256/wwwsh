@@ -177,13 +177,16 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 		return 10;
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <input type=\"submit\" value=\"");
-	status += !!incomingHttpRequest_write_chunk(req, "test", 4);
+	if(status) return 11;
+	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 12;
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\" />");
 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </form>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </body>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</html>");
-	return !!incomingHttpRequest_sendLastChunk(req, 0) + status;
+	if(status) return 13;
+	if(incomingHttpRequest_sendLastChunk(req, 0)) return 14;
+	return 0;
 }
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;

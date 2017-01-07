@@ -179,6 +179,12 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 	return 0;
 }
 
+int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
+	if(!(form->respond_POST))
+		return incomingHttpRequest_respond_badMethod(req);
+	return (*(form->respond_POST))(res, req);
+}
+
 int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req){
 	struct staticFormResource *fr;
 	struct form *form;
@@ -196,11 +202,8 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 		return staticFormResource_respond_GET(res, req);
 	if(4 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
-	if(!strncmp("POST", req->input.method->bytes, 5)){
-		if(!(form->respond_POST))
-			return incomingHttpRequest_respond_badMethod(req);
-		return (*(form->respond_POST))(res, req);
-	}
+	if(!strncmp("POST", req->input.method->bytes, 5))
+		return staticFormResource_respond_POST(res, req, form);
 	return incomingHttpRequest_respond_badMethod(req);
 }
 

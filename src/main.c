@@ -8,11 +8,34 @@
 
 
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
+	struct chunkStream formData;
+	int toNextDelimiter;
+	struct extent current;
+	struct linked_list *cursor;
 	if(!res) return 1;
 	if(!req) return 1;
-	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
 	requestInput_consumeLastLine(&(req->input));
+	req->input.body->cursor_chunk = req->input.body->chunk_list.head;
+	req->input.body->cursor_chunk_offset = 0;
+	chunkStream_init(&formData, &(req->allocations));
+	toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
+	while(-1 != toNextDelimiter){
+		chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
+		chunkStream_seekForward(req->input.body, 1);
+		chunkStream_append(&formData, current.bytes, current.len);
+		toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
+	}
+	toNextDelimiter = chunkStream_lengthRemaining(req->input.body);
+	chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
+	chunkStream_append(&formData, current.bytes, current.len);
+	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
 	requestInput_printBody(&(req->input));
+	printf("}\nas form data: {\n");
+	cursor = formData.chunk_list.head;
+	while(cursor){
+		printf("\t%s\n", ((struct extent*)(cursor->data))->bytes);
+		cursor = cursor->next;
+	}
 	printf("}\n");
 	return staticFormResource_respond_GET(res, req);
 }

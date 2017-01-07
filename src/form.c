@@ -63,7 +63,7 @@ int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttp
 	if(!(req->input.headersDone)) return 0;
 	if(!(req->input.headers)) return 0;
 
-	if(first_matching(req->input.headers->head, (visitor_t)(match_header_key), (void*)(&contentLengthKey), &match_node)) return 0;
+	if(first_matching(req->input.headers->head, (visitor_t)(&match_header_key), (void*)(&contentLengthKey), &match_node)) return 0;
 	contentLength = atoi(((struct extent*)(((struct linked_list*)(match_node->data))->next->data))->bytes);
 
 	if(-1 == contentLength) return 0;
@@ -180,13 +180,24 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 
 int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
 	struct chunkStream formData;
-	int toNextDelimiter;
 	struct extent current;
+	int toNextDelimiter;
+	struct linked_list *match_node;
+	struct extent *contentType;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!form) return 1;
 	if(!(form->respond_POST))
 		return incomingHttpRequest_respond_badMethod(req);
+
+	if(point_extent_at_nice_string(&current, "Content-Type")) return 1;
+	if(first_matching(req->input.headers->head, (visitor_t)(&match_header_key), (void*)(&current), &match_node))
+		return 1; /* TODO: respond to tell the client that the header is missing */
+	contentType = (struct extent*)(((struct linked_list*)(match_node->data))->next->data);
+	if(contentType->len != 33)
+		return 1; /* TODO: respond to tell the client that the header is missing */
+	if(strncmp(contentType->bytes, "application/x-www-form-urlencoded", contentType->len))
+		return 1; /* TODO: respond to tell the client that the header is missing */
 
 	requestInput_consumeLastLine(&(req->input));
 	req->input.body->cursor_chunk = req->input.body->chunk_list.head;

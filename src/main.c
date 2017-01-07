@@ -84,10 +84,9 @@ int main(int argument_count, char* *arguments_vector){
 	fieldTagNode.data = &fieldTag;
 	fieldTagNode.next = 0;
 
-	if(staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form"))
+	if(staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &fieldHead))
 		return 7;
 	formForm.respond_POST = &sampleForm_respond_POST;
-	formForm.fields = &fieldHead;
 	formResource.context = &formContext;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

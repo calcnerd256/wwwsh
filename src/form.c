@@ -193,24 +193,18 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	return incomingHttpRequest_respond_badMethod(req);
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title){
+int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields){
 	if(!resource) return 1;
 	if(!form) return 1;
 	if(!url) return 1;
 	if(!title) return 1;
-	resource->node.next = 0;
-	resource->node.data = &(resource->resource);
-	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
-	resource->resource.canRespondp = &staticFormResource_canRespondp;
-	resource->resource.respond = &staticFormResource_respond;
-	resource->resource.context = resource;
-	form->title = &(resource->title);
-	form->fields = 0;
 	form->action = &(resource->resource);
+	form->title = &(resource->title);
+	form->fields = fields;
 	form->respond_POST = 0;
 	resource->form = form;
 	resource->context = 0;
 	if(point_extent_at_nice_string(&(resource->title), title)) return 2;
 	if(point_extent_at_nice_string(&(resource->url), url)) return 2;
-	return httpServer_pushResource(server, &(resource->node), form->action, form->action->urlMatchesp, form->action->canRespondp, form->action->respond, resource);
+	return httpServer_pushResource(server, &(resource->node), form->action, &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &staticFormResource_respond, resource);
 }

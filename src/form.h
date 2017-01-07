@@ -20,4 +20,11 @@ struct staticFormResource{
 
 int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req);
 
-int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title);
+int staticFormResource_init(
+	struct staticFormResource *resource,
+	struct httpServer *server,
+	struct form *form,
+	char* url,
+	char* title,
+	struct linked_list *fields
+);

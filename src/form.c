@@ -7,6 +7,27 @@
 #include "./request.h"
 #include "./static.h"
 
+int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
+	if(!resource) return 1;
+	if(!form) return 1;
+	if(!url) return 1;
+	if(!title) return 1;
+	resource->node.next = 0;
+	resource->node.data = &(resource->resource);
+	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
+	resource->resource.canRespondp = &staticFormResource_canRespondp;
+	resource->resource.respond = 0;
+	resource->resource.context = resource;
+	form->title = &(resource->title);
+	form->fields = 0;
+	form->action = &(resource->resource);
+	form->respond_POST = 0;
+	resource->form = form;
+	resource->context = 0;
+	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
+	return point_extent_at_nice_string(&(resource->url), url);
+}
+
 int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url){
 	struct staticFormResource *fr;
 	size_t reqUrlLen = 0;
@@ -71,27 +92,6 @@ int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttp
 	return 1;
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
-	if(!resource) return 1;
-	if(!form) return 1;
-	if(!url) return 1;
-	if(!title) return 1;
-	resource->node.next = 0;
-	resource->node.data = &(resource->resource);
-	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
-	resource->resource.canRespondp = &staticFormResource_canRespondp;
-	resource->resource.respond = 0;
-	resource->resource.context = resource;
-	form->title = &(resource->title);
-	form->fields = 0;
-	form->action = &(resource->resource);
-	form->respond_POST = 0;
-	resource->form = form;
-	resource->context = 0;
-	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
-	return point_extent_at_nice_string(&(resource->url), url);
-}
-
 int staticFormResource_writelnField(struct incomingHttpRequest *req, struct extent *tag, struct extent *name){
 	int status = 0;
 	char singleton = 0;
@@ -117,7 +117,6 @@ int staticFormResource_writelnField(struct incomingHttpRequest *req, struct exte
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, ">");
 	return status;
 }
-
 int visit_field_writeOut(struct linked_list *field, struct incomingHttpRequest *context, struct linked_list *node){
 	struct extent *name;
 	struct extent *tag;
@@ -132,8 +131,7 @@ int visit_field_writeOut(struct linked_list *field, struct incomingHttpRequest *
 	status += !!staticFormResource_writelnField(context, tag, name);
 	return status;
 }
-
-int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
+int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct staticFormResource *fr;
 	struct form *form;
 	int status = 0;
@@ -185,9 +183,12 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </body>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</html>");
 	if(status) return 13;
+
 	if(incomingHttpRequest_sendLastChunk(req, 0)) return 14;
 	return 0;
 }
+
+
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
 	if(!res) return 1;
 	if(!req) return 1;
@@ -195,7 +196,7 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	requestInput_consumeLastLine(&(req->input));
 	requestInput_printBody(&(req->input));
 	printf("}\n");
-	return sampleForm_respond_GET(res, req);
+	return staticFormResource_respond_GET(res, req);
 }
 int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
 	struct linked_list *context;
@@ -214,7 +215,7 @@ int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req
 	if(3 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("GET", req->input.method->bytes, 4))
-		return sampleForm_respond_GET(res, req);
+		return staticFormResource_respond_GET(res, req);
 	if(4 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("POST", req->input.method->bytes, 5)){

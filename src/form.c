@@ -180,9 +180,30 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 }
 
 int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
+	struct chunkStream formData;
+	int toNextDelimiter;
+	struct extent current;
+	if(!res) return 1;
+	if(!req) return 1;
+	if(!form) return 1;
 	if(!(form->respond_POST))
 		return incomingHttpRequest_respond_badMethod(req);
-	return (*(form->respond_POST))(res, req);
+
+	requestInput_consumeLastLine(&(req->input));
+	req->input.body->cursor_chunk = req->input.body->chunk_list.head;
+	req->input.body->cursor_chunk_offset = 0;
+	chunkStream_init(&formData, &(req->allocations));
+	toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
+	while(-1 != toNextDelimiter){
+		chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
+		chunkStream_seekForward(req->input.body, 1);
+		chunkStream_append(&formData, current.bytes, current.len);
+		toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
+	}
+	toNextDelimiter = chunkStream_lengthRemaining(req->input.body);
+	chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
+	chunkStream_append(&formData, current.bytes, current.len);
+	return (*(form->respond_POST))(res, req, &formData);
 }
 
 int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req){
@@ -207,7 +228,7 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	return incomingHttpRequest_respond_badMethod(req);
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields, int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*), void *context){
+int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields, int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*, struct chunkStream*), void *context){
 	if(!resource) return 1;
 	if(!form) return 1;
 	if(!url) return 1;

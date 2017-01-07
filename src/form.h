@@ -7,7 +7,7 @@ struct form{
 	struct extent *title;
 	struct linked_list *fields;
 	struct httpResource *action;
-	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*);
+	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*, struct chunkStream*);
 };
 struct staticFormResource{
 	struct linked_list node;
@@ -27,6 +27,6 @@ int staticFormResource_init(
 	char* url,
 	char* title,
 	struct linked_list *fields,
-	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*),
+	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*, struct chunkStream*),
 	void *context
 );

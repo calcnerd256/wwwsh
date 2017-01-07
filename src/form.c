@@ -4,28 +4,9 @@
 #include <stdlib.h>
 #include "./form.h"
 #include "./request.h"
+#include "./server.h"
 #include "./static.h"
 
-int staticFormResource_init(struct staticFormResource *resource, struct form *form, char* url, char* title){
-	if(!resource) return 1;
-	if(!form) return 1;
-	if(!url) return 1;
-	if(!title) return 1;
-	resource->node.next = 0;
-	resource->node.data = &(resource->resource);
-	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
-	resource->resource.canRespondp = &staticFormResource_canRespondp;
-	resource->resource.respond = 0;
-	resource->resource.context = resource;
-	form->title = &(resource->title);
-	form->fields = 0;
-	form->action = &(resource->resource);
-	form->respond_POST = 0;
-	resource->form = form;
-	resource->context = 0;
-	if(point_extent_at_nice_string(&(resource->title), title)) return 1;
-	return point_extent_at_nice_string(&(resource->url), url);
-}
 
 int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url){
 	struct staticFormResource *fr;
@@ -188,7 +169,6 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 }
 
 int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req){
-	struct linked_list *context;
 	struct staticFormResource *fr;
 	struct form *form;
 	if(!res) return 1;
@@ -198,9 +178,7 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	if(!(res->context)) return 1;
 	fr = (struct staticFormResource*)(res->context);
 	if(!(fr->context)) return 1;
-	context = (struct linked_list*)(fr->context);
-	if(!(context->data)) return 1;
-	form = (struct form*)(context->data);
+	form = (struct form*)(fr->form);
 	if(3 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("GET", req->input.method->bytes, 4))
@@ -213,4 +191,26 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 		return (*(form->respond_POST))(res, req);
 	}
 	return incomingHttpRequest_respond_badMethod(req);
+}
+
+int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title){
+	if(!resource) return 1;
+	if(!form) return 1;
+	if(!url) return 1;
+	if(!title) return 1;
+	resource->node.next = 0;
+	resource->node.data = &(resource->resource);
+	resource->resource.urlMatchesp = &staticFormResource_urlMatchesp;
+	resource->resource.canRespondp = &staticFormResource_canRespondp;
+	resource->resource.respond = &staticFormResource_respond;
+	resource->resource.context = resource;
+	form->title = &(resource->title);
+	form->fields = 0;
+	form->action = &(resource->resource);
+	form->respond_POST = 0;
+	resource->form = form;
+	resource->context = 0;
+	if(point_extent_at_nice_string(&(resource->title), title)) return 2;
+	if(point_extent_at_nice_string(&(resource->url), url)) return 2;
+	return httpServer_pushResource(server, &(resource->node), form->action, form->action->urlMatchesp, form->action->canRespondp, form->action->respond, resource);
 }

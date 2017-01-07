@@ -26,5 +26,7 @@ int staticFormResource_init(
 	struct form *form,
 	char* url,
 	char* title,
-	struct linked_list *fields
+	struct linked_list *fields,
+	int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*),
+	void *context
 );

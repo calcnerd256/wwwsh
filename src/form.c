@@ -193,7 +193,7 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	return incomingHttpRequest_respond_badMethod(req);
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields){
+int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields, int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*), void *context){
 	if(!resource) return 1;
 	if(!form) return 1;
 	if(!url) return 1;
@@ -201,9 +201,9 @@ int staticFormResource_init(struct staticFormResource *resource, struct httpServ
 	form->action = &(resource->resource);
 	form->title = &(resource->title);
 	form->fields = fields;
-	form->respond_POST = 0;
+	form->respond_POST = respond_POST;
 	resource->form = form;
-	resource->context = 0;
+	resource->context = context;
 	if(point_extent_at_nice_string(&(resource->title), title)) return 2;
 	if(point_extent_at_nice_string(&(resource->url), url)) return 2;
 	return httpServer_pushResource(server, &(resource->node), form->action, &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &staticFormResource_respond, resource);

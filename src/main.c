@@ -33,10 +33,20 @@ int main(int argument_count, char* *arguments_vector){
 	struct extent fieldName;
 	struct extent fieldTag;
 	struct form formForm;
+	struct linked_list otherField_node;
+	struct linked_list otherField_nameNode;
+	struct linked_list otherField_tagNode;
+	struct linked_list otherField_typeNode;
+	struct extent otherName;
+	struct extent otherTag;
+	struct extent otherType;
 
 	if(2 != argument_count) return 1;
 	if(point_extent_at_nice_string(&fieldName, "cmd")) return 11;
 	if(point_extent_at_nice_string(&fieldTag, "textarea")) return 11;
+	if(point_extent_at_nice_string(&otherName, "test")) return 12;
+	if(point_extent_at_nice_string(&otherTag, "input")) return 12;
+	if(point_extent_at_nice_string(&otherType, "radio")) return 12;
 	if(init_pool(&formAllocations)) return 8;
 	if(httpServer_init(&server)) return 2;
 
@@ -83,8 +93,16 @@ int main(int argument_count, char* *arguments_vector){
 	fieldNameNode.next = &fieldTagNode;
 	fieldTagNode.data = &fieldTag;
 	fieldTagNode.next = 0;
+	otherField_node.data = &otherField_nameNode;
+	otherField_node.next = &fieldHead;
+	otherField_nameNode.data = &otherName;
+	otherField_nameNode.next = &otherField_tagNode;
+	otherField_tagNode.data = &otherTag;
+	otherField_tagNode.next = &otherField_typeNode;
+	otherField_typeNode.data = &otherType;
+	otherField_typeNode.next = 0;
 
-	if(staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &fieldHead, &sampleForm_respond_POST, &formContext))
+	if(staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &otherField_node, &sampleForm_respond_POST, &formContext))
 		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

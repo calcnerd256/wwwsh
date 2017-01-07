@@ -72,21 +72,32 @@ int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttp
 	return 1;
 }
 
-int staticFormResource_writelnField(struct incomingHttpRequest *req, struct extent *tag, struct extent *name){
+int staticFormResource_writelnField(struct incomingHttpRequest *req, struct extent *tag, struct extent *name, struct linked_list *rest){
 	int status = 0;
 	char singleton = 0;
+	char isInput = 0;
+	struct extent *inputType = 0;
 	if(!req) return 1;
 	if(!name) return 2;
 	if(!tag) return 2;
 	if(!(tag->bytes)) return 2;
 	if(5 == tag->len)
 		if(!strncmp(tag->bytes, "input", 5))
-			singleton = 1;
+			isInput = 1;
+	if(isInput) singleton = 1;
+	if(isInput)
+		if(rest)
+			inputType = (struct extent*)(rest->data);
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "<");
 	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, tag);
 	status += !!incomingHttpRequest_writeChunk_niceString(req, " name=\"");
 	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, name);
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "\"");
+	if(inputType){
+		status += !!incomingHttpRequest_writeChunk_niceString(req, " type=\"");
+		status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, inputType);
+		status += !!incomingHttpRequest_writeChunk_niceString(req, "\"");
+	}
 	if(singleton)
 		status += !!incomingHttpRequest_writeChunk_niceString(req, " ");
 	else
@@ -108,7 +119,7 @@ int visit_field_writeOut(struct linked_list *field, struct incomingHttpRequest *
 	name = (struct extent*)(field->data);
 	tag = (struct extent*)(field->next->data);
 	status += !!incomingHttpRequest_writeChunk_niceString(context, "   ");
-	status += !!staticFormResource_writelnField(context, tag, name);
+	status += !!staticFormResource_writelnField(context, tag, name, field->next->next);
 	return status;
 }
 int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){

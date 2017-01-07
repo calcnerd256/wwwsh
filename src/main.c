@@ -6,6 +6,17 @@
 #include "./static.h"
 #include "./form.h"
 
+
+int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
+	if(!res) return 1;
+	if(!req) return 1;
+	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
+	requestInput_consumeLastLine(&(req->input));
+	requestInput_printBody(&(req->input));
+	printf("}\n");
+	return staticFormResource_respond_GET(res, req);
+}
+
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	int status = 0;
@@ -81,7 +92,7 @@ int main(int argument_count, char* *arguments_vector){
 	formForm.respond_POST = &sampleForm_respond_POST;
 	formForm.fields = &fieldHead;
 	formResource.context = &formTailCell;
-	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &sampleForm_respond, &formResource))
+	if(httpServer_pushResource(&server, &(formResource.node), &(formResource.resource), &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &staticFormResource_respond, &formResource))
 		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

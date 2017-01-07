@@ -1,5 +1,6 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include <stdio.h>
 #include "./server_structs.h"
 
 struct form{
@@ -23,5 +24,4 @@ int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url)
 int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req);
 int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req);
 
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req);
-int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req);
+int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req);

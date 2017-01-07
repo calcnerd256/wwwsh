@@ -1,7 +1,6 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include "./form.h"
 #include "./request.h"
@@ -188,17 +187,7 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 	return 0;
 }
 
-
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req){
-	if(!res) return 1;
-	if(!req) return 1;
-	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
-	requestInput_consumeLastLine(&(req->input));
-	requestInput_printBody(&(req->input));
-	printf("}\n");
-	return staticFormResource_respond_GET(res, req);
-}
-int sampleForm_respond(struct httpResource *res, struct incomingHttpRequest *req){
+int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req){
 	struct linked_list *context;
 	struct staticFormResource *fr;
 	struct form *form;

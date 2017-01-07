@@ -227,6 +227,14 @@ int incomingHttpRequest_writelnChunk_niceString(struct incomingHttpRequest *req,
 		result += !!incomingHttpRequest_writeChunk_niceString(req, str);
 	return result + !!incomingHttpRequest_writeChunk_niceString(req, "\r\n");
 }
+int incomingHttpRequest_writeChunk_htmlSafeExtent(struct incomingHttpRequest *req, struct extent *str){
+	/* TODO: make it HTML-safe */
+	if(!req) return 1;
+	if(!str) return 1;
+	if(!(str->len)) return 0;
+	if(!(str->bytes)) return 1;
+	return incomingHttpRequest_write_chunk(req, str->bytes, str->len);
+}
 
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers){
 	struct extent lastChunk;

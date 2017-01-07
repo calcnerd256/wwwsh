@@ -92,6 +92,47 @@ int staticFormResource_init(struct staticFormResource *resource, struct form *fo
 	return point_extent_at_nice_string(&(resource->url), url);
 }
 
+int staticFormResource_writelnField(struct incomingHttpRequest *req, struct extent *tag, struct extent *name){
+	int status = 0;
+	char singleton = 0;
+	if(!req) return 1;
+	if(!name) return 2;
+	if(!tag) return 2;
+	if(!(tag->bytes)) return 2;
+	if(5 == tag->len)
+		if(!strncmp(tag->bytes, "input", 5))
+			singleton = 1;
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "<");
+	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, tag);
+	status += !!incomingHttpRequest_writeChunk_niceString(req, " name=\"");
+	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, name);
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "\"");
+	if(singleton)
+		status += !!incomingHttpRequest_writeChunk_niceString(req, " ");
+	else
+		status += !!incomingHttpRequest_writeChunk_niceString(req, "><");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "/");
+	if(!singleton)
+		status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, tag);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, ">");
+	return status;
+}
+
+int visit_field_writeOut(struct linked_list *field, struct incomingHttpRequest *context, struct linked_list *node){
+	struct extent *name;
+	struct extent *tag;
+	int status = 0;
+	(void)node;
+	if(!field) return 0;
+	if(!context) return 1;
+	if(!(field->next)) return 1;
+	name = (struct extent*)(field->data);
+	tag = (struct extent*)(field->next->data);
+	status += !!incomingHttpRequest_writeChunk_niceString(context, "   ");
+	status += !!staticFormResource_writelnField(context, tag, name);
+	return status;
+}
+
 int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
 	struct staticFormResource *fr;
 	struct form *form;
@@ -105,17 +146,17 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 	if(!(form->title)) return 3;
 	if(!(form->fields)) return 3;
 	if(!(form->action)) return 3;
+
 	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0)) return 4;
 	status = 0;
+
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "<html>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <head>");
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  <title>");
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   ");
 	if(status) return 5;
-	if(incomingHttpRequest_write_chunk(req, form->title->bytes, form->title->len))
-		return 6;
-	status = 0;
+	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 6;
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "");
 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </title>");
@@ -124,9 +165,7 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <h1>");
 	if(status) return 7;
-	if(incomingHttpRequest_write_chunk(req, form->title->bytes, form->title->len))
-		return 8;
-	status = 0;
+	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 8;
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</h1>");
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <form method=\"POST\" action=\"");
@@ -134,14 +173,8 @@ int sampleForm_respond_GET(struct httpResource *res, struct incomingHttpRequest 
 		return 9;
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\">");
 
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "textarea");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, " name=\"");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "cmd");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "\"><");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "/");
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "textarea");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, ">");
+	if(traverse_linked_list(form->fields, (visitor_t)(&visit_field_writeOut), req))
+		return 10;
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <input type=\"submit\" value=\"");
 	status += !!incomingHttpRequest_write_chunk(req, "test", 4);

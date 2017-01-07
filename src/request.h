@@ -12,6 +12,7 @@ int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, stru
 int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len);
 int incomingHttpRequest_writeChunk_niceString(struct incomingHttpRequest *req, char* str);
 int incomingHttpRequest_writelnChunk_niceString(struct incomingHttpRequest *req, char* str);
+int incomingHttpRequest_writeChunk_htmlSafeExtent(struct incomingHttpRequest *req, struct extent *str);
 
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers);
 

@@ -223,8 +223,13 @@ int dequoid_append_fieldData(struct dequoid *fields, struct extent *unparsed, st
 
 	return 0;
 }
+int chunkStream_reset(struct chunkStream *stream){
+	if(!stream) return 1;
+	stream->cursor_chunk = stream->chunk_list.head;
+	stream->cursor_chunk_offset = 0;
+	return 0;
+}
 int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
-	struct chunkStream formData;
 	struct dequoid form_data;
 	struct extent current;
 	int toNextDelimiter;
@@ -246,22 +251,18 @@ int staticFormResource_respond_POST(struct httpResource *res, struct incomingHtt
 		return 1; /* TODO: respond to tell the client that the header is missing */
 
 	requestInput_consumeLastLine(&(req->input));
-	req->input.body->cursor_chunk = req->input.body->chunk_list.head;
-	req->input.body->cursor_chunk_offset = 0;
-	chunkStream_init(&formData, &(req->allocations));
+	chunkStream_reset(req->input.body);
 	dequoid_init(&form_data);
 	toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
 	while(-1 != toNextDelimiter){
 		chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
 		chunkStream_seekForward(req->input.body, 1);
 		dequoid_append_fieldData(&form_data, &current, &(req->allocations));
-		chunkStream_append(&formData, current.bytes, current.len);
 		toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
 	}
 	toNextDelimiter = chunkStream_lengthRemaining(req->input.body);
 	chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
 	dequoid_append_fieldData(&form_data, &current, &(req->allocations));
-	chunkStream_append(&formData, current.bytes, current.len);
 	return (*(form->respond_POST))(res, req, form_data.head);
 }
 

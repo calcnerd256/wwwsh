@@ -2,6 +2,9 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <signal.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
@@ -34,8 +37,13 @@ int main(int argument_count, char* *arguments_vector){
 	struct extent fieldTag;
 	struct form formForm;
 
-	if(2 != argument_count) return 1;
-	if(point_extent_at_nice_string(&fieldName, "command")) return 11;
+	if(2 > argument_count) return 1;
+	if(3 < argument_count) return 1;
+	if(2 < argument_count)
+		if(!atoi(arguments_vector[2]))
+			return 12;
+
+	if(point_extent_at_nice_string(&fieldName, "cmd")) return 11;
 	if(point_extent_at_nice_string(&fieldTag, "textarea")) return 11;
 	if(init_pool(&formAllocations)) return 8;
 	if(httpServer_init(&server)) return 2;
@@ -93,6 +101,12 @@ int main(int argument_count, char* *arguments_vector){
 		httpServer_close(&server);
 		return 5;
 	}
+
+	if(2 < argument_count)
+		if(kill(atoi(arguments_vector[2]), SIGCONT)){
+			httpServer_close(&server);
+			return 13;
+		}
 
 	while(1){
 		if(httpServer_canAcceptConnectionp(&server))

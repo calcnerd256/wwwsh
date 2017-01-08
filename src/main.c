@@ -7,8 +7,10 @@
 #include "./form.h"
 
 
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct chunkStream *formData){
+int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
 	struct linked_list *cursor;
+	struct extent *k;
+	struct extent *v;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
@@ -16,9 +18,11 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
 	requestInput_printBody(&(req->input));
 	printf("}\nas form data: {\n");
-	cursor = formData->chunk_list.head;
+	cursor = formData;
 	while(cursor){
-		printf("\t%s\n", ((struct extent*)(cursor->data))->bytes);
+		k = (struct extent*)(((struct linked_list*)(cursor->data))->data);
+		v = (struct extent*)(((struct linked_list*)(cursor->data))->next->data);
+		printf("\t%s\t%s\n", k->bytes, v->bytes);
 		cursor = cursor->next;
 	}
 	printf("}\n");

@@ -178,8 +178,54 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 	return 0;
 }
 
+int dequoid_append_fieldData(struct dequoid *fields, struct extent *unparsed, struct mempool *pool){
+	char* ptr;
+	struct linked_list *field;
+	struct extent *kv;
+	int toDelimiter;
+	int status = 0;
+	ptr = palloc(pool, unparsed->len + 1 + 2 * sizeof(struct extent) + 3 * sizeof(struct linked_list));
+
+	field = (struct linked_list*)(ptr + sizeof(struct linked_list));
+	status += !!dequoid_append(fields, field, (struct linked_list*)ptr);
+	ptr += 2 * sizeof(struct linked_list);
+
+	field->next = (struct linked_list*)ptr;
+	ptr += sizeof(struct linked_list);
+	field->data = ptr;
+	ptr += sizeof(struct extent);
+	field->next->data = ptr;
+	ptr += sizeof(struct extent);
+
+	memcpy(ptr, unparsed->bytes, unparsed->len);
+	kv = (struct extent*)(field->data);
+	kv->bytes = ptr;
+	kv->len = unparsed->len;
+	ptr += unparsed->len;
+	*ptr = 0;
+	ptr = 0;
+
+	for(toDelimiter = 0; (size_t)toDelimiter < unparsed->len; toDelimiter++)
+		if('=' == kv->bytes[toDelimiter]){
+			kv->bytes[toDelimiter] = 0;
+			kv->len = toDelimiter;
+			break;
+		}
+
+	if(kv->len == unparsed->len)
+		field->next->data = 0;
+	else{
+		toDelimiter = kv->len;
+		kv = (struct extent*)(field->next->data);
+		kv->bytes = ((struct extent*)(field->data))->bytes + toDelimiter + 1;
+		kv->len = unparsed->len - toDelimiter - 1;
+	}
+
+	return 0;
+}
 int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
 	struct chunkStream formData;
+	struct dequoid form_data;
 	struct extent current;
 	int toNextDelimiter;
 	struct linked_list *match_node;
@@ -203,17 +249,20 @@ int staticFormResource_respond_POST(struct httpResource *res, struct incomingHtt
 	req->input.body->cursor_chunk = req->input.body->chunk_list.head;
 	req->input.body->cursor_chunk_offset = 0;
 	chunkStream_init(&formData, &(req->allocations));
+	dequoid_init(&form_data);
 	toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
 	while(-1 != toNextDelimiter){
 		chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
 		chunkStream_seekForward(req->input.body, 1);
+		dequoid_append_fieldData(&form_data, &current, &(req->allocations));
 		chunkStream_append(&formData, current.bytes, current.len);
 		toNextDelimiter = chunkStream_findByteOffsetFrom(req->input.body, '&', 0);
 	}
 	toNextDelimiter = chunkStream_lengthRemaining(req->input.body);
 	chunkStream_takeBytes(req->input.body, toNextDelimiter, &current);
+	dequoid_append_fieldData(&form_data, &current, &(req->allocations));
 	chunkStream_append(&formData, current.bytes, current.len);
-	return (*(form->respond_POST))(res, req, &formData);
+	return (*(form->respond_POST))(res, req, form_data.head);
 }
 
 int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequest *req){
@@ -238,7 +287,7 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	return incomingHttpRequest_respond_badMethod(req);
 }
 
-int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields, int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*, struct chunkStream*), void *context){
+int staticFormResource_init(struct staticFormResource *resource, struct httpServer *server, struct form *form, char* url, char* title, struct linked_list *fields, int (*respond_POST)(struct httpResource*, struct incomingHttpRequest*, struct linked_list*), void *context){
 	if(!resource) return 1;
 	if(!form) return 1;
 	if(!url) return 1;

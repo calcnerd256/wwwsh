@@ -178,6 +178,60 @@ int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttp
 	return 0;
 }
 
+int extent_urlDecode(struct extent *str){
+	char *r;
+	char *w;
+	size_t cursor = 0;
+	size_t new_len = 0;
+	char hex;
+	char value;
+	if(!str) return 1;
+	r = str->bytes;
+	w = str->bytes;
+	while(cursor < str->len){
+		*w = *r;
+		if('+' == *r)
+			*w = ' ';
+		if('%' == *r){
+			r++;
+			cursor++;
+			hex = *r;
+			value = 0;
+			if('1' <= hex)
+				if('9' >= hex)
+					value = hex - '1' + 1;
+			if('a' <= hex)
+				if('f' >= hex)
+					value = hex - 'a' + 10;
+			if('A' <= hex)
+				if('F' >= hex)
+					value = hex - 'A' + 10;
+			value <<= 4;
+
+			r++;
+			cursor++;
+			hex = *r;
+			if('1' <= hex)
+				if('9' >= hex)
+					value += hex - '1' + 1;
+			if('a' <= hex)
+				if('f' >= hex)
+					value += hex - 'a' + 10;
+			if('A' <= hex)
+				if('F' >= hex)
+					value += hex - 'A' + 10;
+
+			*w = value;
+		}
+		r++;
+		w++;
+		cursor++;
+		new_len++;
+	}
+	*w = 0;
+	str->len = new_len;
+	return 0;
+}
 int dequoid_append_fieldData(struct dequoid *fields, struct extent *unparsed, struct mempool *pool){
 	char* ptr;
 	struct linked_list *field;
@@ -209,6 +263,7 @@ int dequoid_append_fieldData(struct dequoid *fields, struct extent *unparsed, st
 		if('=' == kv->bytes[toDelimiter]){
 			kv->bytes[toDelimiter] = 0;
 			kv->len = toDelimiter;
+			extent_urlDecode(kv);
 			break;
 		}
 
@@ -219,6 +274,7 @@ int dequoid_append_fieldData(struct dequoid *fields, struct extent *unparsed, st
 		kv = (struct extent*)(field->next->data);
 		kv->bytes = ((struct extent*)(field->data))->bytes + toDelimiter + 1;
 		kv->len = unparsed->len - toDelimiter - 1;
+		extent_urlDecode(kv);
 	}
 
 	return 0;
@@ -247,7 +303,12 @@ int staticFormResource_respond_POST(struct httpResource *res, struct incomingHtt
 	contentType = (struct extent*)(((struct linked_list*)(match_node->data))->next->data);
 	if(contentType->len != 33)
 		return 1; /* TODO: respond to tell the client that the header is missing */
+
+	/*
+		https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
+	*/
 	if(strncmp(contentType->bytes, "application/x-www-form-urlencoded", contentType->len))
+		/* TODO: support multipart/form-data */
 		return 1; /* TODO: respond to tell the client that the header is missing */
 
 	requestInput_consumeLastLine(&(req->input));

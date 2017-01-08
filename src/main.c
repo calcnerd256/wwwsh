@@ -22,7 +22,7 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	while(cursor){
 		k = (struct extent*)(((struct linked_list*)(cursor->data))->data);
 		v = (struct extent*)(((struct linked_list*)(cursor->data))->next->data);
-		printf("\t%s\t%s\n", k->bytes, v->bytes);
+		printf("\t<%s>\t<%s>\n", k->bytes, v->bytes);
 		cursor = cursor->next;
 	}
 	printf("}\n");

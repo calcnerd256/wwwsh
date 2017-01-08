@@ -1,5 +1,6 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -88,7 +89,7 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 
 	memset(&address, 0, sizeof(struct sockaddr));
 	length = 0;
-	fd = accept(server->listeningSocket_fileDescriptor, &address, &length);
+	fd = accept4(server->listeningSocket_fileDescriptor, &address, &length, SOCK_CLOEXEC);
 	if(-1 == fd) return 1;
 
 	new_head = malloc(sizeof(struct linked_list));

@@ -1,6 +1,7 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include <unistd.h>
+#include <stdio.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
@@ -8,24 +9,11 @@
 
 
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
-	struct linked_list *cursor;
-	struct extent *k;
-	struct extent *v;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
-	requestInput_printHeaders(&(req->input));
-	printf("request body (%d byte(s)): {\n", requestInput_getBodyLengthSoFar(&(req->input)));
-	requestInput_printBody(&(req->input));
-	printf("}\nas form data: {\n");
-	cursor = formData;
-	while(cursor){
-		k = (struct extent*)(((struct linked_list*)(cursor->data))->data);
-		v = (struct extent*)(((struct linked_list*)(cursor->data))->next->data);
-		printf("\t<%s>\t<%s>\n", k->bytes, v->bytes);
-		cursor = cursor->next;
-	}
-	printf("}\n");
+	/* TODO: FILE *io = popen("ls -al", "rw");*/
+	/*  and later: pclose(io); */
 	return staticFormResource_respond_GET(res, req);
 }
 
@@ -45,20 +33,10 @@ int main(int argument_count, char* *arguments_vector){
 	struct extent fieldName;
 	struct extent fieldTag;
 	struct form formForm;
-	struct linked_list otherField_node;
-	struct linked_list otherField_nameNode;
-	struct linked_list otherField_tagNode;
-	struct linked_list otherField_typeNode;
-	struct extent otherName;
-	struct extent otherTag;
-	struct extent otherType;
 
 	if(2 != argument_count) return 1;
-	if(point_extent_at_nice_string(&fieldName, "cmd")) return 11;
+	if(point_extent_at_nice_string(&fieldName, "command")) return 11;
 	if(point_extent_at_nice_string(&fieldTag, "textarea")) return 11;
-	if(point_extent_at_nice_string(&otherName, "test")) return 12;
-	if(point_extent_at_nice_string(&otherTag, "input")) return 12;
-	if(point_extent_at_nice_string(&otherType, "radio")) return 12;
 	if(init_pool(&formAllocations)) return 8;
 	if(httpServer_init(&server)) return 2;
 
@@ -99,22 +77,15 @@ int main(int argument_count, char* *arguments_vector){
 	formPoolCell.data = &formAllocations;
 	formPoolCell.next = 0;
 
-	fieldHead.next = 0;
 	fieldHead.data = &fieldNameNode;
+	fieldHead.next = 0;
 	fieldNameNode.data = &fieldName;
 	fieldNameNode.next = &fieldTagNode;
 	fieldTagNode.data = &fieldTag;
 	fieldTagNode.next = 0;
-	otherField_node.data = &otherField_nameNode;
-	otherField_node.next = &fieldHead;
-	otherField_nameNode.data = &otherName;
-	otherField_nameNode.next = &otherField_tagNode;
-	otherField_tagNode.data = &otherTag;
-	otherField_tagNode.next = &otherField_typeNode;
-	otherField_typeNode.data = &otherType;
-	otherField_typeNode.next = 0;
 
-	if(staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &otherField_node, &sampleForm_respond_POST, &formContext))
+	status = staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &fieldHead, &sampleForm_respond_POST, &formContext);
+	if(status)
 		return 7;
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){

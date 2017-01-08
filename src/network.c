@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "./network.h"
 
+
 int get_socket(char* port_number, int *out_sockfd){
 	struct addrinfo *server_address;
 	struct addrinfo hint;
@@ -24,7 +25,7 @@ int get_socket(char* port_number, int *out_sockfd){
 		return 2;
 	}
 
-	*out_sockfd = socket(server_address->ai_family, server_address->ai_socktype, server_address->ai_protocol);
+	*out_sockfd = socket(server_address->ai_family, server_address->ai_socktype | SOCK_CLOEXEC, server_address->ai_protocol);
   if(-1 == *out_sockfd){
 		freeaddrinfo(server_address);
 		server_address = 0;

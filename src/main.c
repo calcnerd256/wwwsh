@@ -100,16 +100,19 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	while(1){
 		activity = 0;
 		if(waitpid(child.pid, 0, WNOHANG)) activity = 1;
-		buf[CHUNK_SIZE] = 0;
-		chunkLen = read(child.output, buf, CHUNK_SIZE);
-		if(-1 == chunkLen)
-			break;
-		if(!chunkLen)
-			break;
-		buf[chunkLen] = 0;
-		chunkStream_append(&(child.outputStream), buf, chunkLen);
-		activity = 1;
-		printf("read chunk from kid <%s>\n", buf);
+		if(fd_canReadp(child.output)){
+			buf[0] = 0;
+			buf[CHUNK_SIZE] = 0;
+			activity = 1;
+			chunkLen = read(child.output, buf, CHUNK_SIZE);
+			if(-1 == chunkLen)
+				break;
+			if(!chunkLen)
+				break;
+			buf[chunkLen] = 0;
+			chunkStream_append(&(child.outputStream), buf, chunkLen);
+			printf("read chunk from kid <%s>\n", buf);
+		}
 		if(!activity)
 			usleep(10);
 	}

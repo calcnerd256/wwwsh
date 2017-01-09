@@ -22,22 +22,27 @@ int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer 
 	return 0;
 }
 
-int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
+int fd_canReadp(int fd){
 	struct timeval timeout;
 	fd_set to_read;
 	int status;
+	if(-1 == fd) return 0;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
 	FD_ZERO(&to_read);
+	FD_SET(fd, &to_read);
+	status = select(fd + 1, &to_read, 0, 0, &timeout);
+	if(-1 == status) return 0;
+	if(!status) return 0;
+	if(!FD_ISSET(fd, &to_read)) return 0;
+	FD_ZERO(&to_read);
+	return 1;
+}
+
+int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
 	if(!req) return -1;
 	if(req->input.done) return -1;
-	if(-1 == req->fd) return -1;
-	FD_SET(req->fd, &to_read);
-	status = select(req->fd + 1, &to_read, 0, 0, &timeout);
-	if(-1 == status) return -1;
-	if(!status) return -1;
-	if(!FD_ISSET(req->fd, &to_read)) return -1;
-	FD_ZERO(&to_read);
+	if(!fd_canReadp(req->fd)) return -1;
 	return req->fd;
 }
 

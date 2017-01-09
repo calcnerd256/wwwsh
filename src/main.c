@@ -8,10 +8,20 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <string.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
 #include "./form.h"
+
+
+struct childProcessResource{
+	struct mempool allocations;
+	struct chunkStream outputStream;
+	pid_t pid;
+	int input;
+	int output;
+};
 
 int spawn_child(int input, int output, char* cmd){
 	int flags;
@@ -40,11 +50,12 @@ int spawn_child(int input, int output, char* cmd){
 }
 
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	struct childProcessResource child;
 	pid_t kid;
 	int ki[2];
 	int ko[2];
 	int activity;
-	char buf[256];
+	char buf[CHUNK_SIZE + 1];
 	int chunkLen;
 	if(!res) return 1;
 	if(!req) return 1;
@@ -79,25 +90,33 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 	close(ki[0]);
 	close(ko[1]);
 
-	close(ki[1]);
+	init_pool(&(child.allocations));
+	chunkStream_init(&(child.outputStream), &(child.allocations));
+	child.pid = kid;
+	child.input = ki[1];
+	child.output = ko[0];
+	close(child.input);
 	buf[0] = 0;
 	while(1){
 		activity = 0;
-		if(waitpid(kid, 0, WNOHANG)) activity = 1;
-		buf[255] = 0;
-		chunkLen = read(ko[0], buf, 255);
+		if(waitpid(child.pid, 0, WNOHANG)) activity = 1;
+		buf[CHUNK_SIZE] = 0;
+		chunkLen = read(child.output, buf, CHUNK_SIZE);
 		if(-1 == chunkLen)
 			break;
 		if(!chunkLen)
 			break;
 		buf[chunkLen] = 0;
+		chunkStream_append(&(child.outputStream), buf, chunkLen);
 		activity = 1;
 		printf("read chunk from kid <%s>\n", buf);
 		if(!activity)
 			usleep(10);
 	}
-	close(ko[0]);
-	waitpid(kid, 0, 0);
+	close(child.output);
+	waitpid(child.pid, 0, 0);
+	free_pool(&(child.allocations));
+	memset(&child, 0, sizeof(struct childProcessResource));
 	return staticFormResource_respond_GET(res, req);
 }
 

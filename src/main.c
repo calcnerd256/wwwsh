@@ -1,10 +1,13 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
@@ -12,12 +15,87 @@
 
 
 int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	pid_t kid;
+	int ki[2];
+	int ko[2];
+	int activity;
+	char buf[256];
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
-	/* TODO: FILE *io = popen("ls -al", "rw");*/
-	/*  and later: pclose(io); */
-	return staticFormResource_respond_GET(res, req);
+	if(pipe2(ki, O_CLOEXEC)) return 1;
+	if(pipe2(ko, O_CLOEXEC)){
+		close(ki[0]);
+		close(ki[1]);
+		return 1;
+	}
+	printf("forking\n");
+	kid = fork();
+	printf("forked %d\n", kid);
+	if(kid < 0){
+		close(ki[0]);
+		close(ki[1]);
+		close(ko[0]);
+		close(ko[1]);
+		return 1;
+	}
+	if(kid){
+		/* TODO: store the process in a structure */
+		/* TODO: open a pipe before the fork for stdin and one for stdout */
+		close(ki[0]);
+		close(ko[1]);
+
+		close(ki[1]);
+		buf[0] = 0;
+		while(1){
+			buf[255] = 0;
+			activity = read(ko[0], buf, 255);
+			if(-1 == activity)
+				break;
+			if(!activity)
+				break;
+			activity = 0;
+			activity = 1;
+			if(waitpid(kid, 0, WNOHANG)) activity = 1;
+			printf("read chunk from kid <%s>\n", buf);
+			if(!activity)
+				usleep(10);
+		}
+		close(ko[0]);
+		waitpid(kid, 0, 0);
+		return staticFormResource_respond_GET(res, req);
+	}
+	close(ki[1]);
+	close(ko[0]);
+	close(0);
+	close(1);
+	close(2);
+	ki[1] = fcntl(ki[0], F_GETFD);
+	fcntl(ki[0], F_SETFD, ki[1] & ~FD_CLOEXEC);
+	if(-1 == dup2(ki[0], 0)){
+		close(ki[0]);
+		close(ko[1]);
+		_exit(1);
+	}
+	ko[0] = fcntl(ko[1], F_GETFD);
+	fcntl(ko[1], F_SETFD, ko[0] & ~FD_CLOEXEC);
+	if(-1 == dup2(ko[1], 2)){
+		close(ki[0]);
+		close(0);
+		close(ko[1]);
+		_exit(1);
+	}
+	if(-1 == dup2(ko[1], 1)){
+		close(ki[0]);
+		close(0);
+		close(ko[1]);
+		close(2);
+		_exit(1);
+	}
+
+	if(execl("/bin/bash", "bash", "-c", "ls -al", (char*)0))
+		_exit(1);
+	return 1;
 }
 
 int main(int argument_count, char* *arguments_vector){

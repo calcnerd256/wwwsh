@@ -49,52 +49,60 @@ int spawn_child(int input, int output, char* cmd){
 	return 1;
 }
 
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
-	struct childProcessResource child;
-	pid_t kid;
+int spawn(struct childProcessResource *child, char* cmd){
 	int ki[2];
 	int ko[2];
+	if(!child) return 1;
+	if(!cmd) return 1;
+	if(pipe2(ki, O_CLOEXEC)) return 1;
+	child->input = ki[0];
+	if(pipe2(ko, O_CLOEXEC)){
+		close(ki[0]);
+		close(ki[1]);
+		child->input = -1;
+		return 1;
+	}
+	child->output = ko[1];
+	child->pid = fork();
+	if(child->pid < 0){
+		close(ki[0]);
+		close(ki[1]);
+		close(ko[0]);
+		close(ko[1]);
+		child->input = -1;
+		child->output = -1;
+		return 1;
+	}
+	if(!(child->pid)){
+		close(ki[1]);
+		close(ko[0]);
+		if(spawn_child(child->input, child->output, cmd)){
+			close(child->input);
+			child->input = -1;
+			close(child->output);
+			child->output = -1;
+			_exit(1);
+			return 1;
+		}
+	}
+	close(child->input);
+	child->input = ki[1];
+	close(child->output);
+	child->output = ko[0];
+	init_pool(&(child->allocations));
+	chunkStream_init(&(child->outputStream), &(child->allocations));
+	return 0;
+}
+
+int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	struct childProcessResource child;
 	int activity;
 	char buf[CHUNK_SIZE + 1];
 	int chunkLen;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
-	if(pipe2(ki, O_CLOEXEC)) return 1;
-	if(pipe2(ko, O_CLOEXEC)){
-		close(ki[0]);
-		close(ki[1]);
-		return 1;
-	}
-	printf("forking\n");
-	kid = fork();
-	printf("forked %d\n", kid);
-	if(kid < 0){
-		close(ki[0]);
-		close(ki[1]);
-		close(ko[0]);
-		close(ko[1]);
-		return 1;
-	}
-	if(!kid){
-		close(ki[1]);
-		close(ko[0]);
-		if(spawn_child(ki[0], ko[1], "ls -al")){
-			close(ki[0]);
-			close(ko[1]);
-			_exit(1);
-			return 1;
-		}
-	}
-	/* TODO: store the process in a structure */
-	close(ki[0]);
-	close(ko[1]);
-
-	init_pool(&(child.allocations));
-	chunkStream_init(&(child.outputStream), &(child.allocations));
-	child.pid = kid;
-	child.input = ki[1];
-	child.output = ko[0];
+	if(spawn(&child, "ls -al")) return 1;
 	close(child.input);
 	buf[0] = 0;
 	while(1){
@@ -111,7 +119,6 @@ int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest
 				break;
 			buf[chunkLen] = 0;
 			chunkStream_append(&(child.outputStream), buf, chunkLen);
-			printf("read chunk from kid <%s>\n", buf);
 		}
 		if(!activity)
 			usleep(10);
@@ -212,11 +219,11 @@ int main(int argument_count, char* *arguments_vector){
 		}
 
 	while(1){
-		if(httpServer_canAcceptConnectionp(&server))
+		if(fd_canReadp(server.listeningSocket_fileDescriptor))
 			httpServer_acceptNewConnection(&server);
 		else
 			if(!httpServer_stepConnections(&server))
-				usleep(10);
+				usleep(100);
 	}
 
 	if(httpServer_close(&server)){

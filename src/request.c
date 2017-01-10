@@ -39,13 +39,6 @@ int fd_canReadp(int fd){
 	return 1;
 }
 
-int incomingHttpRequest_selectRead(struct incomingHttpRequest *req){
-	if(!req) return -1;
-	if(req->input.done) return -1;
-	if(!fd_canReadp(req->fd)) return -1;
-	return req->fd;
-}
-
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node){
 	(void)node;
 	node = 0;
@@ -366,13 +359,15 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	struct linked_list *old_node;
 	struct httpResource *resource;
 	if(!conn) return 0;
-	if(-1 != incomingHttpRequest_selectRead(conn)){
-		status = 1;
-		old_node = conn->node;
-		incomingHttpRequest_readChunk(conn);
-		if(!old_node) return 1;
-		if(!(old_node->data)) return 0;
-	}
+	status = 0;
+	if(!(conn->input.done))
+		if(fd_canReadp(conn->fd)){
+			status = 1;
+			old_node = conn->node;
+			incomingHttpRequest_readChunk(conn);
+			if(!old_node) return 1;
+			if(!(old_node->data)) return 0;
+		}
 	if(1 == requestInput_processStep(&(conn->input))) return 1;
 	if(!(conn->input.requestUrl)) return status;
 	if(conn->done_writing) return status;

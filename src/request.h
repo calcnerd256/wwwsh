@@ -4,7 +4,6 @@
 
 int incomingHttpRequest_init(struct incomingHttpRequest *ptr, struct httpServer *server, int fd);
 int fd_canReadp(int fd);
-int incomingHttpRequest_selectRead(struct incomingHttpRequest *req);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
 

@@ -14,6 +14,7 @@
 struct httpServer{
 	struct linked_list *connections;
 	struct linked_list *resources;
+	struct linked_list *children;
 	int listeningSocket_fileDescriptor;
 };
 

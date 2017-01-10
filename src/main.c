@@ -18,6 +18,7 @@
 struct childProcessResource{
 	struct mempool allocations;
 	struct chunkStream outputStream;
+	struct linked_list *node;
 	pid_t pid;
 	int input;
 	int output;
@@ -124,22 +125,35 @@ int childProcessResource_steppedp(struct childProcessResource *kid){
 	return 1;
 }
 
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
-	struct childProcessResource child;
+int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	struct childProcessResource *child;
+	struct httpServer *server;
+	struct staticFormResource *fr;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
-	if(childProcessResource_init_spawn(&child, "ls -al")) return 1;
+	fr = res->context;
+	if(!fr) return 1;
+	server = ((struct linked_list*)(fr->context))->data;
+	if(!server) return 1;
+	child = malloc(sizeof(struct childProcessResource));
+	if(childProcessResource_init_spawn(child, "ls -al")) return 1;
+	child->node = malloc(sizeof(struct linked_list));
+	child->node->next = server->children;
+	child->node->data = child;
+	server->children = child->node;
 
-	close(child.input);
-	while(-1 != child.output)
-		if(!childProcessResource_steppedp(&child))
+	close(child->input);
+	child->input = -1;
+	while(-1 != child->output)
+		if(!childProcessResource_steppedp(child))
 			usleep(100);
-	close(child.output);
-	waitpid(child.pid, 0, 0);
+	waitpid(child->pid, 0, 0);
 
-	free_pool(&(child.allocations));
-	memset(&child, 0, sizeof(struct childProcessResource));
+	free_pool(&(child->allocations));
+	child->node->data = 0;
+	memset(child, 0, sizeof(struct childProcessResource));
+	free(child);
 	return staticFormResource_respond_GET(res, req);
 }
 
@@ -186,7 +200,7 @@ int main(int argument_count, char* *arguments_vector){
 		"  </p>\r\n"
 		"  <p>\r\n"
 		"   Coming soon:\r\n"
-		"   <a href=\"./formtest/\">a form</a>\r\n"
+		"   <a href=\"./spawn/\">a form</a>\r\n"
 		"  </p>\r\n"
 		" </body>\r\n"
 		"</html>\r\n"
@@ -215,7 +229,16 @@ int main(int argument_count, char* *arguments_vector){
 	fieldTagNode.data = &fieldTag;
 	fieldTagNode.next = 0;
 
-	status = staticFormResource_init(&formResource, &server, &formForm, "/formtest/", "form", &fieldHead, &sampleForm_respond_POST, &formContext);
+	status = staticFormResource_init(
+		&formResource,
+		&server,
+		&formForm,
+		"/spawn/",
+		"spawn",
+		&fieldHead,
+		&spawnForm_respond_POST,
+		&formContext
+	);
 	if(status)
 		return 7;
 

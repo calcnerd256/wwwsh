@@ -23,7 +23,7 @@ struct childProcessResource{
 	int output;
 };
 
-int spawn_child(int input, int output, char* cmd){
+int childProcessResource_spawn_child(int input, int output, char* cmd){
 	int flags;
 	close(0);
 	close(1);
@@ -49,7 +49,7 @@ int spawn_child(int input, int output, char* cmd){
 	return 1;
 }
 
-int spawn(struct childProcessResource *child, char* cmd){
+int childProcessResource_init_spawn(struct childProcessResource *child, char* cmd){
 	int ki[2];
 	int ko[2];
 	if(!child) return 1;
@@ -76,7 +76,7 @@ int spawn(struct childProcessResource *child, char* cmd){
 	if(!(child->pid)){
 		close(ki[1]);
 		close(ko[0]);
-		if(spawn_child(child->input, child->output, cmd)){
+		if(childProcessResource_spawn_child(child->input, child->output, cmd)){
 			close(child->input);
 			child->input = -1;
 			close(child->output);
@@ -94,37 +94,50 @@ int spawn(struct childProcessResource *child, char* cmd){
 	return 0;
 }
 
-int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
-	struct childProcessResource child;
-	int activity;
+int childProcessResource_steppedp(struct childProcessResource *kid){
 	char buf[CHUNK_SIZE + 1];
 	int chunkLen;
+	if(!kid) return 0;
+	if(kid->pid == waitpid(kid->pid, 0, WNOHANG)){
+		if(-1 != kid->output)
+			close(kid->output);
+		kid->output = -1;
+		return 1;
+	}
+	if(-1 == kid->output) return 0;
+	if(!fd_canReadp(kid->output)) return 0;
+	buf[0] = 0;
+	buf[CHUNK_SIZE] = 0;
+	chunkLen = read(kid->output, buf, CHUNK_SIZE);
+	if(-1 == chunkLen){
+		close(kid->output);
+		kid->output = -1;
+		return 1;
+	}
+	buf[chunkLen] = 0;
+	if(!chunkLen){
+		close(kid->output);
+		kid->output = -1;
+		return 1;
+	}
+	chunkStream_append(&(kid->outputStream), buf, chunkLen);
+	return 1;
+}
+
+int sampleForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	struct childProcessResource child;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
-	if(spawn(&child, "ls -al")) return 1;
+	if(childProcessResource_init_spawn(&child, "ls -al")) return 1;
+
 	close(child.input);
-	buf[0] = 0;
-	while(1){
-		activity = 0;
-		if(waitpid(child.pid, 0, WNOHANG)) activity = 1;
-		if(fd_canReadp(child.output)){
-			buf[0] = 0;
-			buf[CHUNK_SIZE] = 0;
-			activity = 1;
-			chunkLen = read(child.output, buf, CHUNK_SIZE);
-			if(-1 == chunkLen)
-				break;
-			if(!chunkLen)
-				break;
-			buf[chunkLen] = 0;
-			chunkStream_append(&(child.outputStream), buf, chunkLen);
-		}
-		if(!activity)
-			usleep(10);
-	}
+	while(-1 != child.output)
+		if(!childProcessResource_steppedp(&child))
+			usleep(100);
 	close(child.output);
 	waitpid(child.pid, 0, 0);
+
 	free_pool(&(child.allocations));
 	memset(&child, 0, sizeof(struct childProcessResource));
 	return staticFormResource_respond_GET(res, req);

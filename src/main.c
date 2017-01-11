@@ -95,14 +95,28 @@ int childProcessResource_init_spawn(struct childProcessResource *child, char* cm
 	return 0;
 }
 
+int childProcessResource_close(struct childProcessResource *kid){
+	if(-1 != kid->input)
+		close(kid->input);
+	kid->input = -1;
+	if(-1 != kid->output)
+		close(kid->output);
+	kid->output = -1;
+	if(-1 != kid->pid)
+		waitpid(kid->pid, 0, 0);
+	kid->pid = -1;
+	free_pool(&(kid->allocations));
+	kid->node->data = 0;
+	return 0;
+}
+
 int childProcessResource_steppedp(struct childProcessResource *kid){
 	char buf[CHUNK_SIZE + 1];
 	int chunkLen;
 	if(!kid) return 0;
+	if(-1 == kid->pid) return 0;
 	if(kid->pid == waitpid(kid->pid, 0, WNOHANG)){
-		if(-1 != kid->output)
-			close(kid->output);
-		kid->output = -1;
+		childProcessResource_close(kid);
 		return 1;
 	}
 	if(-1 == kid->output) return 0;
@@ -148,14 +162,26 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	while(-1 != child->output)
 		if(!childProcessResource_steppedp(child))
 			usleep(100);
-	waitpid(child->pid, 0, 0);
+	if(-1 != child->pid)
+		waitpid(child->pid, 0, 0);
 
-	free_pool(&(child->allocations));
-	child->node->data = 0;
 	memset(child, 0, sizeof(struct childProcessResource));
 	free(child);
+
 	return staticFormResource_respond_GET(res, req);
 }
+
+/*
+	TODO
+	make childProcessResource a resource
+	make process spawner respond with the child's URL
+	push childProcessResource onto server's resource stack upon spawn
+	delete childProcessResource from server's resources on close
+	move childProcessResource class into its own compilation unit
+	free childProcessResource on close
+	make a resource that lists each childProcessResource or just lists all resources by URL
+
+*/
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;

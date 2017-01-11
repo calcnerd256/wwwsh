@@ -18,6 +18,9 @@ int match_last(void *data, void *context, struct linked_list *node);
 struct linked_list *last_node(struct linked_list *head);
 int append(struct linked_list *head, void* data);
 
+int linkedList_popEmptyFreeing(struct linked_list* *xs);
+int linkedList_removeMiddleEmptiesFreeing(struct linked_list *xs);
+
 
 struct dequoid{
 	struct linked_list *head;

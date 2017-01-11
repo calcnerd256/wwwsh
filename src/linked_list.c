@@ -96,6 +96,37 @@ int append(struct linked_list *head, void* data){
 	return 0;
 }
 
+int linkedList_popEmptyFreeing(struct linked_list* *xs){
+	struct linked_list *node = 0;
+	if(!xs) return 1;
+	while(*xs && !((*xs)->data)){
+		node = (*xs)->next;
+		(*xs)->next = 0;
+		free(*xs);
+		*xs = node;
+	}
+	xs = 0;
+	return 0;
+}
+int linkedList_removeMiddleEmptiesFreeing(struct linked_list *xs){
+	struct linked_list *node = xs;
+	struct linked_list *middle;
+	while(node){
+		while(node->next && !(node->next->data)){
+			middle = node->next;
+			node->next = middle->next;
+			middle->next = 0;
+			free(middle);
+		}
+		node = node->next;
+	}
+	xs = 0;
+	node = 0;
+	middle = 0;
+	return 0;
+}
+
+
 
 int dequoid_init(struct dequoid *list){
 	list->head = 0;

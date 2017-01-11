@@ -96,46 +96,6 @@ int httpServer_acceptNewConnection(struct httpServer *server){
 	return 0;
 }
 
-int linkedList_removeMiddleEmptiesFreeing(struct linked_list *xs){
-	struct linked_list *node = xs;
-	struct linked_list *middle;
-	while(node){
-		while(node->next && !(node->next->data)){
-			middle = node->next;
-			node->next = middle->next;
-			middle->next = 0;
-			free(middle);
-		}
-		node = node->next;
-	}
-	xs = 0;
-	node = 0;
-	middle = 0;
-	return 0;
-}
-int linkedList_popEmptyFreeing(struct linked_list* *xs){
-	struct linked_list *node = 0;
-	if(!xs) return 1;
-	while(*xs && !((*xs)->data)){
-		node = (*xs)->next;
-		(*xs)->next = 0;
-		free(*xs);
-		*xs = node;
-	}
-	xs = 0;
-	return 0;
-}
-int httpServer_removeEmptyConnections(struct httpServer *server){
-	if(!server) return 2;
-	if(linkedList_popEmptyFreeing(&(server->connections))) return 3;
-	return linkedList_removeMiddleEmptiesFreeing(server->connections);
-}
-int httpServer_removeEmptyChildren(struct httpServer *server){
-	if(!server) return 2;
-	if(server->children)
-	if(linkedList_popEmptyFreeing(&(server->children))) return 3;
-	return linkedList_removeMiddleEmptiesFreeing(server->children);
-}
 
 int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){
 	(void)node;
@@ -181,11 +141,15 @@ int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *
 }
 int httpServer_stepConnections(struct httpServer *server){
 	int any = 0;
-	httpServer_removeEmptyConnections(server);
-	httpServer_removeEmptyChildren(server);
+	linkedList_popEmptyFreeing(&(server->connections));
+	linkedList_popEmptyFreeing(&(server->children));
+	linkedList_removeMiddleEmptiesFreeing(server->connections);
+	linkedList_removeMiddleEmptiesFreeing(server->children);
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any))
 		return 0;
-	httpServer_removeEmptyChildren(server);
-	httpServer_removeEmptyConnections(server);
+	linkedList_popEmptyFreeing(&(server->children));
+	linkedList_popEmptyFreeing(&(server->connections));
+	linkedList_removeMiddleEmptiesFreeing(server->children);
+	linkedList_removeMiddleEmptiesFreeing(server->connections);
 	return any;
 }

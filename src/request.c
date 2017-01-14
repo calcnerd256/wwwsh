@@ -400,3 +400,28 @@ struct linked_list *push_header_nice_strings(struct linked_list *top, struct lin
 	if(point_extent_at_nice_string(value_extent, value)) return 0;
 	return top;
 }
+
+int extent_url_equalsp(struct extent *target, struct extent *url){
+	size_t targetLen = 0;
+	size_t urlLen = 0;
+	if(!target) return 0;
+	if(!url) return 0;
+	targetLen = target->len;
+	if(!targetLen){
+		target = 0;
+		if(!url->len) return 1;
+		if(!url->bytes) return 0;
+		if(!(url->bytes[0])) return 1;
+		if('/' != url->bytes[0]) return 0;
+		if(url->bytes[1]) return 0;
+		return 1;
+	}
+	if(!(target->bytes)) return 0;
+	if('/' == target->bytes[targetLen - 1]) targetLen--;
+	urlLen = url->len;
+	if(!urlLen) return !targetLen;
+	if(!(url->bytes)) return 0;
+	if('/' == url->bytes[urlLen - 1]) urlLen--;
+	if(targetLen != urlLen) return 0;
+	return !strncmp(target->bytes, url->bytes, urlLen);
+}

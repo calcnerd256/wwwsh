@@ -45,3 +45,5 @@ struct linked_list *push_header_nice_strings(
 	char *value,
 	struct linked_list *next
 );
+
+int extent_url_equalsp(struct extent *target, struct extent *url);

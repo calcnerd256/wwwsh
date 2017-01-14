@@ -9,32 +9,10 @@
 
 
 int staticFormResource_urlMatchesp(struct httpResource *res, struct extent *url){
-	struct staticFormResource *fr;
-	size_t reqUrlLen = 0;
-	size_t resUrlLen = 0;
 	if(!res) return 0;
 	if(!url) return 0;
-	fr = (struct staticFormResource*)(res->context);
-	if(!fr) return 0;
-	resUrlLen = fr->url.len;
-	if(!resUrlLen){
-		res = 0;
-		fr = 0;
-		if(!url->len) return 1;
-		if(!url->bytes) return 0;
-		if(!(url->bytes[0])) return 1;
-		if('/' != url->bytes[0]) return 0;
-		if(url->bytes[1]) return 1;
-		return 0;
-	}
-	if(!fr->url.bytes) return 0;
-	if('/' == fr->url.bytes[resUrlLen - 1]) resUrlLen--;
-	reqUrlLen = url->len;
-	if(!reqUrlLen) return !resUrlLen;
-	if(!(url->bytes)) return 0;
-	if('/' == url->bytes[reqUrlLen - 1]) reqUrlLen--;
-	if(resUrlLen != reqUrlLen) return 0;
-	return !strncmp(fr->url.bytes, url->bytes, resUrlLen);
+	if(!(res->context)) return 0;
+	return extent_url_equalsp(&(((struct staticFormResource*)(res->context))->url), url);
 }
 
 int match_header_key(struct linked_list *header, struct extent *target, struct linked_list *node){

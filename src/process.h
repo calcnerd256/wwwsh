@@ -4,6 +4,7 @@ struct childProcessResource{
 	struct mempool allocations;
 	struct chunkStream outputStream;
 	struct httpResource resource;
+	struct extent url;
 	struct linked_list *node;
 	struct linked_list *linkNode_resources;
 	pid_t pid;

@@ -83,6 +83,8 @@ int childProcessResource_init_spawn(struct childProcessResource *child, char* cm
 	child->output = ko[0];
 	init_pool(&(child->allocations));
 	chunkStream_init(&(child->outputStream), &(child->allocations));
+	child->url.len = 0;
+	child->url.bytes = 0;
 	return 0;
 }
 
@@ -98,7 +100,8 @@ int childProcessResource_close(struct childProcessResource *kid){
 			/* TODO: kill -9 and then wait without wnohang */
 		}
 	kid->pid = -1;
-	kid->node->data = 0;
+	if(kid->node)
+		kid->node->data = 0;
 	kid->node = 0;
 	return 0;
 }
@@ -143,9 +146,10 @@ int childProcessResource_steppedp(struct childProcessResource *kid){
 }
 
 int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url){
-	(void)resource;
-	(void)url;
-	return 0;
+	if(!resource) return 0;
+	if(!url) return 0;
+	if(!(resource->context)) return 0;
+	return extent_url_equalsp(&(((struct childProcessResource*)(resource->context))->url), url);
 }
 int childProcessResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
 	(void)resource;
@@ -167,6 +171,8 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	struct childProcessResource *child;
 	struct httpServer *server;
 	struct staticFormResource *fr;
+	char pid[256];
+	int plen;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
@@ -177,9 +183,36 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	child = malloc(sizeof(struct childProcessResource));
 	if(childProcessResource_init_spawn(child, "ls -al")) return 2;
 	if(httpServer_pushChildProcess(server, child)) return 3;
-	printf("spawned child with pid %d\n", child->pid);
-	/* TODO: respond with a link to the child process resource */
-	return childProcessResource_respond(&(child->resource), req);
+	memset(pid, 0, 256);
+	plen = snprintf(pid, 256, "%d", child->pid);
+	pid[255] = 0;
+	if(-1 == plen) return 8;
+	if(255 < plen) return 9;
+	pid[plen] = 0;
+
+	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0))
+		return 4;
+	if(incomingHttpRequest_writelnChunk_niceString(req, "<html>"))
+		return 5;
+	if(incomingHttpRequest_writelnChunk_niceString(req, " <head>"))
+		return 5;
+	if(incomingHttpRequest_writelnChunk_niceString(req, "  <title>spawned a process</title>"))
+		return 5;
+	if(incomingHttpRequest_writelnChunk_niceString(req, " </head>"))
+		return 5;
+	if(incomingHttpRequest_writelnChunk_niceString(req, " <body>"))
+		return 5;
+	if(incomingHttpRequest_writeChunk_niceString(req, "  <a href=\""))
+		return 5;
+	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, &(child->url)))
+		return 6;
+	if(incomingHttpRequest_writelnChunk_niceString(req, "/\">spawned</a>"))
+		return 7;
+	if(incomingHttpRequest_writelnChunk_niceString(req, " </body>"))
+		return 7;
+	if(incomingHttpRequest_writelnChunk_niceString(req, "</html>"))
+		return 7;
+	return incomingHttpRequest_sendLastChunk(req, 0);
 }
 
 /*

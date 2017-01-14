@@ -6,11 +6,11 @@
 
 int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node){
 	(void)node;
+	node = 0;
 	if(!resource) return 0;
 	if(!url) return 0;
 	if(!(resource->url)) return 0;
-	if(resource->url->len != url->len) return 0;
-	return !strncmp(resource->url->bytes, url->bytes, url->len + 1);
+	return extent_url_equalsp(resource->url, url);
 }
 
 int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url){

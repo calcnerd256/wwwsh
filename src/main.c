@@ -242,6 +242,12 @@ int main(int argument_count, char* *arguments_vector){
 		&(rootResourceStorage.staticResource)
 	);
 	if(status) return 4;
+	/*
+		You MUST NOT set rootResourceStorage.link_node.data to 0,
+		or else the server will try to free stacked memory.
+		If you wish to remove this cell from the linked list,
+		then you must remove it by pointing its predecessor at its successor.
+	*/
 
 	formContext.data = &server;
 	formContext.next = &formPoolCell;
@@ -267,6 +273,13 @@ int main(int argument_count, char* *arguments_vector){
 	);
 	if(status)
 		return 7;
+	/*
+		You MUST NOT set formResource.node.data to 0,
+		or else the server will try to free stacked memory.
+		If you wish to remove this cell from the linked list,
+		then you must remove it by pointing its predecessor at its successor.
+	 */
+
 
 	if(httpServer_listen(&server, arguments_vector[1], 32)){
 		server.listeningSocket_fileDescriptor = -1;

@@ -19,6 +19,7 @@ struct childProcessResource{
 	struct mempool allocations;
 	struct chunkStream outputStream;
 	struct linked_list *node;
+	struct linked_list *linkNode_resources;
 	pid_t pid;
 	int input;
 	int output;
@@ -156,6 +157,11 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	child->node->next = server->children;
 	child->node->data = child;
 	server->children = child->node;
+
+	child->linkNode_resources = malloc(sizeof(struct linked_list));
+	child->linkNode_resources->data = 0;
+	child->linkNode_resources->next = server->resources;
+	server->resources = child->linkNode_resources;
 
 	close(child->input);
 	child->input = -1;

@@ -8,6 +8,7 @@
 #include "./server.h"
 #include "./network.h"
 #include "./request.h"
+#include "./process.h"
 
 
 int httpServer_init(struct httpServer *server){
@@ -131,10 +132,18 @@ struct httpResource* httpServer_locateResource(struct httpServer *server, struct
 }
 
 
-int visit_connection_bundle_process_step(struct incomingHttpRequest *conn, int *context, struct linked_list *node){
+int visit_incomingHttpRequest_processStep(struct incomingHttpRequest *conn, int *context, struct linked_list *node){
 	(void)node;
 	if(incomingHttpRequest_processSteppedp(conn)) *context = 1;
 	conn = 0;
+	context = 0;
+	node = 0;
+	return 0;
+}
+int visit_childProcessResource_processStep(struct childProcessResource *kid, int *context, struct linked_list *node){
+	(void)node;
+	if(childProcessResource_steppedp(kid)) *context = 1;
+	kid = 0;
 	context = 0;
 	node = 0;
 	return 0;
@@ -147,7 +156,9 @@ int httpServer_stepConnections(struct httpServer *server){
 	linkedList_removeMiddleEmptiesFreeing(server->connections);
 	linkedList_removeMiddleEmptiesFreeing(server->children);
 	linkedList_removeMiddleEmptiesFreeing(server->resources);
-	if(traverse_linked_list(server->connections, (visitor_t)(&visit_connection_bundle_process_step), &any))
+	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
+		return 0;
+	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
 		return 0;
 	linkedList_popEmptyFreeing(&(server->resources));
 	linkedList_popEmptyFreeing(&(server->children));

@@ -13,17 +13,8 @@
 #include "./request.h"
 #include "./static.h"
 #include "./form.h"
+#include "./process.h"
 
-
-struct childProcessResource{
-	struct mempool allocations;
-	struct chunkStream outputStream;
-	struct linked_list *node;
-	struct linked_list *linkNode_resources;
-	pid_t pid;
-	int input;
-	int output;
-};
 
 int childProcessResource_spawn_child(int input, int output, char* cmd){
 	int flags;
@@ -104,10 +95,21 @@ int childProcessResource_close(struct childProcessResource *kid){
 		close(kid->output);
 	kid->output = -1;
 	if(-1 != kid->pid)
-		waitpid(kid->pid, 0, 0);
+		if(kid->pid != waitpid(kid->pid, 0, WNOHANG)){
+			/* TODO: kill -9 and then wait without wnohang */
+		}
 	kid->pid = -1;
-	free_pool(&(kid->allocations));
 	kid->node->data = 0;
+	kid->node = 0;
+	return 0;
+}
+
+int childProcessResource_remove(struct childProcessResource *kid){
+	childProcessResource_close(kid);
+	kid->linkNode_resources->data = 0;
+	free_pool(&(kid->allocations));
+	memset(kid, 0, sizeof(struct childProcessResource));
+	free(kid);
 	return 0;
 }
 
@@ -117,6 +119,7 @@ int childProcessResource_steppedp(struct childProcessResource *kid){
 	if(!kid) return 0;
 	if(-1 == kid->pid) return 0;
 	if(kid->pid == waitpid(kid->pid, 0, WNOHANG)){
+		kid->pid = -1;
 		childProcessResource_close(kid);
 		return 1;
 	}
@@ -140,6 +143,27 @@ int childProcessResource_steppedp(struct childProcessResource *kid){
 	return 1;
 }
 
+int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url){
+	(void)resource;
+	(void)url;
+	return 0;
+}
+int childProcessResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
+	(void)resource;
+	(void)request;
+	return 1;
+}
+int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){
+	struct childProcessResource *kid;
+	if(!resource) return 1;
+	if(!request) return 1;
+	kid = resource->context;
+	childProcessResource_remove(kid);
+	if(incomingHttpRequest_beginChunkedHtmlOk(request, 0)) return 2;
+	if(incomingHttpRequest_writelnChunk_niceString(request, "<html><body>test</body></html>")) return 3;
+	return incomingHttpRequest_sendLastChunk(request, 0);
+}
+
 int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
 	struct childProcessResource *child;
 	struct httpServer *server;
@@ -159,22 +183,11 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	server->children = child->node;
 
 	child->linkNode_resources = malloc(sizeof(struct linked_list));
-	child->linkNode_resources->data = 0;
-	child->linkNode_resources->next = server->resources;
-	server->resources = child->linkNode_resources;
+	httpServer_pushResource(server, child->linkNode_resources, &(child->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, child);
 
-	close(child->input);
-	child->input = -1;
-	while(-1 != child->output)
-		if(!childProcessResource_steppedp(child))
-			usleep(100);
-	if(-1 != child->pid)
-		waitpid(child->pid, 0, 0);
-
-	memset(child, 0, sizeof(struct childProcessResource));
-	free(child);
-
-	return staticFormResource_respond_GET(res, req);
+	printf("spawned child with pid %d\n", child->pid);
+	/* TODO: respond with a link to the child process resource */
+	return childProcessResource_respond(&(child->resource), req);
 }
 
 /*

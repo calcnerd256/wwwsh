@@ -8,7 +8,6 @@
 #include "./server.h"
 #include "./network.h"
 #include "./request.h"
-#include "./process.h"
 
 
 int httpServer_init(struct httpServer *server){
@@ -32,6 +31,23 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	new_head->next = server->resources;
 	new_head->data = resource;
 	server->resources = new_head;
+	return 0;
+}
+
+int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
+	if(!server) return 1;
+	if(!kid) return 2;
+
+	kid->node = malloc(sizeof(struct linked_list));
+	kid->linkNode_resources = malloc(sizeof(struct linked_list));
+
+	kid->node->next = server->children;
+	kid->node->data = kid;
+	server->children = kid->node;
+
+	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))
+		return 3;
+
 	return 0;
 }
 

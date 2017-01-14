@@ -1,6 +1,7 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
 #include "./server_structs.h"
+#include "./process.h"
 
 int httpServer_init(struct httpServer *server);
 
@@ -13,6 +14,7 @@ int httpServer_pushResource(
 	int (*respond)(struct httpResource*, struct incomingHttpRequest*),
 	void *context
 );
+int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid);
 
 int httpServer_listen(struct httpServer *server, char* port_number, int backlog);
 int httpServer_close(struct httpServer *server);

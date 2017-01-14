@@ -13,7 +13,6 @@
 #include "./request.h"
 #include "./static.h"
 #include "./form.h"
-#include "./process.h"
 
 
 int childProcessResource_spawn_child(int input, int output, char* cmd){
@@ -176,15 +175,8 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	server = ((struct linked_list*)(fr->context))->data;
 	if(!server) return 1;
 	child = malloc(sizeof(struct childProcessResource));
-	if(childProcessResource_init_spawn(child, "ls -al")) return 1;
-	child->node = malloc(sizeof(struct linked_list));
-	child->node->next = server->children;
-	child->node->data = child;
-	server->children = child->node;
-
-	child->linkNode_resources = malloc(sizeof(struct linked_list));
-	httpServer_pushResource(server, child->linkNode_resources, &(child->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, child);
-
+	if(childProcessResource_init_spawn(child, "ls -al")) return 2;
+	if(httpServer_pushChildProcess(server, child)) return 3;
 	printf("spawned child with pid %d\n", child->pid);
 	/* TODO: respond with a link to the child process resource */
 	return childProcessResource_respond(&(child->resource), req);
@@ -192,12 +184,7 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 
 /*
 	TODO
-	make childProcessResource a resource
-	make process spawner respond with the child's URL
-	push childProcessResource onto server's resource stack upon spawn
-	delete childProcessResource from server's resources on close
 	move childProcessResource class into its own compilation unit
-	free childProcessResource on close
 	make a resource that lists each childProcessResource or just lists all resources by URL
 
 */

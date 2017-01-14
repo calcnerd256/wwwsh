@@ -12,3 +12,7 @@ struct childProcessResource{
 };
 
 int childProcessResource_steppedp(struct childProcessResource *kid);
+
+int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url);
+int childProcessResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request);
+int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request);

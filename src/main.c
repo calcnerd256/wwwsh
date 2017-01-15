@@ -7,7 +7,6 @@
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
-#include "./form.h"
 
 
 int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
@@ -23,9 +22,12 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	if(!fr) return 1;
 	server = ((struct linked_list*)(fr->context))->data;
 	if(!server) return 1;
+
 	child = malloc(sizeof(struct childProcessResource));
-	if(childProcessResource_init_spawn(child, "ls -al")) return 2;
-	if(httpServer_pushChildProcess(server, child)) return 3;
+	if(childProcessResource_init_spawn(child, "ls -al"))
+		return 2;
+	if(httpServer_pushChildProcess(server, child))
+		return 3;
 	memset(pid, 0, 256);
 	plen = snprintf(pid, 256, "%d", child->pid);
 	pid[255] = 0;

@@ -18,7 +18,12 @@ struct staticFormResource{
 	void *context;
 };
 
-int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req);
+int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req);
+
+
+int form_respond_GET(struct form *form, struct incomingHttpRequest *req, struct extent *action);
+int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req, struct form *form);
+int staticFormResource_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct form *form);
 
 int staticFormResource_init(
 	struct staticFormResource *resource,

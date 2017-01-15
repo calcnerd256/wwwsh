@@ -159,6 +159,7 @@ int childProcessResource_canRespondp(struct httpResource *resource, struct incom
 int childProcessResource_remove(struct childProcessResource *kid){
 	childProcessResource_close(kid);
 	kid->linkNode_resources->data = 0;
+	kid->linkNode_resources_deleteForm->data = 0;
 	free_pool(&(kid->allocations));
 	memset(kid, 0, sizeof(struct childProcessResource));
 	free(kid);
@@ -211,7 +212,33 @@ int childProcessResource_respond_remove(struct httpResource *resource, struct in
 int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){
 	if(!resource) return 1;
 	if(!request) return 1;
-	childProcessResource_respond_output(resource, request);
-	return childProcessResource_remove((struct childProcessResource*)(resource->context));
+	return childProcessResource_respond_output(resource, request);
+}
+
+
+int childProcessResource_deleteForm_respond_POST(struct httpResource *resource, struct incomingHttpRequest *request, struct linked_list *formdata){
+	if(!resource) return 1;
+	if(!request) return 1;
+	(void)formdata;
+	/* TODO: check the form for confirmation */
 	return childProcessResource_respond_remove(resource, request);
+}
+int childProcessResource_deleteForm_respond(struct httpResource *resource, struct incomingHttpRequest *request){
+	struct childProcessResource *kid;
+	struct form *form;
+	if(!resource) return 1;
+	if(!request) return 1;
+	if(!(request->input.method)) return 2;
+	if(3 > request->input.method->len)
+		return incomingHttpRequest_respond_badMethod(request);
+	if(!(resource->context)) return 2;
+	kid = resource->context;
+	form = &(kid->deleteForm);
+	if(!strncmp("GET", request->input.method->bytes, 4))
+		return form_respond_GET(form, request, &(resource->url));
+	if(4 > request->input.method->len)
+		return incomingHttpRequest_respond_badMethod(request);
+	if(strncmp("POST", request->input.method->bytes, 5))
+		return incomingHttpRequest_respond_badMethod(request);
+	return staticFormResource_respond_POST(resource, request, form);
 }

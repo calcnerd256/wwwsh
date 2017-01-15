@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "./form.h"
 #include "./request.h"
 #include "./server.h"
 #include "./static.h"
@@ -99,60 +98,43 @@ int visit_field_writeOut(struct linked_list *field, struct incomingHttpRequest *
 	status += !!staticFormResource_writelnField(context, tag, name, field->next->next);
 	return status;
 }
-int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req){
-	struct staticFormResource *fr;
-	struct form *form;
+int form_respond_GET(struct form *form, struct incomingHttpRequest *req, struct extent *action){
 	int status = 0;
-	if(!res) return 1;
+	if(!form) return 1;
 	if(!req) return 1;
-	fr = (struct staticFormResource*)(res->context);
-	if(!fr) return 2;
-	form = (struct form*)(fr->form);
-	if(!form) return 2;
-	if(!(form->title)) return 3;
-	if(!(form->fields)) return 3;
-	if(!(form->action)) return 3;
+	if(!action) return 1;
+	if(!(form->title)) return 2;
+	if(!(action->bytes))
+		if(action->len) return 2;
 
-	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0)) return 4;
-	status = 0;
-
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, "<html>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <head>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  <title>");
-
-	status += !!incomingHttpRequest_writeChunk_niceString(req, "   ");
-	if(status) return 5;
-	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 6;
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, "");
-
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </title>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </head>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <body>");
-
+	if(incomingHttpRequest_beginChunkedHtmlBody(req, 0, form->title->bytes, form->title->len))
+		return 3;
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <h1>");
-	if(status) return 7;
-	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 8;
+	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title);
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</h1>");
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <form method=\"POST\" action=\"");
-	if(incomingHttpRequest_write_chunk(req, fr->url.bytes, fr->url.len))
-		return 9;
+	status += !!incomingHttpRequest_write_chunk(req, action->bytes, action->len);
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\">");
 
-	if(traverse_linked_list(form->fields, (visitor_t)(&visit_field_writeOut), req))
-		return 10;
+	status += !!traverse_linked_list(form->fields, (visitor_t)(&visit_field_writeOut), req);
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <input type=\"submit\" value=\"");
-	if(status) return 11;
-	if(incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title)) return 12;
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\" />");
 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </form>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </body>");
-	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</html>");
-	if(status) return 13;
-
-	if(incomingHttpRequest_sendLastChunk(req, 0)) return 14;
+	if(incomingHttpRequest_endChunkedHtmlBody(req, 0)) return 4;
+	if(status) return 5;
+	return 0;
+}
+int staticFormResource_respond_GET(struct httpResource *res, struct incomingHttpRequest *req, struct form *form){
+	struct staticFormResource *fr;
+	if(!res) return 1;
+	if(!req) return 1;
+	if(!form) return 1;
+	fr = (struct staticFormResource*)(res->context);
+	if(!fr) return 2;
+	if(form_respond_GET(form, req, &(fr->url))) return 3;
 	return 0;
 }
 
@@ -312,14 +294,14 @@ int staticFormResource_respond(struct httpResource *res, struct incomingHttpRequ
 	if(!req) return 1;
 	if(!staticFormResource_canRespondp(res, req)) return 1;
 	if(!(req->input.method)) return 1;
+	if(3 > req->input.method->len)
+		return incomingHttpRequest_respond_badMethod(req);
 	if(!(res->context)) return 1;
 	fr = (struct staticFormResource*)(res->context);
 	if(!(fr->context)) return 1;
 	form = (struct form*)(fr->form);
-	if(3 > req->input.method->len)
-		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("GET", req->input.method->bytes, 4))
-		return staticFormResource_respond_GET(res, req);
+		return staticFormResource_respond_GET(res, req, form);
 	if(4 > req->input.method->len)
 		return incomingHttpRequest_respond_badMethod(req);
 	if(!strncmp("POST", req->input.method->bytes, 5))

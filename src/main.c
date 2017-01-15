@@ -133,10 +133,28 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	return incomingHttpRequest_sendLastChunk(req, 0);
 }
 
-/*
-	TODO
-	make a resource that lists each childProcessResource or just lists all resources by URL
 
+int index_urlMatchesp(struct httpResource *resource, struct extent *url){
+	(void)resource;
+	(void)url;
+	return 0;
+}
+int index_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
+	(void)resource;
+	(void)request;
+	return 1;
+}
+int index_respond(struct httpResource *resource, struct incomingHttpRequest *request){
+	if(!resource) return 1;
+	if(!request) return 1;
+	if(incomingHttpRequest_beginChunkedHtmlBody(request, 0, "index", 5)) return 2;
+	incomingHttpRequest_writelnChunk_niceString(request, "  Nothing here yet.");
+	return incomingHttpRequest_endChunkedHtmlBody(request, 0);
+}
+
+
+/*
+	TODO: list each childProcessResource or just lists all resources by URL
 */
 
 int main(int argument_count, char* *arguments_vector){
@@ -155,6 +173,8 @@ int main(int argument_count, char* *arguments_vector){
 	struct extent fieldName;
 	struct extent fieldTag;
 	struct form formForm;
+	struct httpResource indexResource;
+	struct linked_list indexResource_linkNode;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -200,6 +220,23 @@ int main(int argument_count, char* *arguments_vector){
 	if(status) return 4;
 	/*
 		You MUST NOT set rootResourceStorage.link_node.data to 0,
+		or else the server will try to free stacked memory.
+		If you wish to remove this cell from the linked list,
+		then you must remove it by pointing its predecessor at its successor.
+	*/
+
+	status = httpServer_pushResource(
+		&server,
+		&indexResource_linkNode,
+		&indexResource,
+		&index_urlMatchesp,
+		&index_canRespondp,
+		&index_respond,
+		&server
+	);
+	if(status) return 4;
+	/*
+		You MUST NOT set indexResource_linkNode.data to 0,
 		or else the server will try to free stacked memory.
 		If you wish to remove this cell from the linked list,
 		then you must remove it by pointing its predecessor at its successor.

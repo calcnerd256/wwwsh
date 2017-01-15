@@ -17,6 +17,9 @@ int incomingHttpRequest_writeChunk_htmlSafeExtent(struct incomingHttpRequest *re
 
 int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct linked_list *trailers);
 
+int incomingHttpRequest_beginChunkedHtmlBody(struct incomingHttpRequest *req, struct linked_list *headers, char *title, size_t titleLen);
+int incomingHttpRequest_endChunkedHtmlBody(struct incomingHttpRequest *req, struct linked_list *trailers);
+
 
 int incomingHttpRequest_sendResponse(
 	struct incomingHttpRequest *conn,

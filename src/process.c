@@ -127,16 +127,9 @@ int childProcessResource_respond_remove(struct httpResource *resource, struct in
 	if(!resource) return 1;
 	if(!request) return 1;
 	childProcessResource_remove((struct childProcessResource*)(resource->context));
-	if(incomingHttpRequest_beginChunkedHtmlOk(request, 0)) return 2;
-	incomingHttpRequest_writelnChunk_niceString(request, "<html>");
-	incomingHttpRequest_writelnChunk_niceString(request, " <head>");
-	incomingHttpRequest_writelnChunk_niceString(request, "  <title>deleted</title>");
-	incomingHttpRequest_writelnChunk_niceString(request, " </head>");
-	incomingHttpRequest_writelnChunk_niceString(request, " <body>");
+	if(incomingHttpRequest_beginChunkedHtmlBody(request, 0, "deleted", 7)) return 2;
 	incomingHttpRequest_writelnChunk_niceString(request, "  Process successfully removed, probably.");
-	incomingHttpRequest_writelnChunk_niceString(request, " </body>");
-	incomingHttpRequest_writelnChunk_niceString(request, "</html>");
-	return incomingHttpRequest_sendLastChunk(request, 0);
+	return incomingHttpRequest_endChunkedHtmlBody(request, 0);
 }
 
 int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){

@@ -276,6 +276,34 @@ int incomingHttpRequest_sendLastChunk(struct incomingHttpRequest *req, struct li
 }
 
 
+int incomingHttpRequest_beginChunkedHtmlBody(struct incomingHttpRequest *req, struct linked_list *headers, char *title, size_t titleLen){
+	int status = 0;
+	if(!req) return 1;
+	if(titleLen)
+		if(!title)
+			return 2;
+	if(incomingHttpRequest_beginChunkedHtmlOk(req, headers)) return 3;
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "<html>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <head>");
+	status += !!incomingHttpRequest_writeChunk_niceString(req, "  <title>");
+	status += !!incomingHttpRequest_write_chunk(req, title, titleLen);
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</title>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </head>");
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " <body>");
+	if(status) return 4;
+	return 0;
+}
+int incomingHttpRequest_endChunkedHtmlBody(struct incomingHttpRequest *req, struct linked_list *trailers){
+	int status = 0;
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, " </body>");
+	status *= 2;
+	status += !!incomingHttpRequest_writelnChunk_niceString(req, "</html>");
+	status *= 2;
+	status += incomingHttpRequest_sendLastChunk(req, trailers);
+	return status;
+}
+
+
 int incomingHttpRequest_sendResponse(struct incomingHttpRequest *conn, int status_code, struct extent *reason, struct linked_list *headers, struct extent *body){
 	struct extent content_length_key;
 	struct extent content_length_value;

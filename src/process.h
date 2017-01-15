@@ -14,6 +14,9 @@ struct childProcessResource{
 	int output;
 };
 
+
+int childProcessResource_init_spawn(struct childProcessResource *child, char* cmd);
+
 int childProcessResource_steppedp(struct childProcessResource *kid);
 
 int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url);

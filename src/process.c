@@ -1,12 +1,88 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include "./process.h"
 #include "./request.h"
+
+
+int childProcessResource_spawn_child(int input, int output, char* cmd){
+	int flags;
+	close(0);
+	close(1);
+	close(2);
+	flags = fcntl(input, F_GETFD);
+	flags &= ~FD_CLOEXEC;
+	fcntl(input, F_SETFD, flags);
+	if(-1 == dup2(input, 0)) return 1;
+	flags = fcntl(output, F_GETFD);
+	flags &= ~FD_CLOEXEC;
+	fcntl(output, F_SETFD, flags);
+	if(-1 == dup2(output, 1)){
+		close(0);
+		return 1;
+	}
+	if(-1 == dup2(output, 2)){
+		close(0);
+		close(1);
+		return 1;
+	}
+	if(execl("/bin/bash", "bash", "-c", cmd, (char*)0))
+		return 1;
+	return 1;
+}
+int childProcessResource_init_spawn(struct childProcessResource *child, char* cmd){
+	int ki[2];
+	int ko[2];
+	if(!child) return 1;
+	if(!cmd) return 1;
+	if(pipe2(ki, O_CLOEXEC)) return 1;
+	child->input = ki[0];
+	if(pipe2(ko, O_CLOEXEC)){
+		close(ki[0]);
+		close(ki[1]);
+		child->input = -1;
+		return 1;
+	}
+	child->output = ko[1];
+	child->pid = fork();
+	if(child->pid < 0){
+		close(ki[0]);
+		close(ki[1]);
+		close(ko[0]);
+		close(ko[1]);
+		child->input = -1;
+		child->output = -1;
+		return 1;
+	}
+	if(!(child->pid)){
+		close(ki[1]);
+		close(ko[0]);
+		if(childProcessResource_spawn_child(child->input, child->output, cmd)){
+			close(child->input);
+			child->input = -1;
+			close(child->output);
+			child->output = -1;
+			_exit(1);
+			return 1;
+		}
+	}
+	close(child->input);
+	child->input = ki[1];
+	close(child->output);
+	child->output = ko[0];
+	init_pool(&(child->allocations));
+	chunkStream_init(&(child->outputStream), &(child->allocations));
+	child->url.len = 0;
+	child->url.bytes = 0;
+	return 0;
+}
+
 
 int childProcessResource_readChunkp(struct childProcessResource *kid){
 	char buf[CHUNK_SIZE + 1];

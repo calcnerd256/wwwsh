@@ -75,6 +75,7 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	server->children = kid->node;
 
 	kid->linkNode_resources_deleteForm = malloc(sizeof(struct linked_list));
+	point_extent_at_nice_string(&(kid->deleteForm_title), "delete process");
 	point_extent_at_nice_string(&(kid->confirmFieldName), "confirm");
 	point_extent_at_nice_string(&(kid->confirmFieldTag), "input");
 	point_extent_at_nice_string(&(kid->confirmFieldType), "checkbox");

@@ -134,11 +134,6 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 }
 
 
-int index_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
-	(void)resource;
-	(void)request;
-	return 1;
-}
 int index_respond(struct httpResource *resource, struct incomingHttpRequest *request){
 	struct httpServer *server;
 	struct linked_list *cursor;
@@ -148,6 +143,14 @@ int index_respond(struct httpResource *resource, struct incomingHttpRequest *req
 	server = resource->context;
 	if(!server) return 1;
 	cursor = server->resources;
+
+	if(!(request->input.method))
+		return incomingHttpRequest_respond_badMethod(request);
+	if(3 != request->input.method->len)
+		return incomingHttpRequest_respond_badMethod(request);
+	if(strncmp(request->input.method->bytes, "GET", 4))
+		return incomingHttpRequest_respond_badMethod(request);
+
 	if(incomingHttpRequest_beginChunkedHtmlBody(request, 0, "index", 5)) return 2;
 	if(!cursor)
 		incomingHttpRequest_writelnChunk_niceString(request, "  Nothing here yet.");
@@ -246,7 +249,7 @@ int main(int argument_count, char* *arguments_vector){
 		&indexResource_linkNode,
 		&indexResource,
 		0,
-		&index_canRespondp,
+		&staticGetResource_canRespondp,
 		&index_respond,
 		&server
 	);

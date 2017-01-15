@@ -400,12 +400,12 @@ int incomingHttpRequest_processSteppedp(struct incomingHttpRequest *conn){
 	if(!(conn->input.requestUrl)) return status;
 	if(conn->done_writing) return status;
 	resource = httpServer_locateResource(conn->server, conn->input.requestUrl);
-	if(resource)
-		if(resource->canRespondp){
+	if(resource){
+		if(resource->canRespondp)
 			if(!((*(resource->canRespondp))(resource, conn))) return status;
-			httpResource_respond(resource, conn);
-			return 1;
-		}
+		httpResource_respond(resource, conn);
+		return 1;
+	}
 	if(!(conn->input.method)) return status;
 	if(-1 == conn->input.httpMajorVersion) return status;
 	if(-1 == conn->input.httpMinorVersion) return status;

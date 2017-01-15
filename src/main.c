@@ -149,11 +149,34 @@ int index_canRespondp(struct httpResource *resource, struct incomingHttpRequest 
 	return 1;
 }
 int index_respond(struct httpResource *resource, struct incomingHttpRequest *request){
+	struct httpServer *server;
+	struct linked_list *cursor;
+	struct extent *url;
 	if(!resource) return 1;
 	if(!request) return 1;
+	server = resource->context;
+	if(!server) return 1;
+	cursor = server->resources;
 	if(incomingHttpRequest_beginChunkedHtmlBody(request, 0, "index", 5)) return 2;
-	/* TODO: list each childProcessResource, or just lists all resources by URL */
-	incomingHttpRequest_writelnChunk_niceString(request, "  Nothing here yet.");
+	if(!cursor)
+		incomingHttpRequest_writelnChunk_niceString(request, "  Nothing here yet.");
+	incomingHttpRequest_writelnChunk_niceString(request, "  <ul>");
+	while(cursor){
+		url = &(((struct httpResource*)(cursor->data))->url);
+		if(url->len && url->bytes){
+			incomingHttpRequest_writelnChunk_niceString(request, "   <li>");
+			incomingHttpRequest_writeChunk_niceString(request, "    <a href=\"");
+			incomingHttpRequest_writeChunk_htmlSafeExtent(request, url);
+			incomingHttpRequest_writelnChunk_niceString(request, "\">");
+			incomingHttpRequest_writeChunk_niceString(request, "     ");
+			incomingHttpRequest_writeChunk_htmlSafeExtent(request, url);
+			incomingHttpRequest_writelnChunk_niceString(request, "");
+			incomingHttpRequest_writelnChunk_niceString(request, "    </a>");
+			incomingHttpRequest_writelnChunk_niceString(request, "   </li>");
+		}
+		cursor = cursor->next;
+	}
+	incomingHttpRequest_writelnChunk_niceString(request, "  </ul>");
 	return incomingHttpRequest_endChunkedHtmlBody(request, 0);
 }
 

@@ -32,6 +32,8 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	new_head->next = server->resources;
 	new_head->data = resource;
 	server->resources = new_head;
+	resource->url.bytes = 0;
+	resource->url.len = 0;
 	return 0;
 }
 
@@ -147,6 +149,10 @@ int match_httpResource_url(struct httpResource *resource, struct extent *url, st
 	node = 0;
 	if(!url) return 0;
 	if(!resource) return 0;
+	if(resource->url.bytes)
+		if(resource->url.len)
+			if(extent_url_equalsp(&(resource->url), url))
+				return 1;
 	if(!(resource->urlMatchesp)) return 0;
 	return (*(resource->urlMatchesp))(resource, url);
 }

@@ -17,4 +17,5 @@ gcc \
  ../src/request.c \
  ../src/static.c \
  ../src/form.c \
+ ../src/process.c \
  ../src/main.c

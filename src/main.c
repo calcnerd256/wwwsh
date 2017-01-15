@@ -115,16 +115,10 @@ int childProcessResource_remove(struct childProcessResource *kid){
 	return 0;
 }
 
-int childProcessResource_steppedp(struct childProcessResource *kid){
+int childProcessResource_readChunkp(struct childProcessResource *kid){
 	char buf[CHUNK_SIZE + 1];
 	int chunkLen;
 	if(!kid) return 0;
-	if(-1 == kid->pid) return 0;
-	if(kid->pid == waitpid(kid->pid, 0, WNOHANG)){
-		kid->pid = -1;
-		childProcessResource_close(kid);
-		return 1;
-	}
 	if(-1 == kid->output) return 0;
 	if(!fd_canReadp(kid->output)) return 0;
 	buf[0] = 0;
@@ -133,16 +127,29 @@ int childProcessResource_steppedp(struct childProcessResource *kid){
 	if(-1 == chunkLen){
 		close(kid->output);
 		kid->output = -1;
-		return 1;
+		return 0;
 	}
 	buf[chunkLen] = 0;
 	if(!chunkLen){
 		close(kid->output);
 		kid->output = -1;
-		return 1;
+		return 0;
 	}
 	chunkStream_append(&(kid->outputStream), buf, chunkLen);
 	return 1;
+}
+
+int childProcessResource_steppedp(struct childProcessResource *kid){
+	if(!kid) return 0;
+	if(-1 == kid->pid) return 0;
+	if(kid->pid == waitpid(kid->pid, 0, WNOHANG)){
+		printf("dying %d\n", kid->pid);
+		kid->pid = -1;
+		while(childProcessResource_readChunkp(kid));
+		childProcessResource_close(kid);
+		return 1;
+	}
+	return childProcessResource_readChunkp(kid);
 }
 
 int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url){
@@ -158,12 +165,33 @@ int childProcessResource_canRespondp(struct httpResource *resource, struct incom
 }
 int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){
 	struct childProcessResource *kid;
+	struct extent reason;
+	struct extent contentType;
+	struct extent textPlain;
+	struct linked_list extrahead_node;
+	struct linked_list extrahead_key;
+	struct linked_list extrahead_val;
+	struct linked_list *cursor;
 	if(!resource) return 1;
 	if(!request) return 1;
 	kid = resource->context;
+	if(!kid) return 2;
+	cursor = kid->outputStream.chunk_list.head;
+	if(point_extent_at_nice_string(&reason, "OK")) return 3;
+	if(point_extent_at_nice_string(&contentType, "Content-Type")) return 3;
+	if(point_extent_at_nice_string(&textPlain, "text/plain")) return 3;
+	extrahead_node.data = &extrahead_key;
+	extrahead_node.next = 0;
+	extrahead_key.data = &contentType;
+	extrahead_key.next = &extrahead_val;
+	extrahead_val.data = &textPlain;
+	extrahead_val.next = 0;
+	if(incomingHttpRequest_beginChunkedResponse(request, 200, &reason, &extrahead_node)) return 4;
+	while(cursor){
+		incomingHttpRequest_write_chunk(request, ((struct extent*)(cursor->data))->bytes, ((struct extent*)(cursor->data))->len);
+		cursor = cursor->next;
+	}
 	childProcessResource_remove(kid);
-	if(incomingHttpRequest_beginChunkedHtmlOk(request, 0)) return 2;
-	if(incomingHttpRequest_writelnChunk_niceString(request, "<html><body>test</body></html>")) return 3;
 	return incomingHttpRequest_sendLastChunk(request, 0);
 }
 

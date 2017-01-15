@@ -7,6 +7,7 @@ int fd_canReadp(int fd);
 int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest *data, int *target, struct linked_list *node);
 
 
+int incomingHttpRequest_beginChunkedResponse(struct incomingHttpRequest *req, int status_code, struct extent *reason, struct linked_list *headers);
 int incomingHttpRequest_beginChunkedHtmlOk(struct incomingHttpRequest *req, struct linked_list *headers);
 
 int incomingHttpRequest_write_chunk(struct incomingHttpRequest *req, char* bytes, size_t len);

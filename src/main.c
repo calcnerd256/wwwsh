@@ -163,36 +163,60 @@ int childProcessResource_canRespondp(struct httpResource *resource, struct incom
 	(void)request;
 	return 1;
 }
-int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){
-	struct childProcessResource *kid;
+
+int childProcessResource_streamOutput(struct childProcessResource *kid, struct incomingHttpRequest *request, struct extent *contentType){
 	struct extent reason;
-	struct extent contentType;
-	struct extent textPlain;
+	struct extent contentType_key;
 	struct linked_list extrahead_node;
 	struct linked_list extrahead_key;
 	struct linked_list extrahead_val;
 	struct linked_list *cursor;
-	if(!resource) return 1;
+	if(!kid) return 1;
 	if(!request) return 1;
-	kid = resource->context;
-	if(!kid) return 2;
+	if(!contentType) return 1;
 	cursor = kid->outputStream.chunk_list.head;
-	if(point_extent_at_nice_string(&reason, "OK")) return 3;
-	if(point_extent_at_nice_string(&contentType, "Content-Type")) return 3;
-	if(point_extent_at_nice_string(&textPlain, "text/plain")) return 3;
+	if(point_extent_at_nice_string(&reason, "OK")) return 2;
+	if(point_extent_at_nice_string(&contentType_key, "Content-Type")) return 2;
 	extrahead_node.data = &extrahead_key;
 	extrahead_node.next = 0;
-	extrahead_key.data = &contentType;
+	extrahead_key.data = &contentType_key;
 	extrahead_key.next = &extrahead_val;
-	extrahead_val.data = &textPlain;
+	extrahead_val.data = contentType;
 	extrahead_val.next = 0;
 	if(incomingHttpRequest_beginChunkedResponse(request, 200, &reason, &extrahead_node)) return 4;
 	while(cursor){
 		incomingHttpRequest_write_chunk(request, ((struct extent*)(cursor->data))->bytes, ((struct extent*)(cursor->data))->len);
 		cursor = cursor->next;
 	}
-	childProcessResource_remove(kid);
 	return incomingHttpRequest_sendLastChunk(request, 0);
+}
+int childProcessResource_respond_output(struct httpResource *resource, struct incomingHttpRequest *request){
+	struct extent textPlain;
+	if(!resource) return 1;
+	if(!request) return 1;
+	if(point_extent_at_nice_string(&textPlain, "text/plain")) return 3;
+	return childProcessResource_streamOutput((struct childProcessResource*)(resource->context), request, &textPlain);
+}
+int childProcessResource_respond_remove(struct httpResource *resource, struct incomingHttpRequest *request){
+	if(!resource) return 1;
+	if(!request) return 1;
+	childProcessResource_remove((struct childProcessResource*)(resource->context));
+	if(incomingHttpRequest_beginChunkedHtmlOk(request, 0)) return 2;
+	incomingHttpRequest_writelnChunk_niceString(request, "<html>");
+	incomingHttpRequest_writelnChunk_niceString(request, " <head>");
+	incomingHttpRequest_writelnChunk_niceString(request, "  <title>deleted</title>");
+	incomingHttpRequest_writelnChunk_niceString(request, " </head>");
+	incomingHttpRequest_writelnChunk_niceString(request, " <body>");
+	incomingHttpRequest_writelnChunk_niceString(request, "  Process successfully removed, probably.");
+	incomingHttpRequest_writelnChunk_niceString(request, " </body>");
+	incomingHttpRequest_writelnChunk_niceString(request, "</html>");
+	return incomingHttpRequest_sendLastChunk(request, 0);
+}
+int childProcessResource_respond(struct httpResource *resource, struct incomingHttpRequest *request){
+	if(!resource) return 1;
+	if(!request) return 1;
+	return childProcessResource_respond_output(resource, request);
+	return childProcessResource_respond_remove(resource, request);
 }
 
 int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){

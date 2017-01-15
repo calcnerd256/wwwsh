@@ -430,10 +430,11 @@ struct linked_list *push_header_nice_strings(struct linked_list *top, struct lin
 }
 
 int extent_url_equalsp(struct extent *target, struct extent *url){
-	size_t targetLen = 0;
-	size_t urlLen = 0;
+	int targetLen = 0;
+	int urlLen = 0;
 	if(!target) return 0;
 	if(!url) return 0;
+
 	targetLen = target->len;
 	if(!targetLen){
 		target = 0;
@@ -446,10 +447,12 @@ int extent_url_equalsp(struct extent *target, struct extent *url){
 	}
 	if(!(target->bytes)) return 0;
 	if('/' == target->bytes[targetLen - 1]) targetLen--;
+
 	urlLen = url->len;
 	if(!urlLen) return !targetLen;
 	if(!(url->bytes)) return 0;
 	if('/' == url->bytes[urlLen - 1]) urlLen--;
+
 	if(targetLen != urlLen) return 0;
 	return !strncmp(target->bytes, url->bytes, urlLen);
 }

@@ -135,9 +135,13 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 
 
 int index_urlMatchesp(struct httpResource *resource, struct extent *url){
+	struct extent index;
+	if(!url) return 0;
+	if(!(url->bytes)) return 0;
+	if(point_extent_at_nice_string(&index, "/index/")) return 0;
 	(void)resource;
-	(void)url;
-	return 0;
+	resource = 0;
+	return extent_url_equalsp(&index, url);
 }
 int index_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
 	(void)resource;
@@ -148,14 +152,12 @@ int index_respond(struct httpResource *resource, struct incomingHttpRequest *req
 	if(!resource) return 1;
 	if(!request) return 1;
 	if(incomingHttpRequest_beginChunkedHtmlBody(request, 0, "index", 5)) return 2;
+	/* TODO: list each childProcessResource, or just lists all resources by URL */
 	incomingHttpRequest_writelnChunk_niceString(request, "  Nothing here yet.");
 	return incomingHttpRequest_endChunkedHtmlBody(request, 0);
 }
 
 
-/*
-	TODO: list each childProcessResource or just lists all resources by URL
-*/
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;

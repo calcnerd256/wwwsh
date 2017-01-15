@@ -18,6 +18,7 @@ struct staticFormResource{
 	void *context;
 };
 
+int match_header_key(struct linked_list *header, struct extent *target, struct linked_list *node);
 int staticFormResource_canRespondp(struct httpResource *res, struct incomingHttpRequest *req);
 
 

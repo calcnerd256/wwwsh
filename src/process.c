@@ -36,11 +36,17 @@ int childProcessResource_spawn_child(int input, int output, char* cmd){
 		return 1;
 	return 1;
 }
-int childProcessResource_init_spawn(struct childProcessResource *child, char* cmd){
+int childProcessResource_init_spawn(struct childProcessResource *child, struct extent* command){
 	int ki[2];
 	int ko[2];
+	char cmd[1024];
 	if(!child) return 1;
-	if(!cmd) return 1;
+	if(!command) return 1;
+	if(command->len > 1023) return 1;
+	cmd[0] = 0;
+	cmd[1023] = 0;
+	cmd[command->len] = 0;
+	strncpy(cmd, command->bytes, command->len);
 	if(pipe2(ki, O_CLOEXEC)) return 1;
 	child->input = ki[0];
 	if(pipe2(ko, O_CLOEXEC)){

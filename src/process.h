@@ -26,7 +26,7 @@ struct childProcessResource{
 };
 
 
-int childProcessResource_init_spawn(struct childProcessResource *child, char* cmd);
+int childProcessResource_init_spawn(struct childProcessResource *child, struct extent* command);
 
 int childProcessResource_steppedp(struct childProcessResource *kid);
 

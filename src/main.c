@@ -10,10 +10,12 @@
 
 
 int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
+	char pid[256];
+	struct extent fieldName;
 	struct childProcessResource *child;
 	struct httpServer *server;
 	struct staticFormResource *fr;
-	char pid[256];
+	struct linked_list *match_node;
 	int plen;
 	if(!res) return 1;
 	if(!req) return 1;
@@ -23,11 +25,21 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	server = ((struct linked_list*)(fr->context))->data;
 	if(!server) return 1;
 
+	match_node = 0;
+	if(point_extent_at_nice_string(&fieldName, "cmd")) return 2;
+	if(first_matching(formData, (visitor_t)&match_header_key, (void*)&fieldName, &match_node)) return 2;
+	if(!match_node) return 2;
+	if(!(match_node->data)) return 2;
+	match_node = match_node->data;
+	if(!(match_node->next)) return 2;
+	match_node = match_node->next;
+	if(!(match_node->data)) return 2;
+
 	child = malloc(sizeof(struct childProcessResource));
-	if(childProcessResource_init_spawn(child, "ls -al"))
-		return 2;
-	if(httpServer_pushChildProcess(server, child))
+	if(childProcessResource_init_spawn(child, match_node->data))
 		return 3;
+	if(httpServer_pushChildProcess(server, child))
+		return 4;
 	memset(pid, 0, 256);
 	plen = snprintf(pid, 256, "%d", child->pid);
 	pid[255] = 0;
@@ -36,7 +48,7 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	pid[plen] = 0;
 
 	if(incomingHttpRequest_beginChunkedHtmlOk(req, 0))
-		return 4;
+		return 5;
 	if(incomingHttpRequest_writelnChunk_niceString(req, "<html>"))
 		return 5;
 	if(incomingHttpRequest_writelnChunk_niceString(req, " <head>"))

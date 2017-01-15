@@ -23,7 +23,6 @@ int httpServer_init(struct httpServer *server){
 int httpServer_pushResource(struct httpServer *server, struct linked_list *new_head, struct httpResource *resource, int (*urlMatchesp)(struct httpResource*, struct extent*), int (*canRespondp)(struct httpResource*, struct incomingHttpRequest*), int (*respond)(struct httpResource*, struct incomingHttpRequest*), void *context){
 	if(!server) return 1;
 	if(!new_head) return 2;
-	if(!urlMatchesp) return 2;
 	if(!respond) return 2;
 	resource->urlMatchesp = urlMatchesp;
 	resource->canRespondp = canRespondp;
@@ -32,8 +31,6 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	new_head->next = server->resources;
 	new_head->data = resource;
 	server->resources = new_head;
-	resource->url.bytes = 0;
-	resource->url.len = 0;
 	return 0;
 }
 
@@ -70,6 +67,8 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	strncpy(kid->url.bytes, "/process/", 9);
 	strncpy(kid->url.bytes + 9, childId, i);
 	kid->url.bytes[kid->url.len] = 0;
+	kid->resource.url.bytes = kid->url.bytes;
+	kid->resource.url.len = kid->url.len;
 
 	kid->node->next = server->children;
 	kid->node->data = kid;

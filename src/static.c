@@ -13,12 +13,6 @@ int match_resource_url(struct staticGetResource *resource, struct extent *url, s
 	return extent_url_equalsp(resource->url, url);
 }
 
-int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url){
-	if(!resource) return 0;
-	if(!(resource->context)) return 0;
-	if(!url) return 0;
-	return match_resource_url(resource->context, url, 0);
-}
 
 int staticGetResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
 	if(!resource) return 0;
@@ -60,5 +54,6 @@ int contiguousHtmlResource_init(struct contiguousHtmlResource *res, char *url, c
 	res->staticResource.url = &(res->url);
 	res->staticResource.body = &(res->body);
 	res->staticResource.headers = push_header_nice_strings(&(res->headerTop), &(res->keyNode), &(res->valNode), &(res->key), "Content-Type", &(res->val), "text/html", 0);
+	point_extent_at_nice_string(&(res->resource.url), url);
 	return !(res->staticResource.headers);
 }

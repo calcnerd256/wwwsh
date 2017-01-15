@@ -340,5 +340,6 @@ int staticFormResource_init(struct staticFormResource *resource, struct httpServ
 	resource->context = context;
 	if(point_extent_at_nice_string(&(resource->title), title)) return 2;
 	if(point_extent_at_nice_string(&(resource->url), url)) return 2;
+	if(point_extent_at_nice_string(&(form->action->url), url)) return 2;
 	return httpServer_pushResource(server, &(resource->node), form->action, &staticFormResource_urlMatchesp, &staticFormResource_canRespondp, &staticFormResource_respond, resource);
 }

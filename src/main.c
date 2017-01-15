@@ -134,15 +134,6 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 }
 
 
-int index_urlMatchesp(struct httpResource *resource, struct extent *url){
-	struct extent index;
-	if(!url) return 0;
-	if(!(url->bytes)) return 0;
-	if(point_extent_at_nice_string(&index, "/index/")) return 0;
-	(void)resource;
-	resource = 0;
-	return extent_url_equalsp(&index, url);
-}
 int index_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request){
 	(void)resource;
 	(void)request;
@@ -237,7 +228,7 @@ int main(int argument_count, char* *arguments_vector){
 		&server,
 		&(rootResourceStorage.link_node),
 		&(rootResourceStorage.resource),
-		&staticGetResource_urlMatchesp,
+		0,
 		&staticGetResource_canRespondp,
 		&staticGetResource_respond,
 		&(rootResourceStorage.staticResource)
@@ -254,7 +245,7 @@ int main(int argument_count, char* *arguments_vector){
 		&server,
 		&indexResource_linkNode,
 		&indexResource,
-		&index_urlMatchesp,
+		0,
 		&index_canRespondp,
 		&index_respond,
 		&server
@@ -266,6 +257,7 @@ int main(int argument_count, char* *arguments_vector){
 		If you wish to remove this cell from the linked list,
 		then you must remove it by pointing its predecessor at its successor.
 	*/
+	if(point_extent_at_nice_string(&(indexResource.url), "/index/")) return 4;
 
 	formContext.data = &server;
 	formContext.next = &formPoolCell;

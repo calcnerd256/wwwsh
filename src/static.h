@@ -9,7 +9,6 @@ struct staticGetResource{
 };
 
 int match_resource_url(struct staticGetResource *resource, struct extent *url, struct linked_list *node);
-int staticGetResource_urlMatchesp(struct httpResource *resource, struct extent *url);
 int staticGetResource_canRespondp(struct httpResource *resource, struct incomingHttpRequest *request);
 int staticGetResource_respond(struct httpResource *resource, struct incomingHttpRequest *connection);
 

@@ -217,11 +217,18 @@ int childProcessResource_respond(struct httpResource *resource, struct incomingH
 
 
 int childProcessResource_deleteForm_respond_POST(struct httpResource *resource, struct incomingHttpRequest *request, struct linked_list *formdata){
+	struct extent *fieldName;
 	if(!resource) return 1;
 	if(!request) return 1;
-	(void)formdata;
-	/* TODO: check the form for confirmation */
-	return childProcessResource_respond_remove(resource, request);
+	while(formdata){
+		fieldName = (struct extent*)(((struct linked_list*)(formdata->data))->data);
+		if(7 == fieldName->len)
+			if(fieldName->bytes)
+				if(!strncmp(fieldName->bytes, "confirm", 7))
+					return childProcessResource_respond_remove(resource, request);
+		formdata = formdata->next;
+	}
+	return childProcessResource_respond_output(resource, request);
 }
 int childProcessResource_deleteForm_respond(struct httpResource *resource, struct incomingHttpRequest *request){
 	struct childProcessResource *kid;

@@ -120,6 +120,7 @@ int form_respond_GET(struct form *form, struct incomingHttpRequest *req, struct 
 	status += !!traverse_linked_list(form->fields, (visitor_t)(&visit_field_writeOut), req);
 
 	status += !!incomingHttpRequest_writeChunk_niceString(req, "   <input type=\"submit\" value=\"");
+	status += !!incomingHttpRequest_writeChunk_htmlSafeExtent(req, form->title);
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "\" />");
 
 	status += !!incomingHttpRequest_writelnChunk_niceString(req, "  </form>");

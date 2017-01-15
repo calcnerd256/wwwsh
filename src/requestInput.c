@@ -74,6 +74,11 @@ int chunkStream_takeBytes(struct chunkStream *stream, size_t len, struct extent 
 	char *ptr;
 	size_t length_remaining;
 	struct extent *current;
+	if(!len){
+		result->bytes = 0;
+		result->len = 0;
+		return 0;
+	}
 	ptr = palloc(stream->pool, len + 1);
 	memset(ptr, 0, len + 1);
 	result->bytes = ptr;

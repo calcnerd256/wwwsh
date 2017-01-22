@@ -295,7 +295,8 @@ int main(int argument_count, char* *arguments_vector){
 	while(1){
 		if((*(serverListen->precondition))(serverListen, 0)){
 			garbage = (*(serverListen->step))(serverListen, 0);
-			free(garbage->data);
+			free(serverListen);
+			serverListen = garbage->data;
 			garbage->data = 0;
 			free(garbage);
 		}

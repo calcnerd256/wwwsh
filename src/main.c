@@ -175,6 +175,8 @@ int main(int argument_count, char* *arguments_vector){
 
 	struct event *serverListen;
 	struct linked_list *garbage;
+	struct event *currentEvent;
+	int minimumSleep = -1;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -293,16 +295,24 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->step = &event_step_serverListen_accept;
 
 	while(1){
-		if((*(serverListen->precondition))(serverListen, 0)){
-			garbage = (*(serverListen->step))(serverListen, 0);
-			free(serverListen);
+		minimumSleep = -1;
+		currentEvent = 0;
+		if((*(serverListen->precondition))(serverListen, 0))
+			currentEvent = serverListen;
+		if(-1 == minimumSleep || minimumSleep > serverListen->nanoseconds_checkAgain)
+			minimumSleep = serverListen->nanoseconds_checkAgain;
+		if(currentEvent){
+			/* TODO: handle multiple */
+			garbage = (*(currentEvent->step))(serverListen, 0);
+			free(currentEvent);
 			serverListen = garbage->data;
 			garbage->data = 0;
 			free(garbage);
 		}
 		else
+			/* TODO: separate stepping connections from testing steppability */
 			if(!httpServer_stepConnections(&server))
-				usleep(serverListen->nanoseconds_checkAgain / 1000);
+				usleep(minimumSleep / 1000);
 	}
 
 	free(serverListen);

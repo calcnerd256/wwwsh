@@ -177,6 +177,10 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list *garbage;
 	struct event *currentEvent;
 	int minimumSleep = -1;
+	struct linked_list *events = 0;
+	struct linked_list *new_head;
+	struct event *candidate;
+	struct linked_list *temp_node;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -293,26 +297,65 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->nanoseconds_checkAgain = 1000 * 100;
 	serverListen->precondition = &event_precondition_serverListen_accept;
 	serverListen->step = &event_step_serverListen_accept;
+	new_head = malloc(sizeof(struct linked_list));
+	new_head->data = serverListen;
+	new_head->next = events;
+	events = new_head;
+	new_head = 0;
 
 	while(1){
 		minimumSleep = -1;
 		currentEvent = 0;
-		if((*(serverListen->precondition))(serverListen, 0))
-			currentEvent = serverListen;
-		if(-1 == minimumSleep || minimumSleep > serverListen->nanoseconds_checkAgain)
-			minimumSleep = serverListen->nanoseconds_checkAgain;
+		new_head = events;
+		garbage = 0;
+		while(new_head){
+			temp_node = new_head->next;
+			if(temp_node)
+				if(!(temp_node->data)){
+					new_head->next = temp_node->next;
+					temp_node->next = 0;
+					free(temp_node);
+				}
+			candidate = new_head->data;
+			if(candidate){
+				if(!(candidate->precondition))
+					garbage = new_head;
+				else
+					if((*(candidate->precondition))(candidate, 0))
+						garbage = new_head;
+				if(-1 == minimumSleep)
+					minimumSleep = candidate->nanoseconds_checkAgain;
+				if(minimumSleep > candidate->nanoseconds_checkAgain)
+					minimumSleep = candidate->nanoseconds_checkAgain;
+			}
+			new_head = new_head->next;
+		}
+		if(garbage)
+			if(garbage->data)
+				currentEvent = garbage->data;
 		if(currentEvent){
-			/* TODO: handle multiple */
-			garbage = (*(currentEvent->step))(serverListen, 0);
-			free(currentEvent);
-			serverListen = garbage->data;
 			garbage->data = 0;
-			free(garbage);
+			garbage = 0;
+			if(currentEvent->step)
+				garbage = (*(currentEvent->step))(currentEvent, 0);
+			free(currentEvent);
+			if(garbage){
+				new_head = malloc(sizeof(struct linked_list));
+				/* TODO: handle multiple */
+				new_head->next = events;
+				/* TODO: use a deque */
+				new_head->data = garbage->data;
+				events = new_head;
+				serverListen = garbage->data;
+				garbage->data = 0;
+				free(garbage);
+			}
 		}
 		else
 			/* TODO: separate stepping connections from testing steppability */
 			if(!httpServer_stepConnections(&server))
-				usleep(minimumSleep / 1000);
+				if(minimumSleep > 1000)
+					usleep(minimumSleep / 1000);
 	}
 
 	free(serverListen);

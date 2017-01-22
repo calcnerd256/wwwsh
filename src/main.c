@@ -173,7 +173,7 @@ int main(int argument_count, char* *arguments_vector){
 	struct httpResource indexResource;
 	struct linked_list indexResource_linkNode;
 
-	struct event serverListen;
+	struct event *serverListen;
 	struct linked_list *garbage;
 
 	if(2 > argument_count) return 1;
@@ -286,21 +286,26 @@ int main(int argument_count, char* *arguments_vector){
 			return 13;
 		}
 
-	serverListen.context = &server;
-	serverListen.nanoseconds_checkAgain = 1000 * 100;
-	serverListen.precondition = &event_precondition_serverListen_accept;
-	serverListen.step = &event_step_serverListen_accept;
+	serverListen = malloc(sizeof(struct event));
+	serverListen->context = &server;
+	serverListen->nanoseconds_checkAgain = 1000 * 100;
+	serverListen->precondition = &event_precondition_serverListen_accept;
+	serverListen->step = &event_step_serverListen_accept;
 
 	while(1){
-		if((*(serverListen.precondition))(&serverListen, 0)){
-			garbage = (*(serverListen.step))(&serverListen, 0);
+		if((*(serverListen->precondition))(serverListen, 0)){
+			garbage = (*(serverListen->step))(serverListen, 0);
 			free(garbage->data);
+			garbage->data = 0;
 			free(garbage);
 		}
 		else
 			if(!httpServer_stepConnections(&server))
-				usleep(serverListen.nanoseconds_checkAgain / 1000);
+				usleep(serverListen->nanoseconds_checkAgain / 1000);
 	}
+
+	free(serverListen);
+	serverListen = 0;
 
 	if(httpServer_close(&server)){
 		server.listeningSocket_fileDescriptor = -1;

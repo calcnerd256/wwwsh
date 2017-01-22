@@ -114,6 +114,45 @@ int index_respond(struct httpResource *resource, struct incomingHttpRequest *req
 }
 
 
+struct event{
+	int (*precondition)(struct event*, void*);
+	struct linked_list* (*step)(struct event*, void*);
+	int nanoseconds_checkAgain;
+	void *context;
+};
+
+
+int event_precondition_serverListen_accept(struct event *evt, void *env){
+	struct httpServer *server;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	server = evt->context;
+	evt = 0;
+	return fd_canReadp(server->listeningSocket_fileDescriptor);
+}
+struct linked_list* event_step_serverListen_accept(struct event *evt, void *env){
+	struct linked_list *result;
+	struct event *again;
+	struct httpServer *server;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	server = evt->context;
+
+	httpServer_acceptNewConnection(server);
+
+	result = malloc(sizeof(struct linked_list));
+	result->next = 0;
+	result->data = malloc(sizeof(struct event));
+	again = result->data;
+	again->context = server;
+	again->nanoseconds_checkAgain = 1000 * 100;
+	again->precondition = &event_precondition_serverListen_accept;
+	again->step = &event_step_serverListen_accept;
+	again = 0;
+	return result;
+}
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
@@ -133,6 +172,9 @@ int main(int argument_count, char* *arguments_vector){
 	struct form formForm;
 	struct httpResource indexResource;
 	struct linked_list indexResource_linkNode;
+
+	struct event serverListen;
+	struct linked_list *garbage;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -244,12 +286,20 @@ int main(int argument_count, char* *arguments_vector){
 			return 13;
 		}
 
+	serverListen.context = &server;
+	serverListen.nanoseconds_checkAgain = 1000 * 100;
+	serverListen.precondition = &event_precondition_serverListen_accept;
+	serverListen.step = &event_step_serverListen_accept;
+
 	while(1){
-		if(fd_canReadp(server.listeningSocket_fileDescriptor))
-			httpServer_acceptNewConnection(&server);
+		if((*(serverListen.precondition))(&serverListen, 0)){
+			garbage = (*(serverListen.step))(&serverListen, 0);
+			free(garbage->data);
+			free(garbage);
+		}
 		else
 			if(!httpServer_stepConnections(&server))
-				usleep(100);
+				usleep(serverListen.nanoseconds_checkAgain / 1000);
 	}
 
 	if(httpServer_close(&server)){

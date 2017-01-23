@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <time.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
@@ -208,6 +209,7 @@ int main(int argument_count, char* *arguments_vector){
 	struct event *candidate;
 	struct linked_list *temp_node;
 	struct dequoid events;
+	struct timespec nanotime;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -332,6 +334,7 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->precondition = &event_precondition_stepConnections;
 	serverListen->step = &event_step_stepConnections;
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+	serverListen = 0;
 	new_head = 0;
 
 	while(1){
@@ -380,13 +383,28 @@ int main(int argument_count, char* *arguments_vector){
 				garbage = temp_node;
 			}
 		}
-		else
+		else{
 			if(minimumSleep > 1000)
 				usleep(minimumSleep / 1000);
+			else
+				if(minimumSleep){
+					nanotime.tv_sec = 0;
+					nanotime.tv_nsec = minimumSleep;
+					nanosleep(&nanotime, 0);
+				}
+		}
 	}
 
-	free(serverListen);
-	serverListen = 0;
+	new_head = events.head;
+	while(new_head){
+		garbage = new_head->next;
+		new_head->next = 0;
+		if(new_head->data)
+			free(new_head->data);
+		new_head->data = 0;
+		free(new_head);
+		new_head = garbage;
+	}
 
 	if(httpServer_close(&server)){
 		server.listeningSocket_fileDescriptor = -1;

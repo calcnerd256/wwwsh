@@ -177,10 +177,10 @@ int main(int argument_count, char* *arguments_vector){
 	struct linked_list *garbage;
 	struct event *currentEvent;
 	int minimumSleep = -1;
-	struct linked_list *events = 0;
 	struct linked_list *new_head;
 	struct event *candidate;
 	struct linked_list *temp_node;
+	struct dequoid events;
 
 	if(2 > argument_count) return 1;
 	if(3 < argument_count) return 1;
@@ -297,16 +297,14 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->nanoseconds_checkAgain = 1000 * 100;
 	serverListen->precondition = &event_precondition_serverListen_accept;
 	serverListen->step = &event_step_serverListen_accept;
-	new_head = malloc(sizeof(struct linked_list));
-	new_head->data = serverListen;
-	new_head->next = events;
-	events = new_head;
+	dequoid_init(&events);
+	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 	new_head = 0;
 
 	while(1){
 		minimumSleep = -1;
 		currentEvent = 0;
-		new_head = events;
+		new_head = events.head;
 		garbage = 0;
 		while(new_head){
 			temp_node = new_head->next;
@@ -339,16 +337,14 @@ int main(int argument_count, char* *arguments_vector){
 			if(currentEvent->step)
 				garbage = (*(currentEvent->step))(currentEvent, 0);
 			free(currentEvent);
-			if(garbage){
-				new_head = malloc(sizeof(struct linked_list));
-				/* TODO: handle multiple */
-				new_head->next = events;
-				/* TODO: use a deque */
-				new_head->data = garbage->data;
-				events = new_head;
-				serverListen = garbage->data;
+			while(garbage){
+				temp_node = garbage->next;
+				if(garbage->data)
+					dequoid_append(&events, garbage->data, malloc(sizeof(struct linked_list)));
+				garbage->next = 0;
 				garbage->data = 0;
 				free(garbage);
+				garbage = temp_node;
 			}
 		}
 		else

@@ -154,6 +154,33 @@ struct linked_list* event_step_serverListen_accept(struct event *evt, void *env)
 	return result;
 }
 
+int event_precondition_stepConnections(struct event *evt, void *env){
+	struct httpServer *server;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	server = evt->context;
+	evt = 0;
+	if(!server) return 0;
+	return httpServer_stepConnections(server);
+}
+struct linked_list* event_step_stepConnections(struct event *evt, void *env){
+	struct linked_list *result_node;
+	struct event *result_data;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	result_data = malloc(sizeof(struct event));
+	result_data->precondition = &event_precondition_stepConnections;
+	result_data->step = &event_step_stepConnections;
+	result_data->nanoseconds_checkAgain = 1000 * 100;
+	result_data->context = evt->context;
+	result_node = malloc(sizeof(struct linked_list));
+	result_node->next = 0;
+	result_node->data = result_data;
+	return result_node;
+}
+
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	int status = 0;
@@ -299,6 +326,12 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->step = &event_step_serverListen_accept;
 	dequoid_init(&events);
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+	serverListen = malloc(sizeof(struct event));
+	serverListen->context = &server;
+	serverListen->nanoseconds_checkAgain = 1000 * 100;
+	serverListen->precondition = &event_precondition_stepConnections;
+	serverListen->step = &event_step_stepConnections;
+	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 	new_head = 0;
 
 	while(1){
@@ -348,10 +381,8 @@ int main(int argument_count, char* *arguments_vector){
 			}
 		}
 		else
-			/* TODO: separate stepping connections from testing steppability */
-			if(!httpServer_stepConnections(&server))
-				if(minimumSleep > 1000)
-					usleep(minimumSleep / 1000);
+			if(minimumSleep > 1000)
+				usleep(minimumSleep / 1000);
 	}
 
 	free(serverListen);

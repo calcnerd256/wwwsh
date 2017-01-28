@@ -156,10 +156,8 @@ int event_precondition_stepConnections(struct event *evt, void *env){
 	evt = 0;
 	if(!server) return 0;
 
-	linkedList_popEmptyFreeing(&(server->connections));
 	linkedList_popEmptyFreeing(&(server->children));
 	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_removeMiddleEmptiesFreeing(server->connections);
 	linkedList_removeMiddleEmptiesFreeing(server->children);
 	linkedList_removeMiddleEmptiesFreeing(server->resources);
 
@@ -169,10 +167,8 @@ int event_precondition_stepConnections(struct event *evt, void *env){
 	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
 		return 0;
 
-	linkedList_popEmptyFreeing(&(server->connections));
 	linkedList_popEmptyFreeing(&(server->children));
 	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_removeMiddleEmptiesFreeing(server->connections);
 	linkedList_removeMiddleEmptiesFreeing(server->children);
 	linkedList_removeMiddleEmptiesFreeing(server->resources);
 
@@ -189,9 +185,36 @@ struct linked_list* event_step_stepConnections(struct event *evt, void *env){
 	result_data->step = &event_step_stepConnections;
 	result_data->nanoseconds_checkAgain = 1000 * 100;
 	result_data->context = evt->context;
+	evt = 0;
 	result_node = malloc(sizeof(struct linked_list));
 	result_node->next = 0;
 	result_node->data = result_data;
+	return result_node;
+}
+
+
+struct linked_list* event_step_cleanupList(struct event *evt, void *env){
+	struct linked_list *result_node;
+	struct event *result_event;
+	struct linked_list* *headptr;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	headptr = evt->context;
+	evt = 0;
+	if(!headptr) return 0;
+
+	linkedList_popEmptyFreeing(headptr);
+	linkedList_removeMiddleEmptiesFreeing(*headptr);
+
+	result_event = malloc(sizeof(struct event));
+	result_event->precondition = 0;
+	result_event->step = &event_step_cleanupList;
+	result_event->nanoseconds_checkAgain = 1000 * 1000 * 1000;
+	result_event->context = headptr;
+	result_node = malloc(sizeof(struct linked_list));
+	result_node->next = 0;
+	result_node->data = result_event;
 	return result_node;
 }
 
@@ -337,12 +360,21 @@ int main(int argument_count, char* *arguments_vector){
 	serverListen->step = &event_step_serverListen_accept;
 	dequoid_init(&events);
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+
 	serverListen = malloc(sizeof(struct event));
 	serverListen->context = &server;
 	serverListen->nanoseconds_checkAgain = 1000 * 100;
 	serverListen->precondition = &event_precondition_stepConnections;
 	serverListen->step = &event_step_stepConnections;
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+
+	serverListen = malloc(sizeof(struct event));
+	serverListen->context = &(server.connections);
+	serverListen->nanoseconds_checkAgain = 1000 * 1000 * 1000;
+	serverListen->precondition = 0;
+	serverListen->step = &event_step_cleanupList;
+	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+
 	serverListen = 0;
 	new_head = 0;
 

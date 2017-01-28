@@ -233,7 +233,6 @@ int main(int argument_count, char* *arguments_vector){
 	struct httpResource indexResource;
 	struct linked_list indexResource_linkNode;
 
-	struct event *serverListen;
 	struct linked_list *garbage;
 	struct linked_list *new_head;
 	struct dequoid events;
@@ -348,17 +347,39 @@ int main(int argument_count, char* *arguments_vector){
 			return 13;
 		}
 
-	serverListen = event_allocInit(&server, 1000 * 100, &event_precondition_serverListen_accept, &event_step_serverListen_accept);
 	dequoid_init(&events);
-	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 
-	serverListen = event_allocInit(&server, 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
-	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&server,
+			1000 * 100,
+			&event_precondition_serverListen_accept,
+			&event_step_serverListen_accept
+		),
+		malloc(sizeof(struct linked_list))
+	);
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&server,
+			1000 * 100,
+			&event_precondition_stepConnections,
+			&event_step_stepConnections
+		),
+		malloc(sizeof(struct linked_list))
+	);
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&(server.connections),
+			1000 * 1000 * 1000,
+			0,
+			&event_step_cleanupList
+		),
+		malloc(sizeof(struct linked_list))
+	);
 
-	serverListen = event_allocInit(&(server.connections), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
-	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
-
-	serverListen = 0;
 	new_head = 0;
 
 	while(!events_stepOrSleep(&events));

@@ -22,4 +22,5 @@ int httpServer_acceptNewConnection(struct httpServer *server);
 
 struct httpResource* httpServer_locateResource(struct httpServer *server, struct extent *url);
 
-int httpServer_stepConnections(struct httpServer *server);
+int visit_incomingHttpRequest_processStep(struct incomingHttpRequest *conn, int *context, struct linked_list *node);
+int visit_childProcessResource_processStep(struct childProcessResource *kid, int *context, struct linked_list *node);

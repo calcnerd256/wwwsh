@@ -148,13 +148,35 @@ struct linked_list* event_step_serverListen_accept(struct event *evt, void *env)
 
 int event_precondition_stepConnections(struct event *evt, void *env){
 	struct httpServer *server;
+	int any = 0;
 	(void)env;
 	env = 0;
 	if(!evt) return 0;
 	server = evt->context;
 	evt = 0;
 	if(!server) return 0;
-	return httpServer_stepConnections(server);
+
+	linkedList_popEmptyFreeing(&(server->connections));
+	linkedList_popEmptyFreeing(&(server->children));
+	linkedList_popEmptyFreeing(&(server->resources));
+	linkedList_removeMiddleEmptiesFreeing(server->connections);
+	linkedList_removeMiddleEmptiesFreeing(server->children);
+	linkedList_removeMiddleEmptiesFreeing(server->resources);
+
+	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
+		return 0;
+
+	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
+		return 0;
+
+	linkedList_popEmptyFreeing(&(server->connections));
+	linkedList_popEmptyFreeing(&(server->children));
+	linkedList_popEmptyFreeing(&(server->resources));
+	linkedList_removeMiddleEmptiesFreeing(server->connections);
+	linkedList_removeMiddleEmptiesFreeing(server->children);
+	linkedList_removeMiddleEmptiesFreeing(server->resources);
+
+	return any;
 }
 struct linked_list* event_step_stepConnections(struct event *evt, void *env){
 	struct linked_list *result_node;

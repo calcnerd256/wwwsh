@@ -223,23 +223,3 @@ int visit_childProcessResource_processStep(struct childProcessResource *kid, int
 	node = 0;
 	return 0;
 }
-int httpServer_stepConnections(struct httpServer *server){
-	int any = 0;
-	linkedList_popEmptyFreeing(&(server->connections));
-	linkedList_popEmptyFreeing(&(server->children));
-	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_removeMiddleEmptiesFreeing(server->connections);
-	linkedList_removeMiddleEmptiesFreeing(server->children);
-	linkedList_removeMiddleEmptiesFreeing(server->resources);
-	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
-		return 0;
-	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
-		return 0;
-	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_popEmptyFreeing(&(server->children));
-	linkedList_popEmptyFreeing(&(server->connections));
-	linkedList_removeMiddleEmptiesFreeing(server->resources);
-	linkedList_removeMiddleEmptiesFreeing(server->children);
-	linkedList_removeMiddleEmptiesFreeing(server->connections);
-	return any;
-}

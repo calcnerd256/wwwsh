@@ -183,11 +183,7 @@ struct linked_list* event_step_stepConnections(struct event *evt, void *env){
 	(void)env;
 	env = 0;
 	if(!evt) return 0;
-	result_data = malloc(sizeof(struct event));
-	result_data->precondition = &event_precondition_stepConnections;
-	result_data->step = &event_step_stepConnections;
-	result_data->nanoseconds_checkAgain = 1000 * 100;
-	result_data->context = evt->context;
+	result_data = event_allocInit(evt->context, 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
 	evt = 0;
 	result_node = malloc(sizeof(struct linked_list));
 	result_node->next = 0;
@@ -210,11 +206,7 @@ struct linked_list* event_step_cleanupList(struct event *evt, void *env){
 	linkedList_popEmptyFreeing(headptr);
 	linkedList_removeMiddleEmptiesFreeing(*headptr);
 
-	result_event = malloc(sizeof(struct event));
-	result_event->precondition = 0;
-	result_event->step = &event_step_cleanupList;
-	result_event->nanoseconds_checkAgain = 1000 * 1000 * 1000;
-	result_event->context = headptr;
+	result_event = event_allocInit(headptr, 1000 * 1000 * 1000, 0, &event_step_cleanupList);
 	result_node = malloc(sizeof(struct linked_list));
 	result_node->next = 0;
 	result_node->data = result_event;
@@ -356,26 +348,14 @@ int main(int argument_count, char* *arguments_vector){
 			return 13;
 		}
 
-	serverListen = malloc(sizeof(struct event));
-	serverListen->context = &server;
-	serverListen->nanoseconds_checkAgain = 1000 * 100;
-	serverListen->precondition = &event_precondition_serverListen_accept;
-	serverListen->step = &event_step_serverListen_accept;
+	serverListen = event_allocInit(&server, 1000 * 100, &event_precondition_serverListen_accept, &event_step_serverListen_accept);
 	dequoid_init(&events);
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 
-	serverListen = malloc(sizeof(struct event));
-	serverListen->context = &server;
-	serverListen->nanoseconds_checkAgain = 1000 * 100;
-	serverListen->precondition = &event_precondition_stepConnections;
-	serverListen->step = &event_step_stepConnections;
+	serverListen = event_allocInit(&server, 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 
-	serverListen = malloc(sizeof(struct event));
-	serverListen->context = &(server.connections);
-	serverListen->nanoseconds_checkAgain = 1000 * 1000 * 1000;
-	serverListen->precondition = 0;
-	serverListen->step = &event_step_cleanupList;
+	serverListen = event_allocInit(&(server.connections), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
 	dequoid_append(&events, serverListen, malloc(sizeof(struct linked_list)));
 
 	serverListen = 0;

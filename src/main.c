@@ -114,6 +114,16 @@ int index_respond(struct httpResource *resource, struct incomingHttpRequest *req
 }
 
 
+struct event* event_allocInit(void *context, int delay, int (*predicate)(struct event*, void*), struct linked_list* (*step)(struct event*, void*)){
+	struct event *result;
+	result = malloc(sizeof(struct event));
+	result->context = context;
+	result->nanoseconds_checkAgain = delay;
+	result->precondition = predicate;
+	result->step = step;
+	return result;
+}
+
 int event_precondition_serverListen_accept(struct event *evt, void *env){
 	struct httpServer *server;
 	(void)env;
@@ -125,7 +135,6 @@ int event_precondition_serverListen_accept(struct event *evt, void *env){
 }
 struct linked_list* event_step_serverListen_accept(struct event *evt, void *env){
 	struct linked_list *result;
-	struct event *again;
 	struct httpServer *server;
 	(void)env;
 	env = 0;
@@ -136,13 +145,7 @@ struct linked_list* event_step_serverListen_accept(struct event *evt, void *env)
 
 	result = malloc(sizeof(struct linked_list));
 	result->next = 0;
-	result->data = malloc(sizeof(struct event));
-	again = result->data;
-	again->context = server;
-	again->nanoseconds_checkAgain = 1000 * 100;
-	again->precondition = &event_precondition_serverListen_accept;
-	again->step = &event_step_serverListen_accept;
-	again = 0;
+	result->data = event_allocInit(server, 1000 * 100, &event_precondition_serverListen_accept, &event_step_serverListen_accept);
 	return result;
 }
 

@@ -1,13 +1,12 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <string.h>
-#include <time.h>
 #include "./server.h"
 #include "./request.h"
 #include "./static.h"
+#include "./event.h"
 
 
 int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest *req, struct linked_list *formData){
@@ -115,14 +114,6 @@ int index_respond(struct httpResource *resource, struct incomingHttpRequest *req
 }
 
 
-struct event{
-	int (*precondition)(struct event*, void*);
-	struct linked_list* (*step)(struct event*, void*);
-	int nanoseconds_checkAgain;
-	void *context;
-};
-
-
 int event_precondition_serverListen_accept(struct event *evt, void *env){
 	struct httpServer *server;
 	(void)env;
@@ -182,82 +173,6 @@ struct linked_list* event_step_stepConnections(struct event *evt, void *env){
 	return result_node;
 }
 
-int events_minimumSleep(struct linked_list *events){
-	int result = -1;
-	struct event *current;
-	while(events){
-		current = events->data;
-		if(current){
-			if(-1 == result)
-				result = current->nanoseconds_checkAgain;
-			if(-1 != current->nanoseconds_checkAgain)
-				if(current->nanoseconds_checkAgain < result)
-					result = current->nanoseconds_checkAgain;
-		}
-		events = events->next;
-	}
-	return result;
-}
-
-int events_whichPreconditionMet(struct linked_list *events, struct linked_list* *out){
-	struct event *candidate;
-	while(events){
-		candidate = events->data;
-		if(candidate){
-			if(!(candidate->precondition)){
-				*out = events;
-				return 0;
-			}
-			if((*(candidate->precondition))(candidate, 0)){
-				*out = events;
-				return 0;
-			}
-		}
-		events = events->next;
-	}
-	return 0;
-}
-
-int events_stepOrSleep(struct dequoid *events){
-	int minimumSleep;
-	struct linked_list *tempNode;
-	struct linked_list *node = 0;
-	struct event *currentEvent = 0;
-	struct timespec nanotime;
-	linkedList_popEmptyFreeing(&(events->head));
-	if(linkedList_removeMiddleEmptiesFreeing(events->head)) return 1;
-	minimumSleep = events_minimumSleep(events->head);
-	if(events_whichPreconditionMet(events->head, &node)) return 2;
-	if(node)
-		if(node->data)
-			currentEvent = node->data;
-	if(currentEvent){
-		node->data = 0;
-		node = 0;
-		if(currentEvent->step)
-			node = (*(currentEvent->step))(currentEvent, 0);
-		free(currentEvent);
-		while(node){
-			tempNode = node->next;
-			if(node->data)
-				dequoid_append(events, node->data, malloc(sizeof(struct linked_list)));
-			node->next = 0;
-			node->data = 0;
-			free(node);
-			node = tempNode;
-		}
-		return 0;
-	}
-	if(minimumSleep > 1000){
-		usleep(minimumSleep / 1000);
-		return 0;
-	}
-	if(!minimumSleep) return 0;
-	nanotime.tv_sec = 0;
-	nanotime.tv_nsec = minimumSleep;
-	nanosleep(&nanotime, 0);
-	return 0;
-}
 
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;

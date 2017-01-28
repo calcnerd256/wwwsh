@@ -1,5 +1,8 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#ifndef INCLUDE_LINKED_LIST
+#define INCLUDE_LINKED_LIST
+
 struct linked_list{
 	void *data;
 	struct linked_list *next;
@@ -29,3 +32,5 @@ struct dequoid{
 
 int dequoid_init(struct dequoid *list);
 int dequoid_append(struct dequoid *list, void *data, struct linked_list *node);
+
+#endif

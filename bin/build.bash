@@ -18,4 +18,5 @@ gcc \
  ../src/static.c \
  ../src/form.c \
  ../src/process.c \
+ ../src/event.c \
  ../src/main.c

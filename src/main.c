@@ -162,9 +162,6 @@ int event_precondition_stepConnections(struct event *evt, void *env){
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
 		return 0;
 
-	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
-		return 0;
-
 	return any;
 }
 struct linked_list* event_step_stepConnections(struct event *evt, void *env){
@@ -179,6 +176,32 @@ struct linked_list* event_step_stepConnections(struct event *evt, void *env){
 	result_node->next = 0;
 	result_node->data = result_data;
 	return result_node;
+}
+
+int event_precondition_stepChildProcesses(struct event *evt, void *env){
+	struct linked_list* *headptr;
+	int any = 0;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	headptr = evt->context;
+	evt = 0;
+	if(!headptr) return 0;
+	if(traverse_linked_list(*headptr, (visitor_t)(&visit_childProcessResource_processStep), &any))
+		return 0;
+	headptr = 0;
+	return any;
+}
+struct linked_list* event_step_stepChildProcesses(struct event *evt, void *env){
+	struct linked_list *result;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	result = malloc(sizeof(struct linked_list));
+	result->next = 0;
+	result->data = event_allocInit(evt->context, 1000 * 100, &event_precondition_stepChildProcesses, &event_step_stepChildProcesses);
+	evt = 0;
+	return result;
 }
 
 
@@ -356,6 +379,16 @@ int main(int argument_count, char* *arguments_vector){
 			1000 * 100,
 			&event_precondition_stepConnections,
 			&event_step_stepConnections
+		),
+		malloc(sizeof(struct linked_list))
+	);
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&(server.children),
+			1000 * 100,
+			&event_precondition_stepChildProcesses,
+			&event_step_stepChildProcesses
 		),
 		malloc(sizeof(struct linked_list))
 	);

@@ -12,7 +12,6 @@
 
 int httpServer_init(struct httpServer *server){
 	server->listeningSocket_fileDescriptor = -1;
-	server->connections = 0;
 	server->resources = 0;
 	server->children = 0;
 	server->nextChild = 1;
@@ -128,7 +127,7 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 	return 0;
 }
 
-/* TODO: consider cleaning up all open connections when closing the server */
+/* TODO: consider cleaning up all open connections when closing the server, somehow */
 int httpServer_close(struct httpServer *server){
 	server->resources = 0;
 	if(-1 == server->listeningSocket_fileDescriptor){
@@ -160,22 +159,6 @@ int httpServer_acceptNewConnection_fd(int fd){
 	memset(&address, 0, sizeof(struct sockaddr));
 	length = 0;
 	return result;
-}
-int httpServer_acceptNewConnection_init(struct httpServer *server, int fd){
-	struct linked_list *new_head;
-	struct incomingHttpRequest *req;
-	new_head = malloc(sizeof(struct linked_list));
-	req = malloc(sizeof(struct incomingHttpRequest));
-	new_head->next = server->connections;
-	new_head->data = req;
-	incomingHttpRequest_init(req, server, fd);
-	fd = 0;
-	req->node = new_head;
-	req = 0;
-	server->connections = new_head;
-	new_head = 0;
-	server = 0;
-	return 0;
 }
 
 int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){

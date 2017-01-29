@@ -12,7 +12,6 @@
 #include "./requestInput.h"
 
 struct httpServer{
-	struct linked_list *connections;
 	struct linked_list *resources;
 	struct linked_list *children;
 	unsigned long int nextChild;

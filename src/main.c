@@ -124,6 +124,43 @@ struct event* event_allocInit(void *context, int delay, int (*predicate)(struct 
 	return result;
 }
 
+int event_precondition_processRequest_step(struct event *evt, void *env){
+	struct linked_list node;
+	struct incomingHttpRequest *req;
+	int progress = 0;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	req = evt->context;
+	if(!req) return 0;
+	node.data = req;
+	node.next = 0;
+	req->node = &node;
+	/* TODO: inline this */
+	if(visit_incomingHttpRequest_processStep(req, &progress, 0))
+		return 0;
+	if(node.data)
+		req->node = 0;
+	else
+		evt->context = 0;
+	evt = 0;
+	return progress;
+}
+struct linked_list* event_step_processRequest_step(struct event *evt, void *env){
+	struct incomingHttpRequest *req;
+	struct linked_list *result;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	req = evt->context;
+	if(!req) return 0;
+	/* TODO: if it's dead, clean up and don't create the new event */
+	result = malloc(sizeof(struct linked_list));
+	result->next = 0;
+	result->data = event_allocInit(req, 1000 * 100, &event_precondition_processRequest_step, &event_step_processRequest_step);
+	return result;
+}
+
 int event_precondition_serverListen_accept(struct event *evt, void *env){
 	struct httpServer *server;
 	(void)env;
@@ -136,19 +173,30 @@ int event_precondition_serverListen_accept(struct event *evt, void *env){
 struct linked_list* event_step_serverListen_accept(struct event *evt, void *env){
 	struct linked_list *result;
 	struct httpServer *server;
+	struct linked_list *temp;
+	struct incomingHttpRequest *req;
 	int fd;
 	(void)env;
 	env = 0;
 	if(!evt) return 0;
 	server = evt->context;
 
-	fd = httpServer_acceptNewConnection_fd(server->listeningSocket_fileDescriptor);
-	if(-1 != fd)
-		httpServer_acceptNewConnection_init(server, fd);
-
 	result = malloc(sizeof(struct linked_list));
 	result->next = 0;
 	result->data = event_allocInit(server, 1000 * 100, &event_precondition_serverListen_accept, &event_step_serverListen_accept);
+
+	fd = httpServer_acceptNewConnection_fd(server->listeningSocket_fileDescriptor);
+	if(-1 == fd) return result;
+
+	req = malloc(sizeof(struct incomingHttpRequest));
+	incomingHttpRequest_init(req, server, fd);
+	req->node = 0;
+
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	temp = 0;
+	result->data = event_allocInit(req, 1000 * 100, &event_precondition_processRequest_step, &event_step_processRequest_step);
 	return result;
 }
 
@@ -250,15 +298,7 @@ struct linked_list* event_step_beginLoops(struct event *evt, void *env){
 	temp = result;
 	result = malloc(sizeof(struct linked_list));
 	result->next = temp;
-	result->data = event_allocInit(&(server->connections), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
-	temp = result;
-	result = malloc(sizeof(struct linked_list));
-	result->next = temp;
 	result->data = event_allocInit(&(server->children), 1000 * 100, &event_precondition_stepChildProcesses, &event_step_stepChildProcesses);
-	temp = result;
-	result = malloc(sizeof(struct linked_list));
-	result->next = temp;
-	result->data = event_allocInit(&(server->connections), 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
 	temp = result;
 	result = malloc(sizeof(struct linked_list));
 	result->next = temp;

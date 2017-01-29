@@ -20,7 +20,6 @@ int httpServer_listen(struct httpServer *server, char* port_number, int backlog)
 int httpServer_close(struct httpServer *server);
 
 int httpServer_acceptNewConnection_fd(int fd);
-int httpServer_acceptNewConnection_init(struct httpServer *server, int fd);
 
 struct httpResource* httpServer_locateResource(struct httpServer *server, struct extent *url);
 

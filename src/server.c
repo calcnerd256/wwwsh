@@ -178,13 +178,6 @@ int httpServer_acceptNewConnection_init(struct httpServer *server, int fd){
 	return 0;
 }
 
-int httpServer_acceptNewConnection(struct httpServer *server){
-	int fd = httpServer_acceptNewConnection_fd(server->listeningSocket_fileDescriptor);
-	if(-1 == fd) return 1;
-	return httpServer_acceptNewConnection_init(server, fd);
-}
-
-
 int match_httpResource_url(struct httpResource *resource, struct extent *url, struct linked_list *node){
 	(void)node;
 	node = 0;

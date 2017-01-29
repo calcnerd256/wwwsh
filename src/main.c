@@ -136,12 +136,15 @@ int event_precondition_serverListen_accept(struct event *evt, void *env){
 struct linked_list* event_step_serverListen_accept(struct event *evt, void *env){
 	struct linked_list *result;
 	struct httpServer *server;
+	int fd;
 	(void)env;
 	env = 0;
 	if(!evt) return 0;
 	server = evt->context;
 
-	httpServer_acceptNewConnection(server);
+	fd = httpServer_acceptNewConnection_fd(server->listeningSocket_fileDescriptor);
+	if(-1 != fd)
+		httpServer_acceptNewConnection_init(server, fd);
 
 	result = malloc(sizeof(struct linked_list));
 	result->next = 0;

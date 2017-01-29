@@ -148,24 +148,40 @@ int httpServer_close(struct httpServer *server){
 	return 0;
 }
 
-int httpServer_acceptNewConnection(struct httpServer *server){
+int httpServer_acceptNewConnection_fd(int fd){
 	struct sockaddr address;
 	socklen_t length;
-	int fd;
-	struct linked_list *new_head;
+	int result;
 
 	memset(&address, 0, sizeof(struct sockaddr));
 	length = 0;
-	fd = accept4(server->listeningSocket_fileDescriptor, &address, &length, SOCK_CLOEXEC);
-	if(-1 == fd) return 1;
-
+	result = accept4(fd, &address, &length, SOCK_CLOEXEC);
+	fd = 0;
+	memset(&address, 0, sizeof(struct sockaddr));
+	length = 0;
+	return result;
+}
+int httpServer_acceptNewConnection_init(struct httpServer *server, int fd){
+	struct linked_list *new_head;
+	struct incomingHttpRequest *req;
 	new_head = malloc(sizeof(struct linked_list));
-	new_head->data = malloc(sizeof(struct incomingHttpRequest));
+	req = malloc(sizeof(struct incomingHttpRequest));
 	new_head->next = server->connections;
-	incomingHttpRequest_init((struct incomingHttpRequest*)(new_head->data), server, fd);
-	((struct incomingHttpRequest*)(new_head->data))->node = new_head;
+	new_head->data = req;
+	incomingHttpRequest_init(req, server, fd);
+	fd = 0;
+	req->node = new_head;
+	req = 0;
 	server->connections = new_head;
+	new_head = 0;
+	server = 0;
 	return 0;
+}
+
+int httpServer_acceptNewConnection(struct httpServer *server){
+	int fd = httpServer_acceptNewConnection_fd(server->listeningSocket_fileDescriptor);
+	if(-1 == fd) return 1;
+	return httpServer_acceptNewConnection_init(server, fd);
 }
 
 

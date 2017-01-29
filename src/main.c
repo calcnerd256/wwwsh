@@ -227,6 +227,44 @@ struct linked_list* event_step_cleanupList(struct event *evt, void *env){
 }
 
 
+struct linked_list* event_step_beginLoops(struct event *evt, void *env){
+	struct httpServer *server;
+	struct linked_list *result = 0;
+	struct linked_list *temp = 0;
+	(void)env;
+	env = 0;
+	if(!evt) return 0;
+	server = evt->context;
+	evt = 0;
+	if(!server) return 0;
+	result = malloc(sizeof(struct linked_list));
+	result->next = 0;
+	result->data = event_allocInit(&(server->resources), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	result->data = event_allocInit(&(server->children), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	result->data = event_allocInit(&(server->connections), 1000 * 1000 * 1000, 0, &event_step_cleanupList);
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	result->data = event_allocInit(&(server->children), 1000 * 100, &event_precondition_stepChildProcesses, &event_step_stepChildProcesses);
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	result->data = event_allocInit(server, 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
+	temp = result;
+	result = malloc(sizeof(struct linked_list));
+	result->next = temp;
+	result->data = event_allocInit(server, 1000 * 100, &event_precondition_serverListen_accept, &event_step_serverListen_accept);
+	temp = 0;
+	return result;
+}
+
+
 int main(int argument_count, char* *arguments_vector){
 	struct httpServer server;
 	int status = 0;
@@ -361,69 +399,11 @@ int main(int argument_count, char* *arguments_vector){
 		}
 
 	dequoid_init(&events);
-
 	dequoid_append(
 		&events,
-		event_allocInit(
-			&server,
-			1000 * 100,
-			&event_precondition_serverListen_accept,
-			&event_step_serverListen_accept
-		),
+		event_allocInit(&server, 0, 0, &event_step_beginLoops),
 		malloc(sizeof(struct linked_list))
 	);
-	dequoid_append(
-		&events,
-		event_allocInit(
-			&server,
-			1000 * 100,
-			&event_precondition_stepConnections,
-			&event_step_stepConnections
-		),
-		malloc(sizeof(struct linked_list))
-	);
-	dequoid_append(
-		&events,
-		event_allocInit(
-			&(server.children),
-			1000 * 100,
-			&event_precondition_stepChildProcesses,
-			&event_step_stepChildProcesses
-		),
-		malloc(sizeof(struct linked_list))
-	);
-	dequoid_append(
-		&events,
-		event_allocInit(
-			&(server.connections),
-			1000 * 1000 * 1000,
-			0,
-			&event_step_cleanupList
-		),
-		malloc(sizeof(struct linked_list))
-	);
-	dequoid_append(
-		&events,
-		event_allocInit(
-			&(server.children),
-			1000 * 1000 * 1000,
-			0,
-			&event_step_cleanupList
-		),
-		malloc(sizeof(struct linked_list))
-	);
-	dequoid_append(
-		&events,
-		event_allocInit(
-			&(server.resources),
-			1000 * 1000 * 1000,
-			0,
-			&event_step_cleanupList
-		),
-		malloc(sizeof(struct linked_list))
-	);
-
-	new_head = 0;
 
 	while(!events_stepOrSleep(&events));
 

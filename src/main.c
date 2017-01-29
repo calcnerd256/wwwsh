@@ -159,21 +159,11 @@ int event_precondition_stepConnections(struct event *evt, void *env){
 	evt = 0;
 	if(!server) return 0;
 
-	linkedList_popEmptyFreeing(&(server->children));
-	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_removeMiddleEmptiesFreeing(server->children);
-	linkedList_removeMiddleEmptiesFreeing(server->resources);
-
 	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
 		return 0;
 
 	if(traverse_linked_list(server->children, (visitor_t)(&visit_childProcessResource_processStep), &any))
 		return 0;
-
-	linkedList_popEmptyFreeing(&(server->children));
-	linkedList_popEmptyFreeing(&(server->resources));
-	linkedList_removeMiddleEmptiesFreeing(server->children);
-	linkedList_removeMiddleEmptiesFreeing(server->resources);
 
 	return any;
 }
@@ -373,6 +363,26 @@ int main(int argument_count, char* *arguments_vector){
 		&events,
 		event_allocInit(
 			&(server.connections),
+			1000 * 1000 * 1000,
+			0,
+			&event_step_cleanupList
+		),
+		malloc(sizeof(struct linked_list))
+	);
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&(server.children),
+			1000 * 1000 * 1000,
+			0,
+			&event_step_cleanupList
+		),
+		malloc(sizeof(struct linked_list))
+	);
+	dequoid_append(
+		&events,
+		event_allocInit(
+			&(server.resources),
 			1000 * 1000 * 1000,
 			0,
 			&event_step_cleanupList

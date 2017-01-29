@@ -150,16 +150,16 @@ struct linked_list* event_step_serverListen_accept(struct event *evt, void *env)
 }
 
 int event_precondition_stepConnections(struct event *evt, void *env){
-	struct httpServer *server;
+	struct linked_list* *headptr;
 	int any = 0;
 	(void)env;
 	env = 0;
 	if(!evt) return 0;
-	server = evt->context;
+	headptr = evt->context;
 	evt = 0;
-	if(!server) return 0;
+	if(!headptr) return 0;
 
-	if(traverse_linked_list(server->connections, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
+	if(traverse_linked_list(*headptr, (visitor_t)(&visit_incomingHttpRequest_processStep), &any))
 		return 0;
 
 	return any;
@@ -255,7 +255,7 @@ struct linked_list* event_step_beginLoops(struct event *evt, void *env){
 	temp = result;
 	result = malloc(sizeof(struct linked_list));
 	result->next = temp;
-	result->data = event_allocInit(server, 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
+	result->data = event_allocInit(&(server->connections), 1000 * 100, &event_precondition_stepConnections, &event_step_stepConnections);
 	temp = result;
 	result = malloc(sizeof(struct linked_list));
 	result->next = temp;

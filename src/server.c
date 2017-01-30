@@ -33,22 +33,22 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	return 0;
 }
 
-int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
-	char childId[256];
-	unsigned long int lid;
+int httpServer_pushChildProcess_nextId(struct httpServer *server, struct childProcessResource *kid){
+	char idStr[256];
+	unsigned long int id;
 	int i;
-	char c;
 	char hexit;
+	char c;
 	if(!server) return 1;
 	if(!kid) return 2;
 
-	memset(childId, 0, 256);
-	lid = server->nextChild++;
+	memset(idStr, 0, 256);
+	id = server->nextChild++;
 	i = 0;
-	while(lid){
+	while(id){
 		if(i >= 255) return 4;
-		hexit = lid % 16;
-		lid >>= 4;
+		hexit = id % 16;
+		id >>= 4;
 		if(!hexit) c = '0';
 		else{
 			if(hexit < 10)
@@ -56,16 +56,25 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 			else
 				c = 'a' + hexit - 10;
 		}
-		childId[i++] = c;
+		idStr[i++] = c;
 	}
-
-	kid->node = malloc(sizeof(struct linked_list));
-	kid->linkNode_resources = malloc(sizeof(struct linked_list));
 	kid->url.len = 9 + i;
 	kid->url.bytes = palloc(&(kid->allocations), kid->url.len + 1);
 	strncpy(kid->url.bytes, "/process/", 9);
-	strncpy(kid->url.bytes + 9, childId, i);
+	strncpy(kid->url.bytes + 9, idStr, i);
 	kid->url.bytes[kid->url.len] = 0;
+	return 0;
+}
+
+int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
+	if(!server) return 1;
+	if(!kid) return 2;
+
+	if(httpServer_pushChildProcess_nextId(server, kid))
+		return 4;
+
+	kid->node = malloc(sizeof(struct linked_list));
+	kid->linkNode_resources = malloc(sizeof(struct linked_list));
 	kid->resource.url.bytes = kid->url.bytes;
 	kid->resource.url.len = kid->url.len;
 

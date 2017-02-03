@@ -33,5 +33,10 @@ GCC_FLAGS=""
 GCC_FLAGS="$GCC_FLAGS $GCC_OPTIMIZATION"
 GCC_FLAGS="$GCC_FLAGS $GCC_WARNINGS"
 
+DIR_BIN="$(pwd)"
+pushd "$DIR_SRC"/linkedList/linkedList.struct/
+$DIR_BIN/struct.bash > ../linkedList.struct.h
+popd
+
 mkdir -p "$DIR_BUILD"
 gcc $GCC_FLAGS -o "$GCC_OUT" $GCC_UNITS

@@ -38,36 +38,6 @@ long int httpServer_nextChildId(struct httpServer *server){
 	return server->nextChild++;
 }
 
-int httpServer_pushChildProcess_deleteForm(struct childProcessResource *kid){
-	kid->linkNode_resources_deleteForm = malloc(sizeof(struct linked_list));
-	point_extent_at_nice_string(&(kid->deleteForm_title), "delete process");
-
-	point_extent_at_nice_string(&(kid->confirmFieldName), "confirm");
-	point_extent_at_nice_string(&(kid->confirmFieldTag), "input");
-	point_extent_at_nice_string(&(kid->confirmFieldType), "checkbox");
-
-	kid->confirmField_node_type.data = &(kid->confirmFieldType);
-	kid->confirmField_node_type.next = 0;
-	kid->confirmField_node_tag.data = &(kid->confirmFieldTag);
-	kid->confirmField_node_tag.next = &(kid->confirmField_node_type);
-	kid->confirmField_node_name.data = &(kid->confirmFieldName);
-	kid->confirmField_node_name.next = &(kid->confirmField_node_tag);
-	kid->deleteForm_confirmFieldNode.data = &(kid->confirmField_node_name);
-	kid->deleteForm_confirmFieldNode.next = 0;
-
-	kid->deleteForm.title = &(kid->deleteForm_title);
-	kid->deleteForm.fields = &(kid->deleteForm_confirmFieldNode);
-	kid->deleteForm.action = &(kid->deleteForm_resource);
-	kid->deleteForm.respond_POST = &childProcessResource_deleteForm_respond_POST;
-
-	kid->deleteForm_resource.url.bytes = palloc(&(kid->allocations), kid->url.len + 8 + 1);
-	kid->deleteForm_resource.url.len = kid->url.len + 8;
-	strncpy(kid->deleteForm_resource.url.bytes, kid->url.bytes, kid->url.len);
-	strncpy(kid->deleteForm_resource.url.bytes + kid->url.len, "/delete/", 9);
-
-	return 0;
-}
-
 int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
 	if(!server) return 1;
 	if(!kid) return 2;
@@ -78,7 +48,7 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	kid->node->next = server->children;
 	server->children = kid->node;
 
-	if(httpServer_pushChildProcess_deleteForm(kid))
+	if(childProcessResource_initDeleteForm(kid))
 		return 7;
 
 	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))

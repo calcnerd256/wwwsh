@@ -47,29 +47,29 @@ int match_incomingHttpRequest_bySocketFileDescriptor(struct incomingHttpRequest 
 	return data->fd == *target;
 }
 
-/* TODO: rename internal variables from conn to req */
-int incomingHttpRequest_free(struct incomingHttpRequest *conn){
-	if(!conn) return 1;
-	if(conn->fd == -1) return 0;
-	close(conn->fd);
-	conn->fd = -1;
+int incomingHttpRequest_free(struct incomingHttpRequest *req){
+	if(!req) return 1;
+	if(req->fd == -1) return 0;
+	close(req->fd);
+	req->fd = -1;
 
-	if(conn->allocations.allocs){
+	if(req->allocations.allocs){
+		requestInput_consumeLastLine(&(req->input));
 
-		requestInput_consumeLastLine(&(conn->input));
-
-		free_pool(&(conn->allocations));
-		memset(&(conn->allocations), 0, sizeof(struct mempool));
+		free_pool(&(req->allocations));
+		memset(&(req->allocations), 0, sizeof(struct mempool));
 	}
-	if(conn->node) conn->node->data = 0;
-	memset(conn, 0, sizeof(struct incomingHttpRequest));
-	conn->done_writing = 1;
-	conn->input.done = 1;
-	conn->input.httpMajorVersion = -1;
-	conn->input.httpMinorVersion = -1;
-	free(conn);
+	if(req->node)
+		req->node->data = 0;
+	memset(req, 0, sizeof(struct incomingHttpRequest));
+	req->done_writing = 1;
+	req->input.done = 1;
+	req->input.httpMajorVersion = -1;
+	req->input.httpMinorVersion = -1;
+	free(req);
 	return 0;
 }
+/* TODO: rename internal variables from conn to req */
 int incomingHttpRequest_readChunk(struct incomingHttpRequest *conn){
 	char buf[CHUNK_SIZE + 1];
 	size_t len;

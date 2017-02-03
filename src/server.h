@@ -14,6 +14,8 @@ int httpServer_pushResource(
 	int (*respond)(struct httpResource*, struct incomingHttpRequest*),
 	void *context
 );
+
+long int httpServer_nextChildId(struct httpServer *server);
 int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid);
 
 int httpServer_listen(struct httpServer *server, char* port_number, int backlog);

@@ -17,6 +17,7 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	struct staticFormResource *fr;
 	struct linked_list *match_node;
 	int plen;
+	long int childId = 0;
 	if(!res) return 1;
 	if(!req) return 1;
 	if(!formData) return 1;
@@ -38,6 +39,10 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 	child = malloc(sizeof(struct childProcessResource));
 	if(childProcessResource_init_spawn(child, match_node->data))
 		return 3;
+	childId = httpServer_nextChildId(server);
+	if(-1 == childId) return 4;
+	if(childProcessResource_urlId(child, childId))
+		return 4;
 	if(httpServer_pushChildProcess(server, child))
 		return 4;
 	memset(pid, 0, 256);

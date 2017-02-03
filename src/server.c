@@ -79,14 +79,8 @@ int httpServer_pushChildProcess_deleteForm(struct childProcessResource *kid){
 }
 
 int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
-	long int childId = 0;
 	if(!server) return 1;
 	if(!kid) return 2;
-
-	childId = httpServer_nextChildId(server);
-	if(-1 == childId) return 7;
-	if(childProcessResource_urlId(kid, childId))
-		return 3;
 
 	if(httpServer_pushChildProcess_resource(kid))
 		return 6;

@@ -42,9 +42,11 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 
 	childId = httpServer_nextChildId(server);
 	if(-1 == childId) return 4;
+	if(childProcessResource_urlId(child, childId))
+		return 4;
 	if(childProcessResource_initResource(child))
 		return 4;
-	if(childProcessResource_urlId(child, childId))
+	if(childProcessResource_initDeleteForm(child))
 		return 4;
 	if(httpServer_pushChildProcess(server, child))
 		return 4;

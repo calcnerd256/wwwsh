@@ -119,6 +119,16 @@ int childProcessResource_urlId(struct childProcessResource *kid, unsigned long i
 	return 0;
 }
 
+int childProcessResource_initResource(struct childProcessResource *kid){
+	kid->node = malloc(sizeof(struct linked_list));
+	kid->linkNode_resources = malloc(sizeof(struct linked_list));
+	kid->resource.url.bytes = kid->url.bytes;
+	kid->resource.url.len = kid->url.len;
+	kid->node->data = kid;
+	kid->node->next = 0;
+	return 0;
+}
+
 
 
 int childProcessResource_readChunkp(struct childProcessResource *kid){

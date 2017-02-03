@@ -38,16 +38,6 @@ long int httpServer_nextChildId(struct httpServer *server){
 	return server->nextChild++;
 }
 
-int httpServer_pushChildProcess_resource(struct childProcessResource *kid){
-	kid->node = malloc(sizeof(struct linked_list));
-	kid->linkNode_resources = malloc(sizeof(struct linked_list));
-	kid->resource.url.bytes = kid->url.bytes;
-	kid->resource.url.len = kid->url.len;
-	kid->node->data = kid;
-	kid->node->next = 0;
-	return 0;
-}
-
 int httpServer_pushChildProcess_deleteForm(struct childProcessResource *kid){
 	kid->linkNode_resources_deleteForm = malloc(sizeof(struct linked_list));
 	point_extent_at_nice_string(&(kid->deleteForm_title), "delete process");
@@ -82,12 +72,14 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	if(!server) return 1;
 	if(!kid) return 2;
 
-	if(httpServer_pushChildProcess_resource(kid))
+	if(childProcessResource_initResource(kid))
 		return 6;
+
 	kid->node->next = server->children;
 	server->children = kid->node;
 
-	if(httpServer_pushChildProcess_deleteForm(kid)) return 7;
+	if(httpServer_pushChildProcess_deleteForm(kid))
+		return 7;
 
 	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))
 		return 4;

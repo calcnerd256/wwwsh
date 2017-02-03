@@ -42,14 +42,11 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	if(!server) return 1;
 	if(!kid) return 2;
 
-	if(childProcessResource_initResource(kid))
-		return 6;
+	if(childProcessResource_initDeleteForm(kid))
+		return 7;
 
 	kid->node->next = server->children;
 	server->children = kid->node;
-
-	if(childProcessResource_initDeleteForm(kid))
-		return 7;
 
 	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))
 		return 4;

@@ -48,9 +48,6 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))
 		return 4;
 
-	if(httpServer_pushResource(server, kid->linkNode_resources_deleteForm, &(kid->deleteForm_resource), 0, &staticFormResource_canRespondp, &childProcessResource_deleteForm_respond, kid))
-		return 5;
-
 	return 0;
 }
 

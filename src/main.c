@@ -50,6 +50,8 @@ int spawnForm_respond_POST(struct httpResource *res, struct incomingHttpRequest 
 		return 4;
 	if(httpServer_pushChildProcess(server, child))
 		return 4;
+	if(httpServer_pushResource(server, child->linkNode_resources_deleteForm, &(child->deleteForm_resource), 0, &staticFormResource_canRespondp, &childProcessResource_deleteForm_respond, child))
+		return 4;
 
 	memset(pid, 0, 256);
 	plen = snprintf(pid, 256, "%d", child->pid);

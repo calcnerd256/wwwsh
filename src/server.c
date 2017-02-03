@@ -45,9 +45,6 @@ int httpServer_pushChildProcess(struct httpServer *server, struct childProcessRe
 	kid->node->next = server->children;
 	server->children = kid->node;
 
-	if(httpServer_pushResource(server, kid->linkNode_resources, &(kid->resource), &childProcessResource_urlMatchesp, &childProcessResource_canRespondp, &childProcessResource_respond, kid))
-		return 4;
-
 	return 0;
 }
 

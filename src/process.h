@@ -28,6 +28,9 @@ struct childProcessResource{
 
 int childProcessResource_init_spawn(struct childProcessResource *child, struct extent* command);
 
+int childProcessResource_urlId(struct childProcessResource *kid, unsigned long int id);
+
+
 int childProcessResource_steppedp(struct childProcessResource *kid);
 
 int childProcessResource_urlMatchesp(struct httpResource *resource, struct extent*url);

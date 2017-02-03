@@ -38,36 +38,6 @@ long int httpServer_nextChildId(struct httpServer *server){
 	return server->nextChild++;
 }
 
-int childProcessResource_urlId(struct childProcessResource *kid, unsigned long int id){
-	char idStr[256];
-	int i;
-	char hexit;
-	char c;
-	if(!kid) return 2;
-
-	memset(idStr, 0, 256);
-	i = 0;
-	while(id){
-		if(i >= 255) return 4;
-		hexit = id % 16;
-		id >>= 4;
-		if(!hexit) c = '0';
-		else{
-			if(hexit < 10)
-				c = '1' + hexit - 1;
-			else
-				c = 'a' + hexit - 10;
-		}
-		idStr[i++] = c;
-	}
-	kid->url.len = 9 + i;
-	kid->url.bytes = palloc(&(kid->allocations), kid->url.len + 1);
-	strncpy(kid->url.bytes, "/process/", 9);
-	strncpy(kid->url.bytes + 9, idStr, i);
-	kid->url.bytes[kid->url.len] = 0;
-	return 0;
-}
-
 int httpServer_pushChildProcess_resource(struct childProcessResource *kid){
 	kid->node = malloc(sizeof(struct linked_list));
 	kid->linkNode_resources = malloc(sizeof(struct linked_list));

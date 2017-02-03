@@ -9,7 +9,7 @@ gcc \
  -Wextra \
  -Werror \
  -o ../build/main \
- ../src/linked_list.c \
+ ../src/linkedList/linkedList.c \
  ../src/mempool.c \
  ../src/requestInput.c \
  ../src/network.c \

@@ -36,6 +36,8 @@ GCC_FLAGS="$GCC_FLAGS $GCC_WARNINGS"
 DIR_BIN="$(pwd)"
 pushd "$DIR_SRC"/linkedList/linkedList.struct/
 $DIR_BIN/struct.bash > ../linkedList.struct.h
+cd ../dequoid.struct/
+$DIR_BIN/struct.bash > ../dequoid.struct.h
 popd
 
 mkdir -p "$DIR_BUILD"

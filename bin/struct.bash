@@ -8,6 +8,8 @@ echo
 echo "#ifndef $INCLUDE_MACRO"
 echo "#define $INCLUDE_MACRO"
 echo
+sed "s/^/#include \".\//;s/\$/.h\"/" ./dependencies.list
+echo
 echo "struct $STRUCT_IDENTIFIER{"
 for FIELD_NAME in $(cat ./fields); do
 	FIELD_TYPE="$(cat "$FIELD_NAME".field)"

@@ -1,2 +1,3 @@
 build/
 src/linkedList/linkedList.struct.h
+src/linkedList/dequoid.struct.h

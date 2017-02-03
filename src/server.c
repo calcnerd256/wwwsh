@@ -33,17 +33,19 @@ int httpServer_pushResource(struct httpServer *server, struct linked_list *new_h
 	return 0;
 }
 
-int httpServer_pushChildProcess_nextId(struct httpServer *server, struct childProcessResource *kid){
+long int httpServer_nextChildId(struct httpServer *server){
+	if(!server) return -1;
+	return server->nextChild++;
+}
+
+int childProcessResource_urlId(struct childProcessResource *kid, unsigned long int id){
 	char idStr[256];
-	unsigned long int id;
 	int i;
 	char hexit;
 	char c;
-	if(!server) return 1;
 	if(!kid) return 2;
 
 	memset(idStr, 0, 256);
-	id = server->nextChild++;
 	i = 0;
 	while(id){
 		if(i >= 255) return 4;
@@ -107,10 +109,13 @@ int httpServer_pushChildProcess_deleteForm(struct childProcessResource *kid){
 }
 
 int httpServer_pushChildProcess(struct httpServer *server, struct childProcessResource *kid){
+	long int childId = 0;
 	if(!server) return 1;
 	if(!kid) return 2;
 
-	if(httpServer_pushChildProcess_nextId(server, kid))
+	childId = httpServer_nextChildId(server);
+	if(-1 == childId) return 7;
+	if(childProcessResource_urlId(kid, childId))
 		return 3;
 
 	if(httpServer_pushChildProcess_resource(kid))

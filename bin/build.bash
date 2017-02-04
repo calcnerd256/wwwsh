@@ -35,13 +35,15 @@ GCC_FLAGS="$GCC_FLAGS $GCC_WARNINGS"
 
 DIR_BIN="$(pwd)"
 pushd "$DIR_SRC"/linkedList/linkedList.struct/
-$DIR_BIN/struct.bash "$(cat ./identifier.txt)" \
- | $DIR_BIN/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
+"$DIR_BIN"/struct.bash "$(cat ./identifier.txt)" \
+ < ./fields \
+ | "$DIR_BIN"/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
  | cat ./emacs_variables.comment - \
  > ../linkedList.struct.h
 cd ../dequoid.struct/
-$DIR_BIN/struct.bash "$(cat ./identifier.txt)" \
- | $DIR_BIN/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
+"$DIR_BIN"/struct.bash "$(cat ./identifier.txt)" \
+ < ./fields \
+ | "$DIR_BIN"/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
  | cat ./emacs_variables.comment - \
  > ../dequoid.struct.h
 popd

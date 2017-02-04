@@ -34,22 +34,12 @@ GCC_FLAGS=""
 GCC_FLAGS="$GCC_FLAGS $GCC_OPTIMIZATION"
 GCC_FLAGS="$GCC_FLAGS $GCC_WARNINGS"
 
-pushd "$DIR_SRC"/linkedList/linkedList.struct/
+pushd "$DIR_SRC"/linkedList/
 export PATH="$DIR_BIN":"$PATH"
-struct.bash "$(cat ./identifier.txt)" \
- < ./fields \
- | pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
- | cat ./emacs_variables.comment - \
- > ../linkedList.struct.h \
+struct.h.bash ./linkedList.struct/ linkedList.struct
+struct.h.bash ./dequoid.struct/ dequoid.struct
 
-cd ../dequoid.struct/
-struct.bash "$(cat ./identifier.txt)" \
- < ./fields \
- | pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
- | cat ./emacs_variables.comment - \
- > ../dequoid.struct.h \
-
-cd ../visitor_t.function/
+cd ./visitor_t.function/
 typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
  | pragmaOnce.bash "$(cat ./include.macro)" \
  | cat ./emacs_variables.comment - \

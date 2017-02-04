@@ -4,10 +4,7 @@
 #include "./linkedList.struct.h"
 #include "./last_node.h"
 
-#ifndef INCLUDE_stdlib
-# include <stdlib.h>
-# define INCLUDE_stdlib
-#endif
+#include "./stdlib.inc.h"
 
 int append(struct linked_list *head, void* data){
 	head = last_node(head);

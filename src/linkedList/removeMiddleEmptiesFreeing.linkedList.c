@@ -3,10 +3,7 @@
 #include "./removeMiddleEmptiesFreeing.linkedList.h"
 #include "./linkedList.struct.h"
 
-#ifndef INCLUDE_stdlib
-# include <stdlib.h>
-# define INCLUDE_stdlib
-#endif
+#include "./stdlib.inc.h"
 
 int linkedList_removeMiddleEmptiesFreeing(struct linked_list *xs){
 	struct linked_list *node = xs;

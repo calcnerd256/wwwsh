@@ -2,16 +2,8 @@
 
 #include "./alloc_copy_visitor.h"
 #include "./visitor_t.typedef.h"
-
-#ifndef INCLUDE_stdlib
-# include <stdlib.h>
-# define INCLUDE_stdlib
-#endif
-
-#ifndef INCLUDE_string
-# include <string.h>
-# define INCLUDE_string
-#endif
+#include "./malloc.h"
+#include "./memcpy.h"
 
 char *alloc_copy_visitor(visitor_t visitor){
 	char *result;

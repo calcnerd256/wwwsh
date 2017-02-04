@@ -3,15 +3,8 @@
 #include "./free_visitor_copy.h"
 #include "./visitor_t.typedef.h"
 
-#ifndef INCLUDE_string
-# include <string.h>
-# define INCLUDE_string
-#endif
-
-#ifndef INCLUDE_stdlib
-# include <stdlib.h>
-# define INCLUDE_stdlib
-#endif
+#include "./string.inc.h"
+#include "./stdlib.inc.h"
 
 int free_visitor_copy(char *bytes){
 	memset(bytes, 0, sizeof(visitor_t));

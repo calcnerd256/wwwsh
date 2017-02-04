@@ -3,6 +3,7 @@
 DIR_ROOT=..
 DIR_BUILD="$DIR_ROOT"/build
 DIR_SRC="$DIR_ROOT"/src
+DIR_BIN="$(pwd)"
 
 GCC_OPTIMIZATION=""
 GCC_OPTIMIZATION="$GCC_OPTIMIZATION -g3"
@@ -33,19 +34,21 @@ GCC_FLAGS=""
 GCC_FLAGS="$GCC_FLAGS $GCC_OPTIMIZATION"
 GCC_FLAGS="$GCC_FLAGS $GCC_WARNINGS"
 
-DIR_BIN="$(pwd)"
 pushd "$DIR_SRC"/linkedList/linkedList.struct/
-"$DIR_BIN"/struct.bash "$(cat ./identifier.txt)" \
+export PATH="$DIR_BIN":"$PATH"
+struct.bash "$(cat ./identifier.txt)" \
  < ./fields \
- | "$DIR_BIN"/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
+ | pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
  | cat ./emacs_variables.comment - \
- > ../linkedList.struct.h
+ > ../linkedList.struct.h \
+
 cd ../dequoid.struct/
-"$DIR_BIN"/struct.bash "$(cat ./identifier.txt)" \
+struct.bash "$(cat ./identifier.txt)" \
  < ./fields \
- | "$DIR_BIN"/pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
+ | pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
  | cat ./emacs_variables.comment - \
- > ../dequoid.struct.h
+ > ../dequoid.struct.h\
+
 popd
 
 mkdir -p "$DIR_BUILD"

@@ -47,7 +47,7 @@ struct.bash "$(cat ./identifier.txt)" \
  < ./fields \
  | pragmaOnce.bash "$(cat ./include.macro)_STRUCT" \
  | cat ./emacs_variables.comment - \
- > ../dequoid.struct.h\
+ > ../dequoid.struct.h \
 
 popd
 

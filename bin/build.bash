@@ -49,6 +49,12 @@ struct.bash "$(cat ./identifier.txt)" \
  | cat ./emacs_variables.comment - \
  > ../dequoid.struct.h \
 
+cd ../visitor_t.function/
+typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
+ | pragmaOnce.bash "$(cat ./include.macro)" \
+ | cat ./emacs_variables.comment - \
+ > ../visitor_t.typedef.h \
+
 popd
 
 mkdir -p "$DIR_BUILD"

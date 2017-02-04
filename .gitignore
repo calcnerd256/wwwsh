@@ -1,3 +1,4 @@
 build/
 src/linkedList/linkedList.struct.h
 src/linkedList/dequoid.struct.h
+src/linkedList/visitor_t.typedef.h

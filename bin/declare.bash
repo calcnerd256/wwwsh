@@ -2,15 +2,6 @@
 
 FIELD_NAME="$1"
 
-if which cdecl > /dev/null ; then
-	echo "($(cat "$FIELD_NAME".field))_" \
-		| cast2decl.bash _ "$FIELD_NAME" \
-
-	exit 0
-fi
-
-# else
-
 if [ -a "$FIELD_NAME".field.prefix ] ; then
 	echo " $FIELD_NAME " \
 		| cat \
@@ -24,8 +15,17 @@ fi
 
 # else
 
-echo "$FIELD_NAME" \
+FILE="$FIELD_NAME"
+if [ -a "$FIELD_NAME".field ] ; then
+	FILE="$FIELD_NAME".field
+else
+	if [ -a "$FIELD_NAME".argument ] ; then
+		FILE="$FIELD_NAME".argument
+	fi
+fi
+
+echo " $FIELD_NAME" \
 	| cat \
-		"$FIELD_NAME".field \
+		"$FILE" \
 		- \
 	| sed "s/ \* / */"

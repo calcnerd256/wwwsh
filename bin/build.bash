@@ -45,6 +45,12 @@ typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
  | cat ./emacs_variables.comment - \
  > ../visitor_t.typedef.h \
 
+cd ../alloc_copy_visitor.function/
+h.function.bash \
+ | pragmaOnce.bash "$(cat ./include.macro)" \
+ | cat ./emacs_variables.comment - \
+ > ../alloc_copy_visitor.h \
+
 popd
 
 mkdir -p "$DIR_BUILD"

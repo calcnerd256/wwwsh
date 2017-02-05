@@ -58,6 +58,7 @@ FUNCTIONS="$FUNCTIONS match_last"
 FUNCTIONS="$FUNCTIONS last_node"
 FUNCTIONS="$FUNCTIONS append"
 FUNCTIONS="$FUNCTIONS popEmptyFreeing.linkedList"
+FUNCTIONS="$FUNCTIONS removeMiddleEmptiesFreeing.linkedList"
 for FUNCTION in $FUNCTIONS ; do
 	function.bash "$FUNCTION" || exit 1
 done

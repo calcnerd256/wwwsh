@@ -12,3 +12,5 @@ src/linkedList/traverse_linked_list.h
 src/linkedList/traverse_linked_list.c
 src/linkedList/clean_and_free_list.h
 src/linkedList/clean_and_free_list.c
+src/linkedList/visit_matcher.h
+src/linkedList/visit_matcher.c

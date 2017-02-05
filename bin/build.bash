@@ -39,7 +39,7 @@ export PATH="$DIR_BIN":"$PATH"
 struct.h.bash ./linkedList.struct/ linkedList.struct
 struct.h.bash ./dequoid.struct/ dequoid.struct
 
-cd ./visitor_t.function/
+cd ./visitor_t.function.type/
 typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
  | pragmaOnce.bash "$(cat ./include.macro)" \
  | cat ./emacs_variables.comment - \

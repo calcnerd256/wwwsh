@@ -8,3 +8,5 @@ src/linkedList/free_visitor_copy.h
 src/linkedList/free_visitor_copy.c
 src/linkedList/apply_visitor.h
 src/linkedList/apply_visitor.c
+src/linkedList/traverse_linked_list.h
+src/linkedList/traverse_linked_list.c

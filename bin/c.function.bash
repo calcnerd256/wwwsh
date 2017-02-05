@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 cat ./emacs_variables.comment
-echo "#include \"./$(cat ./identifier.txt).h\""
+DEPEND_FILES="./identifier.txt"
 if [ -a ./header.dependencies.list ] ; then
-	sed \
-		"s/^/#include \".\//;s/\$/.h\"/" \
-		./header.dependencies.list \
-
+	DEPEND_FILES="$DEPEND_FILES ./header.dependencies.list"
 fi
-sed "s/^/#include \".\//;s/\$/.h\"/" ./body.dependencies.list
+if [ -a ./body.dependencies.list ] ; then
+	DEPEND_FILES="$DEPEND_FILES ./body.dependencies.list"
+fi
+cat $DEPEND_FILES | sed "s/^/#include \".\//;s/\$/.h\"/"
 echo
 echo \
 	$( \

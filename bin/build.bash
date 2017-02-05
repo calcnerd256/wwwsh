@@ -46,9 +46,13 @@ typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
  > ../visitor_t.typedef.h \
 
 cd ../
-function.bash alloc_copy_visitor
-function.bash free_visitor_copy
-function.bash apply_visitor
+FUNCTIONS=""
+FUNCTIONS="$FUNCTIONS alloc_copy_visitor"
+FUNCTIONS="$FUNCTIONS free_visitor_copy"
+FUNCTIONS="$FUNCTIONS apply_visitor"
+for FUNCTION in $FUNCTIONS ; do
+	function.bash "$FUNCTION" || exit 1
+done
 popd
 
 mkdir -p "$DIR_BUILD"

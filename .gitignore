@@ -6,3 +6,5 @@ src/linkedList/alloc_copy_visitor.h
 src/linkedList/alloc_copy_visitor.c
 src/linkedList/free_visitor_copy.h
 src/linkedList/free_visitor_copy.c
+src/linkedList/apply_visitor.h
+src/linkedList/apply_visitor.c

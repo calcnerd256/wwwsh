@@ -15,7 +15,8 @@ function_header.bash \
 	"$(cat ./return.type)" \
 	< ./argument.list \
 	| tr '\n\t' '  ' \
-	| sed "s/( */(/;s/ *) */)/" \
+	| sed "s/  */ /g" \
+	| sed "s/( /(/;s/ *) */)/;s/ \* / */g" \
 
 echo "{"
 sed "s/^/\t/"

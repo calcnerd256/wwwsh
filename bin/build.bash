@@ -60,6 +60,7 @@ FUNCTIONS="$FUNCTIONS append"
 FUNCTIONS="$FUNCTIONS popEmptyFreeing.linkedList"
 FUNCTIONS="$FUNCTIONS removeMiddleEmptiesFreeing.linkedList"
 FUNCTIONS="$FUNCTIONS init.dequoid"
+FUNCTIONS="$FUNCTIONS append.dequoid"
 for FUNCTION in $FUNCTIONS ; do
 	function.bash "$FUNCTION" || exit 1
 done

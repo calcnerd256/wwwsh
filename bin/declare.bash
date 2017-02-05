@@ -24,8 +24,5 @@ else
 	fi
 fi
 
-echo " $FIELD_NAME" \
-	| cat \
-		"$FILE" \
-		- \
+echo "$(cat "$FILE")" "$FIELD_NAME" \
 	| sed "s/ \* / */"

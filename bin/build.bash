@@ -53,6 +53,7 @@ FUNCTIONS="$FUNCTIONS apply_visitor"
 FUNCTIONS="$FUNCTIONS traverse_linked_list"
 FUNCTIONS="$FUNCTIONS clean_and_free_list"
 FUNCTIONS="$FUNCTIONS visit_matcher"
+FUNCTIONS="$FUNCTIONS first_matching"
 for FUNCTION in $FUNCTIONS ; do
 	function.bash "$FUNCTION" || exit 1
 done

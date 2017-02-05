@@ -14,3 +14,5 @@ src/linkedList/clean_and_free_list.h
 src/linkedList/clean_and_free_list.c
 src/linkedList/visit_matcher.h
 src/linkedList/visit_matcher.c
+src/linkedList/first_matching.h
+src/linkedList/first_matching.c

@@ -22,3 +22,5 @@ src/linkedList/last_node.h
 src/linkedList/last_node.c
 src/linkedList/append.h
 src/linkedList/append.c
+src/linkedList/popEmptyFreeing.linkedList.h
+src/linkedList/popEmptyFreeing.linkedList.c

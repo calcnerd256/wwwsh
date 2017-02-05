@@ -25,7 +25,7 @@ done
 h.function.bash \
 	| pragmaOnce.bash "$(cat ./include.macro)" \
 	| cat ./emacs_variables.comment - \
-	> ../"$(cat ./identifier.txt)".h \
+	> ../"$1".h \
 
-c.function.bash < ./body.c > ../"$(cat ./identifier.txt)".c
+c.function.bash "$1" < ./body.c > ../"$1".c
 popd

@@ -4,8 +4,7 @@
 #include "./linkedList.struct.h"
 #include "./visitor_t.typedef.h"
 #include "./traverse_linked_list.h"
-
-#include "./stdlib.inc.h"
+#include "./free.h"
 
 int clean_and_free_list(struct linked_list *head, visitor_t cleaner, void *context){
 	int status;

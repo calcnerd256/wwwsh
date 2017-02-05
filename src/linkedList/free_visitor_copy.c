@@ -2,9 +2,8 @@
 
 #include "./free_visitor_copy.h"
 #include "./visitor_t.typedef.h"
-
-#include "./string.inc.h"
-#include "./stdlib.inc.h"
+#include "./memset.h"
+#include "./free.h"
 
 int free_visitor_copy(char *bytes){
 	memset(bytes, 0, sizeof(visitor_t));

@@ -3,8 +3,7 @@
 #include "./append.h"
 #include "./linkedList.struct.h"
 #include "./last_node.h"
-
-#include "./stdlib.inc.h"
+#include "./malloc.h"
 
 int append(struct linked_list *head, void* data){
 	head = last_node(head);

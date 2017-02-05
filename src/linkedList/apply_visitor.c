@@ -3,8 +3,7 @@
 #include "./apply_visitor.h"
 #include "./linkedList.struct.h"
 #include "./visitor_t.typedef.h"
-
-#include "./string.inc.h"
+#include "./memcpy.h"
 
 int apply_visitor(char *fnptr_bytes, void* data, void* context, struct linked_list *node){
 	visitor_t visitor;

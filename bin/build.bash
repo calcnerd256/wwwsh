@@ -51,6 +51,7 @@ FUNCTIONS="$FUNCTIONS alloc_copy_visitor"
 FUNCTIONS="$FUNCTIONS free_visitor_copy"
 FUNCTIONS="$FUNCTIONS apply_visitor"
 FUNCTIONS="$FUNCTIONS traverse_linked_list"
+FUNCTIONS="$FUNCTIONS clean_and_free_list"
 for FUNCTION in $FUNCTIONS ; do
 	function.bash "$FUNCTION" || exit 1
 done

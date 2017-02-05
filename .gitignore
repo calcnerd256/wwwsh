@@ -20,3 +20,5 @@ src/linkedList/match_last.h
 src/linkedList/match_last.c
 src/linkedList/last_node.h
 src/linkedList/last_node.c
+src/linkedList/append.h
+src/linkedList/append.c

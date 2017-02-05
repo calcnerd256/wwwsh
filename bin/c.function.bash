@@ -10,13 +10,11 @@ if [ -a ./body.dependencies.list ] ; then
 fi
 cat $DEPEND_FILES | sed "s/^/#include \".\//;s/\$/.h\"/"
 echo
-echo \
-	$( \
-		function_header.bash \
-			"$(cat ./identifier.txt)" \
-			"$(cat ./return.type)" \
-			< ./argument.list \
-	)"{" \
-	| sed "s/( /(/;s/ )/)/"
+function_header.bash \
+	"$(cat ./identifier.txt)" \
+	"$(cat ./return.type)" \
+	< ./argument.list \
+	| sed "s/( /(/;s/ )/)/;\$s/\$/{/" \
+
 sed "s/^/\t/"
 echo "}"

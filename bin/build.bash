@@ -56,6 +56,7 @@ FUNCTIONS="$FUNCTIONS visit_matcher"
 FUNCTIONS="$FUNCTIONS first_matching"
 FUNCTIONS="$FUNCTIONS match_last"
 FUNCTIONS="$FUNCTIONS last_node"
+FUNCTIONS="$FUNCTIONS append"
 for FUNCTION in $FUNCTIONS ; do
 	function.bash "$FUNCTION" || exit 1
 done

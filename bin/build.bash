@@ -48,6 +48,7 @@ typedef.bash "$(cat ./identifier.txt | sed "s/^/(*/;s/\$/)/")" \
 cd ../
 function.bash alloc_copy_visitor
 function.bash free_visitor_copy
+function.bash apply_visitor
 popd
 
 mkdir -p "$DIR_BUILD"

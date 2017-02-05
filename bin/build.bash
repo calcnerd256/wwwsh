@@ -49,8 +49,9 @@ cd ../alloc_copy_visitor.function/
 h.function.bash \
  | pragmaOnce.bash "$(cat ./include.macro)" \
  | cat ./emacs_variables.comment - \
- > ../alloc_copy_visitor.h \
+ > ../"$(cat ./identifier.txt)".h \
 
+c.function.bash < ./body.c > ../alloc_copy_visitor.c
 popd
 
 mkdir -p "$DIR_BUILD"

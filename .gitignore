@@ -4,3 +4,5 @@ src/linkedList/dequoid.struct.h
 src/linkedList/visitor_t.typedef.h
 src/linkedList/alloc_copy_visitor.h
 src/linkedList/alloc_copy_visitor.c
+src/linkedList/free_visitor_copy.h
+src/linkedList/free_visitor_copy.c

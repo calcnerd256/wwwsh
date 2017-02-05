@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-sed "s/^/#include \".\//;s/\$/.h\"/" ./header.dependencies.list
-echo
+if [ -a ./header.dependencies.list ] ; then
+	sed "s/^/#include \".\//;s/\$/.h\"/" ./header.dependencies.list
+	echo
+fi
 function_header.bash \
 	"$(cat ./identifier.txt)" \
 	"$(cat ./return.type)" \

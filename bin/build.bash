@@ -51,7 +51,15 @@ h.function.bash \
  | cat ./emacs_variables.comment - \
  > ../"$(cat ./identifier.txt)".h \
 
-c.function.bash < ./body.c > ../alloc_copy_visitor.c
+c.function.bash < ./body.c > ../"$(cat ./identifier.txt)".c
+
+cd ../free_visitor_copy.function/
+h.function.bash \
+ | pragmaOnce.bash "$(cat ./include.macro)" \
+ | cat ./emacs_variables.comment - \
+ > ../"$(cat ./identifier.txt)".h \
+
+c.function.bash < ./body.c > ../"$(cat ./identifier.txt)".c
 popd
 
 mkdir -p "$DIR_BUILD"

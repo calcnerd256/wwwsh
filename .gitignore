@@ -26,3 +26,5 @@ src/linkedList/popEmptyFreeing.linkedList.h
 src/linkedList/popEmptyFreeing.linkedList.c
 src/linkedList/removeMiddleEmptiesFreeing.linkedList.h
 src/linkedList/removeMiddleEmptiesFreeing.linkedList.c
+src/linkedList/init.dequoid.h
+src/linkedList/init.dequoid.c

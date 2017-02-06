@@ -19,7 +19,7 @@ GCC_OUT="$DIR_BUILD/main"
 
 GCC_UNITS=""
 GCC_UNITS="$GCC_UNITS $DIR_SRC/linkedList/linkedList.c"
-GCC_UNITS="$GCC_UNITS $DIR_SRC/mempool.c"
+GCC_UNITS="$GCC_UNITS $DIR_SRC/extent/extent.c"
 GCC_UNITS="$GCC_UNITS $DIR_SRC/requestInput.c"
 GCC_UNITS="$GCC_UNITS $DIR_SRC/network.c"
 GCC_UNITS="$GCC_UNITS $DIR_SRC/server.c"

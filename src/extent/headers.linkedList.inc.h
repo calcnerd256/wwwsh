@@ -1,7 +1,7 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include "./linkedList.struct.inc.h"
-#include "./visitor_t.typedef.inc.h"
+#include "./linkedList.struct.h"
+#include "./visitor_t.typedef.h"
 
 
 #include "../linkedList/alloc_copy_visitor.h"

@@ -1,3 +1,6 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include "./extent/headers.h"
+struct extent{
+	char *bytes;
+	size_t len;
+};

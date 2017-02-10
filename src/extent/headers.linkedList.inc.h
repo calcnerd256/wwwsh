@@ -15,11 +15,11 @@
 #include "./last_node.h"
 #include "./append.h"
 
-#include "../linkedList/popEmptyFreeing.linkedList.h"
-#include "../linkedList/removeMiddleEmptiesFreeing.linkedList.h"
+#include "./popEmptyFreeing.linkedList.h"
+#include "./removeMiddleEmptiesFreeing.linkedList.h"
 
 
-#include "../linkedList/dequoid.struct.h"
+#include "./dequoid.struct.h"
 
-#include "../linkedList/init.dequoid.h"
-#include "../linkedList/append.dequoid.h"
+#include "./init.dequoid.h"
+#include "./append.dequoid.h"

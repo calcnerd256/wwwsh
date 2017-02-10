@@ -11,7 +11,3 @@
 
 #include "./visit_clear.c"
 #include "./free_pool.c"
-
-
-#include "./string.inc.h"
-#include "./headers.h"

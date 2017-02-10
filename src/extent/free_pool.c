@@ -4,6 +4,7 @@
 #include "./mempool.struct.h"
 #include "./clean_and_free_list.h"
 #include "./visitor_t.typedef.h"
+#include "./visit_clear.h"
 
 int free_pool(struct mempool *pool){
 	return clean_and_free_list(pool->allocs, (visitor_t)&visit_clear, 0);

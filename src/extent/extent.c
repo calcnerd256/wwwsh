@@ -2,17 +2,17 @@
 
 #include "./point_extent_at_nice_string.c"
 
-
-#include "./string.inc.h"
-#include "./headers.h"
-
-
 #include "./visit_extent_sumLength.c"
 
 
 #include "./init_pool.c"
 
 #include "./palloc.c"
+
+
+#include "./string.inc.h"
+#include "./headers.h"
+
 
 #include "./visit_clear.c"
 #include "./free_pool.c"

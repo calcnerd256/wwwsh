@@ -1,5 +1,10 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
+#include "./visit_clear.h"
+#include "./extent.struct.h"
+#include "./linkedList.struct.h"
+#include "./memset.h"
+
 int visit_clear(struct extent *data, void *context, struct linked_list *node){
 	(void)context;
 	if(!data) return 1;

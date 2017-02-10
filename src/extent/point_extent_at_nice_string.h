@@ -1,5 +1,13 @@
 /* -*- indent-tabs-mode: t; tab-width: 2; c-basic-offset: 2; c-default-style: "stroustrup"; -*- */
 
-#include "./extent.struct.h"
+#ifndef INCLUDE_pointExtentAtNiceString
+# define INCLUDE_pointExtentAtNiceString
 
-int point_extent_at_nice_string(struct extent *storage, char *bytes);
+# include "./extent.struct.h"
+
+int point_extent_at_nice_string(
+	struct extent *storage,
+	char *bytes
+);
+
+#endif

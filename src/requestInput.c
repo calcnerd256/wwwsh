@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "./requestInput.h"
+#include "./requestInput/headers.h"
 
 
 int chunkStream_init(struct chunkStream *ptr, struct mempool *pool){

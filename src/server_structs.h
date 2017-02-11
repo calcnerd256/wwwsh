@@ -9,7 +9,7 @@
 #ifndef INCLUDE_SERVER_STRUCTS
 #define INCLUDE_SERVER_STRUCTS
 
-#include "./requestInput.h"
+#include "./requestInput/headers.h"
 
 struct httpServer{
 	struct linked_list *resources;
